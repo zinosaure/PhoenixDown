@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.lib.library.LemuroidLibrary
@@ -27,6 +28,9 @@ class GameInteractor(
         if (!ensureNotBusy()) {
             return
         }
+        if (!ensureGameNotRunning()) {
+            return
+        }
         if (!ensureNotificationsPermissionAvailable()) {
             return
         }
@@ -35,6 +39,9 @@ class GameInteractor(
 
     fun onGameRestart(game: Game) {
         if (!ensureNotBusy()) {
+            return
+        }
+        if (!ensureGameNotRunning()) {
             return
         }
         if (!ensureNotificationsPermissionAvailable()) {
@@ -159,6 +166,14 @@ class GameInteractor(
     private fun ensureNotBusy(): Boolean {
         if (activity.isBusy()) {
             activity.activity().displayToast(R.string.game_interactory_busy)
+            return false
+        }
+        return true
+    }
+
+    private fun ensureGameNotRunning(): Boolean {
+        if (GameProcessLock.isHeldByAnotherProcess(activity.activity())) {
+            activity.activity().displayToast(R.string.game_already_running)
             return false
         }
         return true
