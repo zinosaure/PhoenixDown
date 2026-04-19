@@ -1,0 +1,23 @@
+services:
+    retromul-build:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: retromul-build
+        working_dir: /workspace
+        user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+        environment:
+            HOME: /workspace
+            ANDROID_SDK_ROOT: /opt/android-sdk
+            ANDROID_HOME: /opt/android-sdk
+            ANDROID_USER_HOME: /workspace/.android
+            GRADLE_USER_HOME: /workspace/.gradle-cache
+            CI: "true"
+        volumes:
+            - android-sdk-cache:/opt/android-sdk
+            - ./src:/workspace
+            - ./releases:/workspace/artifacts
+        command: [ "bash", "/workspace/scripts/build-release-inside.sh" ]
+
+volumes:
+    android-sdk-cache:

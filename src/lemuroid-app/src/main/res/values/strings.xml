@@ -1,0 +1,414 @@
+<resources>
+    <string name="title_home">Home</string>
+    <string name="title_search">Search</string>
+    <string name="title_systems">Systems</string>
+    <string name="title_games">Games</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_catalog">Catalog</string>
+    <string name="settings_title_about">About</string>
+    <string name="settings_title_manual">User Manual</string>
+    <string name="settings_description_manual">How to use Retromul</string>
+    <string name="recent">Recents</string>
+    <string name="favorites">Favorites</string>
+    <string name="discover">Discover</string>
+    <string name="rescan">Rescan</string>
+    <string name="stop">Stop</string>
+    <string name="none">None</string>
+    <string name="directory">Directory</string>
+    <string name="display_filter">Display filter</string>
+    <string name="roms">ROMs</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="settings">Settings</string>
+    <string name="save_sync">Save Sync</string>
+    <string name="show_all">Show All</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+
+    <string name="game_page_search_suggestion">Search games</string>
+
+    <string name="settings_category_general">General</string>
+    <string name="settings_category_input">Input</string>
+    <string name="settings_category_misc">Miscellaneous</string>
+    <string name="settings_title_enable_autosave">Autosave state</string>
+    <string name="settings_description_enable_autosave">Save state when exiting via game menu</string>
+    <string name="settings_title_enable_touch_feedback">Vibrate on touch</string>
+    <string name="settings_title_tilt_sensitivity">Tilt sensor sensitivity</string>
+    <string name="settings_title_hd_quality">HD mode quality</string>
+    <string name="settings_title_maximum_cache_usage">Cache size limit</string>
+
+    <string name="settings_title_hd_mode">HD mode</string>
+    <string name="settings_description_hd_mode">Apply post-processing upscaling filter</string>
+    <string name="settings_description_hd_quality">Adjust the quality of HD mode</string>
+
+    <string name="settings_title_immersive_mode">Immersive mode</string>
+    <string name="settings_description_immersive_mode">Dynamically colors the background based on game visuals</string>
+
+    <string name="settings_title_gamepad_settings">External devices</string>
+    <string name="settings_description_gamepad_settings">Configure external gamepads and keyboards</string>
+
+    <string name="settings_retropad_button_name">RetroPad %1$s</string>
+
+    <string name="settings_gamepad_category_enabled">Enabled devices</string>
+    <string name="settings_gamepad_category_general">General</string>
+    <string name="settings_gamepad_title_reset_bindings">Reset bindings</string>
+    <string name="settings_gamepad_title_game_menu">Menu</string>
+
+    <string name="settings_title_open_cores_selection">Change Cores</string>
+    <string name="settings_description_open_cores_selection">Select which core is associated to a system</string>
+    <string name="settings_core_selection_ds_info">DeSmuME is deprecated and will be removed in one of the next updates. Save your progress inside the game, then switch to melonDS. In-game saves will load automatically in melonDS, but save states can only be used with the core that created them.</string>
+
+    <string name="settings_title_display_bios_info">BIOS</string>
+    <string name="settings_description_display_bios_info">Display detected and supported BIOS files</string>
+    <string name="settings_bios_category_detected">Detected</string>
+    <string name="settings_bios_category_not_detected">Supported</string>
+
+    <string name="settings_title_reset_settings">Factory reset</string>
+    <string name="settings_description_reset_settings">Reset Lemuroid to its factory settings</string>
+
+    <string name="settings_title_advanced_settings">Advanced settings</string>
+    <string name="settings_description_advanced_settings">Display advanced settings</string>
+    <string name="settings_title_low_latency_audio">Prefer low-latency audio</string>
+    <string name="settings_description_low_latency_audio">Reduce audio latency on supported devices. Might increase audio glitches.</string>
+
+    <string name="settings_title_direct_game_load">Direct game load</string>
+    <string name="settings_description_direct_game_load">(Experimental) Reduce loading time and cache usage on supported consoles.</string>
+
+    <string name="settings_title_enable_rumble">Rumble</string>
+    <string name="settings_description_enable_rumble">Enable rumble in supported games and controllers</string>
+
+    <string name="settings_title_enable_device_rumble">Device rumble</string>
+    <string name="settings_description_enable_device_rumble">When no controller is connected vibrate the device instead</string>
+
+    <string name="reset_settings_warning_message_title">Are you sure?</string>
+    <string name="reset_settings_warning_message_description">This will reset Lemuroid to its factory settings. Saves and States will be preserved.</string>
+
+    <string name="settings_title_save_sync">Cloud saves</string>
+    <string name="settings_description_save_sync">Back up and Sync your saves on the cloud</string>
+    <string name="settings_save_sync_refresh">Manual Sync</string>
+    <string name="settings_save_sync_refresh_description">Perform a manual Sync now.\n%1$s</string>
+    <string name="settings_save_sync_enable_auto">Auto-Sync</string>
+    <string name="settings_save_sync_enable_auto_description">Automatically perform a Sync before and after a game session when connected to Wifi</string>
+    <string name="settings_save_sync_configure">Configure %1$s</string>
+    <string name="settings_save_sync_include_saves">Sync in-game saves</string>
+    <string name="settings_save_sync_include_saves_description">%1$s on device</string>
+    <string name="settings_save_sync_include_states">Sync states</string>
+    <string name="settings_save_sync_include_states_description">More convenient, but heavier and less reliable. Choose which cores/systems you want to sync</string>
+
+    <string name="game_context_menu_add_to_favorites">Add to favorites</string>
+    <string name="game_context_menu_remove_from_favorites">Remove from favorites</string>
+    <string name="game_context_menu_resume">Resume</string>
+    <string name="game_context_menu_restart">Restart</string>
+    <string name="game_context_menu_create_shortcut">Pin to launcher</string>
+    <string name="game_context_menu_delete">Delete</string>
+    <string name="game_delete_confirmation">Are you sure you want to delete \"%1$s\"? This will remove the game from your library and delete the file.</string>
+    <string name="game_deleted">Game deleted</string>
+
+    <string name="home_notification_title">Enable notifications</string>
+    <string name="home_notification_message">Lemuroid uses notifications to let you know when a game or operation is running in background.</string>
+    <string name="home_notification_action">Enable</string>
+
+    <string name="home_microphone_title">Enable microphone</string>
+    <string name="home_microphone_message">Nintendo DS games can use the microphone to provide some functionalities.</string>
+    <string name="home_microphone_action">Enable</string>
+
+    <string name="home_empty_title">Select ROMs directory</string>
+    <string name="home_empty_message">Lemuroid needs to scan a directory containing ROM files.\nThis might take up to a few minutes.</string>
+    <string name="home_empty_action">Select Directory</string>
+
+    <string name="home_notification_desmume_deprecated_title">DeSmuME is being retired</string>
+    <string name="home_notification_desmume_deprecated_message">Save in-game, then switch to melonDS to keep your progress. Save states won\’t transfer and will remain usable only in DeSmuME.</string>
+    <string name="home_notification_desmume_deprecated_action">Switch to melonDS</string>
+
+    <string name="game_menu_save">Save</string>
+    <string name="game_menu_load">Load</string>
+    <string name="game_menu_restart">Restart</string>
+    <string name="game_menu_quit">Quit</string>
+    <string name="game_menu_settings">Settings</string>
+    <string name="game_menu_state">State %1$s</string>
+    <string name="game_menu_change_disk_button">Change Disk</string>
+    <string name="game_menu_edit_touch_controls">Edit Controls</string>
+    <string name="game_menu_mute_audio">Mute</string>
+    <string name="game_menu_fast_forward">Fast-Forward</string>
+    <string name="game_menu_change_disk_disk">Disk %1$s</string>
+    <string name="game_menu_tilt_sensor">Tilt Sensor</string>
+
+    <string name="game_loading_preparing_game">Preparing game…</string>
+
+    <string name="game_toast_settings_button_using_gamepad">Gamepad detected. Access settings menu with %1$s.</string>
+    <string name="game_toast_load_state_failed">Cannot load this state</string>
+    <string name="game_toast_quick_save_loaded">Quick loaded</string>
+    <string name="game_toast_quick_save_saved">Quick saved</string>
+
+    <string name="empty_view_default">No Items</string>
+
+    <string name="core_settings_title">Core Settings</string>
+    <string name="core_settings_category_preferences">Preferences</string>
+    <string name="core_settings_category_controllers">Controllers</string>
+    <string name="core_settings_controller">Controller %1$s</string>
+
+    <string name="game_menu_title">Game menu</string>
+
+    <string name="notification_channel_name">All notifications</string>
+    <string name="library_index_notification_title">ROMs scanning in progress</string>
+    <string name="library_index_notification_message">This can take up to a few minutes</string>
+
+    <string name="save_sync_notification_title">Cloud save Sync in progress</string>
+    <string name="save_sync_notification_message">This can take up to a few minutes</string>
+
+    <string name="game_running_notification_title">%1$s is running</string>
+    <string name="game_running_notification_title_alternative">Game is running</string>
+    <string name="game_running_notification_message">Make sure to save your progress</string>
+
+    <string name="game_loader_error_gl_incompatible">This Core requires an OpenGL ES version which is not supported by your device.</string>
+    <string name="game_loader_error_load_game">Something bad happened while loading your game. Make sure the ROM is supported by Lemuroid and rescan your games.</string>
+    <string name="game_loader_error_save">Something bad happened with your save file. If the issue persists, try disabling auto-save.</string>
+    <string name="game_loader_error_unsupported_architecture">This Core is not supported by your device.</string>
+
+    <string name="game_loader_error_generic">Something bad happened. Try the following:\n
+        \n\u2022 Disable auto-save and re-run the game
+        \n\u2022 Go into Android settings and clear the app cache
+        \n\u2022 Go into Lemuroid settings and perform a Factory Reset
+        \n\nIf none of the above works, it might be possible that this Game/Core is not supported by this device.
+    </string>
+
+    <string name="game_loader_error_missing_bios">It looks like you\'re missing the required BIOS, put them in your ROMs directory and rescan. Required files: %1$s</string>
+
+    <string name="game_shortcut_error">Something bad happened while loading your game. Please make sure this game still exists in your library.</string>
+
+    <string name="dialog_saf_not_found">This device does not support the StorageAccessFramework file picker. Please manually copy uncompressed ROM files into %1$s and hit Rescan.</string>
+
+    <string name="system_grid_details">%1$s games</string>
+
+    <string name="tv_folder_picker_title">Select ROMs Directory</string>
+    <string name="tv_folder_picker_action_choose">Select</string>
+    <string name="tv_folder_picker_action_cancel">Cancel</string>
+    <string name="tv_folder_storage_primary">Primary storage</string>
+    <string name="tv_folder_storage_secondary">Secondary storage %1$s</string>
+    <string name="tv_folder_storage_title">Choose storage</string>
+    <string name="tv_folder_error_access">This folder is not accessible. Please select a subdirectory or a different location.</string>
+    
+    <string name="pref_key_choose_directory">choose_directory</string>
+    <string name="settings_title_choose_directory">ROMs Directory</string>
+    <string name="settings_description_choose_directory">Select the folder containing your games</string>
+
+    <string name="tv_home_section_favorites">Favorites</string>
+    <string name="tv_home_section_recents">Recent</string>
+    <string name="tv_home_section_systems">Systems</string>
+    <string name="tv_home_section_settings">Settings</string>
+
+    <string name="gamepad_binding_update_title">Associate \"RetroPad %1$s\"</string>
+    <string name="gamepad_binding_update_description">Press a button on your \"%1$s\"</string>
+    <string name="shortcut_binding_update_title">Associate \"Shortcut %1$s\"</string>
+    <string name="shortcut_binding_update_description">Press the first, then second button to bind a combo on your \"%1$s\"</string>
+
+    <string name="tv_search_results">Games</string>
+    <string name="tv_game_message_missing_gamepad">Gamepads are required to play. Please connect one.</string>
+
+    <string name="game_edit_touch_controls_error_not_visible">Disconnect your pad to edit your touch controls</string>
+
+    <string name="game_interactory_busy">Wait for the pending operations to complete</string>
+
+    <string name="mobile_settings_help">Help</string>
+    <string name="mobile_settings_support">Support</string>
+    <string name="lemuroid_help_content"><![CDATA[
+        <b>&#8226;About Retromul</b><br/>
+        This application is a fork of the open source project <b>Lemuroid</b>, distributed under the <b>GPL-3.0</b> license.<br/><br/>
+        <b>&#8226;Important Notice</b><br/>
+        This application does not include games and does not automatically download any content. The browse feature shows content publicly available on Archive.org. The user is responsible for verifying their rights to access or use any ROM from external sources.<br/><br/>
+        <b>&#8226;How do I use this app?</b><br/>
+        Copy your ROM files into a directory on your device and select it within the app. This directory can have subdirectories. After the scan completes you should see your games.<br/><br/>
+        <b>&#8226;Why aren\'t my games detected?</b><br/>
+        If your games are compressed, try uncompressing them. If this doesn\'t work, place ROMs in separate directories, one per system with the following names: $SYSTEMS.<br/><br/>
+        <b>&#8226;Licenses</b><br/>
+        Lemuroid: GPL-3.0 (Swordfish90)<br/>
+        LibretroDroid: GPL-3.0<br/>
+        Libretro Cores: Various licenses
+    ]]></string>
+
+    <string name="lemuroid_crash_disclamer">It looks like the Libretro core has experienced an unexpected issue. If it\'s persistent please try the following:\n
+        \n\u2022 Disable auto-save and re-run the game
+        \n\u2022 Go into Android settings and clear the app cache
+        \n\u2022 Go into Lemuroid settings and perform a Factory Reset
+        \n\n If none of the above works, it might be possible that this Game/Core is not supported by this device.
+    </string>
+
+    <string name="error_message_incompatible_state">This save state is not compatible with the current core version. Please load the latest in-game save or use a previous Lemuroid version.</string>
+
+    <string name="shader_filter_names_auto">Auto</string>
+    <string name="shader_filter_names_sharp">Sharp</string>
+    <string name="shader_filter_names_smooth">Smooth</string>
+    <string name="shader_filter_names_crt">CRT</string>
+    <string name="shader_filter_names_lcd">LCD</string>
+
+    <string name="haptic_feedback_mode_names_none">None</string>
+    <string name="haptic_feedback_mode_names_press">Press</string>
+    <string name="haptic_feedback_mode_names_press_release">Press &amp; release</string>
+
+    <string name="tilt_configuration_disabled">Disabled</string>
+    <string name="tilt_configuration_cross">DPAD</string>
+    <string name="tilt_configuration_analog_left">Left Analog</string>
+    <string name="tilt_configuration_analog_right">Right Analog</string>
+    <string name="tilt_configuration_buttons_l_r">L - R</string>
+    <string name="tilt_configuration_buttons_l1_r1">L1 - R1</string>
+    <string name="tilt_configuration_buttons_l2_r2">L2 - R2</string>
+
+    <!-- Disclaimer strings -->
+    <string name="disclaimer_title">Important Notice</string>
+    <string name="disclaimer_software_origin_title">Software Origin</string>
+    <string name="disclaimer_software_origin_text">This application is a fork of the open source project Lemuroid, distributed under GPL-3.0 license.</string>
+    <string name="disclaimer_no_content_title">No Content Included</string>
+    <string name="disclaimer_no_content_text">This app does not include games and does not automatically download any files.</string>
+    <string name="disclaimer_archive_title">Archive.org Browse Feature</string>
+    <string name="disclaimer_archive_text">The browse feature shows content publicly available on Archive.org. The user is responsible for verifying their rights to access or use any ROM.</string>
+    <string name="disclaimer_user_responsibility_title">User Responsibility</string>
+    <string name="disclaimer_user_responsibility_text">You are responsible for ensuring that you have the legal right to use any ROM files with this application.</string>
+    <string name="disclaimer_accept">I Understand and Accept</string>
+    <string name="disclaimer_terms">By continuing, you accept the terms of use of this application.</string>
+
+    <!-- Game context menu -->
+    <string name="game_context_menu_edit">Edit</string>
+    
+    <!-- Game edit dialog -->
+    <string name="game_edit_title">Edit Game</string>
+    <string name="game_edit_field_title">Title</string>
+    <string name="game_edit_field_system">System</string>
+    <string name="game_edit_field_developer">Developer</string>
+    <string name="game_edit_file_label">File:</string>
+    <string name="game_edit_save">Save</string>
+    
+    <!-- Catalog strings -->
+    <string name="catalog_search_placeholder">Search ROMs...</string>
+    <string name="catalog_filter_all_sources">All Sources</string>
+    <string name="catalog_filter_archive_org">Archive.org</string>
+    <string name="catalog_filter_local">Local</string>
+    <string name="catalog_filter_smb">SMB</string>
+    <string name="catalog_no_results">No results found</string>
+    <string name="catalog_downloads">Downloads</string>
+    <string name="catalog_clear_completed">Clear All</string>
+    <string name="catalog_downloading">Downloading...</string>
+    <string name="catalog_downloaded">Downloaded</string>
+    
+    <!-- Source dialogs -->
+    <string name="sources_manage_title">Manage Sources</string>
+    <string name="sources_add_title">Add Source</string>
+    <string name="sources_add_local">Add Local Folder</string>
+    <string name="sources_add_smb">Add SMB/NAS</string>
+    <string name="sources_smb_name">Name</string>
+    <string name="sources_smb_server">Server</string>
+    <string name="sources_smb_path">Path</string>
+    <string name="sources_smb_username">Username (optional)</string>
+    <string name="sources_smb_password">Password (optional)</string>
+    <string name="sources_smb_domain">Domain (optional)</string>
+    <string name="sources_edit">Edit</string>
+    <string name="sources_delete">Delete</string>
+    <string name="sources_save">Save</string>
+    <string name="sources_cancel">Cancel</string>
+    <string name="sources_add">Add</string>
+    <string name="sources_smb_display_name">Display Name</string>
+    <string name="sources_smb_display_name_placeholder">My NAS</string>
+    <string name="sources_smb_server_placeholder">192.168.1.100</string>
+    <string name="sources_smb_path_placeholder">/share/roms/snes</string>
+    <string name="sources_smb_path_hint">Full path including share name</string>
+    <string name="sources_smb_use_auth">Use authentication</string>
+    <string name="sources_smb_username_label">Username</string>
+    <string name="sources_smb_password_label">Password</string>
+    <string name="sources_smb_edit_title">Edit SMB Source</string>
+    <string name="sources_smb_connection_title">SMB Connection</string>
+    <string name="sources_smb_test_connection">Test Connection</string>
+    <string name="sources_smb_testing">Testing connection...</string>
+    <string name="sources_smb_connection_success">Connection successful!</string>
+    <string name="sources_smb_connection_failed">Connection failed: %1$s</string>
+    <string name="sources_no_custom">No custom sources configured</string>
+
+    <!-- Catalog screen -->
+    <string name="catalog_filter_cloud">Archive.org</string>
+    <string name="catalog_section_archive_org">☁️ Archive.org</string>
+    <string name="catalog_section_local_files">📁 Local Files</string>
+    <string name="catalog_section_smb_nas">🖥️ SMB/NAS</string>
+    <string name="catalog_search_roms">Search ROMs...</string>
+    <string name="catalog_packs_count">%1$d of %2$d packs</string>
+    <string name="catalog_load_more">Load more...</string>
+    <string name="catalog_load_more_packs">Load more packs</string>
+    <string name="catalog_no_packs_found">No ROM packs found</string>
+    <string name="catalog_no_files_found">No downloadable files found</string>
+    <string name="catalog_files_count">Files (%1$d):</string>
+    <string name="catalog_download_all">All</string>
+    <string name="catalog_downloads_title">Downloads (%1$d)</string>
+    <string name="catalog_downloads_clear">Clear</string>
+    <string name="catalog_no_downloads">No downloads</string>
+    <string name="catalog_error_retry">Retry</string>
+    <string name="catalog_error_occurred">An error occurred</string>
+
+    <!-- Delete games -->
+    <string name="delete_games_title">Delete %1$d games?</string>
+    <string name="delete_games_warning">This will remove the selected games from your library. The ROM files on disk will NOT be deleted.</string>
+    <string name="delete_games_list_header">Games to remove:</string>
+    <string name="delete_games_and_more">...and %1$d more</string>
+    <string name="delete_games_confirm">Delete</string>
+    <string name="delete_mode_title">Select games to delete</string>
+    <string name="delete_selected">Delete selected (%1$d)</string>
+
+    <!-- Metadata Settings -->
+    <string name="settings_category_metadata">Metadata / Scraper</string>
+    <string name="settings_title_thegamesdb_apikey">TheGamesDB API Key</string>
+    <string name="settings_description_thegamesdb_apikey">Get a free key at thegamesdb.net</string>
+    <string name="settings_thegamesdb_help">Enter your TheGamesDB API Key to fetch game covers, descriptions, and genres.</string>
+    <string name="settings_thegamesdb_configured">Configured</string>
+    <string name="settings_thegamesdb_not_configured">Not configured</string>
+    <string name="metadata_dialog_apikey_title">Enter API Key</string>
+
+    <!-- ROM Migration -->
+    <string name="rom_migration_title">Move ROMs</string>
+    <string name="rom_migration_message">%1$d ROMs will be moved to:\n\n%2$s\n\nDo you want to continue?</string>
+    <string name="rom_migration_progress_title">Moving ROMs…</string>
+    <string name="rom_migration_progress">Moving %1$s (%2$d of %3$d)</string>
+    <string name="rom_migration_success">%1$d ROMs moved successfully</string>
+    <string name="rom_migration_partial">Moved %1$d of %2$d ROMs. Some files could not be moved.</string>
+    <string name="rom_migration_failed">Could not move ROMs: %1$s</string>
+    <string name="rom_migration_cancel">Cancel</string>
+    <string name="rom_migration_confirm">Move</string>
+    <string name="rom_migration_smb_not_supported">Automatic ROM migration is not available for network libraries (SMB)</string>
+
+    <!-- User Manual -->
+    <string name="manual_header">User Manual</string>
+    <string name="manual_section_first_steps">🚀 First Steps</string>
+    <string name="manual_content_first_steps">1. Select a folder to store your ROMs from Settings → Directory.\n\n2. Copy your ROM files to that folder.\n\n3. The app will automatically scan and display your games on the home screen.</string>
+    <string name="manual_section_archive">🌐 Explore Archive.org</string>
+    <string name="manual_content_archive">The Catalog section lets you explore ROM collections publicly available on Archive.org.\n\n• Browse by system or search for specific games.\n• Tap on a game to download it to your ROMs folder.\n• Downloaded games will automatically appear in your library.</string>
+    <string name="manual_section_controls">🎮 Configure Controllers</string>
+    <string name="manual_content_controls">Connect a Bluetooth or USB controller and go to Settings → Controller settings.\n\n• Select your controller from the list.\n• Map buttons according to your preferences.\n• Enable vibration if your controller supports it.</string>
+    <string name="manual_section_bios">💾 Required BIOS</string>
+    <string name="manual_content_bios">Some systems (PlayStation, Game Boy Advance, etc.) require BIOS files to work.\n\n• Go to Settings → BIOS Information to see what files you need.\n• Place BIOS files in the same folder as your ROMs.\n• The filename must match exactly what is required.</string>
+    <string name="manual_section_saves">💾 Saved Games</string>
+    <string name="manual_content_saves">Auto-save is enabled by default.\n\n• When exiting a game, your progress is saved automatically.\n• When reopening the game, you will continue where you left off.\n• You can also use the game\'s own save system (in-game menu).</string>
+    <string name="manual_section_sync">☁️ Cloud Sync</string>
+    <string name="manual_content_sync">You can sync your saved games with Google Drive.\n\n• Go to Settings → Save Sync.\n• Sign in with your Google account.\n• Your saves will automatically sync across devices.</string>
+    <string name="manual_section_gameplay">🕹️ During Gameplay</string>
+    <string name="manual_content_gameplay">To access the menu during gameplay:\n\n• Press the menu button (☰) or swipe from the screen edge.\n• From there you can: save/load states, change save slot, access quick options, or exit the game.</string>
+
+    <!-- About Screen -->
+    <string name="about_version">Version %1$s</string>
+    <string name="about_section_origin">Software Origin</string>
+    <string name="about_content_origin_1">This application is a fork of the open source Lemuroid project, distributed under the GPL-3.0 license.</string>
+    <string name="about_content_origin_2">Exploration features for publicly available content on Archive.org have been added.</string>
+    <string name="about_section_source">Source Code</string>
+    <string name="about_content_source">The source code of this modified version is available under the GPL-3.0 license.</string>
+    <string name="about_button_github">View source code (GitHub)</string>
+    <string name="about_section_licenses">Third-party Licenses</string>
+    <string name="about_section_legal">Legal Notice</string>
+    <string name="about_content_legal">This application does not include ROMs and does not download content automatically. The exploration feature only shows collections publicly available on Archive.org. The user is responsible for verifying their rights to access or use any external files.</string>
+    <string name="about_section_report">Report a Bug</string>
+    <string name="about_content_report">Found an error or have a suggestion? Help us improve by sending an anonymous report.</string>
+    <string name="about_button_report">🐛 Report a bug</string>
+    <string name="about_no_browser">No web browser installed to open the link</string>
+    <string name="about_no_browser_report">No web browser installed to open the bug report page</string>
+    <string name="bug_report_error">Could not load the bug report form. Please check your internet connection.</string>
+    <string name="bug_report_select_images">Select images</string>
+    <string name="about_open_with">Open with</string>
+
+</resources>
+
+
+
+

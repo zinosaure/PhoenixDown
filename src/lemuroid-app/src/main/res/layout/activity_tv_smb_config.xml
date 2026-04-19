@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#1a1a1a">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:gravity="center_horizontal">
+
+        <!-- Title -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/smb_library_title"
+            android:textSize="28sp"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/smb_library_description"
+            android:textSize="14sp"
+            android:textColor="#999999"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Form Card -->
+        <LinearLayout
+            android:layout_width="550dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#2d2d2d"
+            android:padding="20dp">
+
+            <!-- Server -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/smb_library_server"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/smb_server_input"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:hint="192.168.1.100"
+                android:textColor="@android:color/white"
+                android:textColorHint="#666666"
+                android:background="#3d3d3d"
+                android:padding="10dp"
+                android:inputType="text"
+                android:imeOptions="actionNext"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Path -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/smb_library_path"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/smb_path_input"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:hint="/ShareName/Folder"
+                android:textColor="@android:color/white"
+                android:textColorHint="#666666"
+                android:background="#3d3d3d"
+                android:padding="10dp"
+                android:inputType="text"
+                android:imeOptions="actionNext"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Username -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/smb_library_username"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/smb_username_input"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:hint="usuario (opcional)"
+                android:textColor="@android:color/white"
+                android:textColorHint="#666666"
+                android:background="#3d3d3d"
+                android:padding="10dp"
+                android:inputType="text"
+                android:imeOptions="actionNext"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Password -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/smb_library_password"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/smb_password_input"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:hint="contraseña (opcional)"
+                android:textColor="@android:color/white"
+                android:textColorHint="#666666"
+                android:background="#3d3d3d"
+                android:padding="10dp"
+                android:inputType="textPassword"
+                android:imeOptions="actionDone"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Status -->
+            <TextView
+                android:id="@+id/smb_status_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:visibility="gone"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/smb_cancel_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="Cancelar"
+                    android:textColor="@android:color/white"
+                    android:background="#555555"
+                    android:paddingHorizontal="20dp"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/smb_test_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="@string/smb_library_test_connection"
+                    android:textColor="@android:color/white"
+                    android:background="#0066cc"
+                    android:paddingHorizontal="20dp"
+                    android:focusable="true"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/smb_save_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="Guardar"
+                    android:textColor="@android:color/white"
+                    android:background="#00aa00"
+                    android:paddingHorizontal="20dp"
+                    android:focusable="true" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

@@ -32,3 +32,12 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+src/.gradle/
+src/.gradle-cache/
+src/.idea/
+src/build/
+src/captures/
+src/.externalNativeBuild/
+src/.cxx/
+src/*.aab
