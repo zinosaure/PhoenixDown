@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-VARIANT="${1:-v1.0.0}"
+VARIANT="${1:-v1.17.0}"
 BUILD_VARIANT="${2:-freeBundleRelease}"
 SERVICE_NAME="retromul-build"
 

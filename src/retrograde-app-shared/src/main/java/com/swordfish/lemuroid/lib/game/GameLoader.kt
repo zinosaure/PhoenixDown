@@ -54,11 +54,21 @@ class GameLoader(
     private val desmumeMigrationHandler: DesmumeMigrationHandler,
 ) {
     sealed class LoadingState {
-        object LoadingCore : LoadingState()
+        data class LoadingCore(
+            val coreName: String,
+            val coreVersion: String?,
+        ) : LoadingState()
 
-        object LoadingGame : LoadingState()
+        data class LoadingGame(val stage: LoadingGameStage) : LoadingState()
 
         class Ready(val gameData: GameData) : LoadingState()
+    }
+
+    enum class LoadingGameStage {
+        CHECKING_BIOS,
+        FETCHING_ROM,
+        EXTRACTING_ARCHIVE,
+        OPENING_GAME,
     }
 
     fun load(
@@ -70,9 +80,9 @@ class GameLoader(
     ): Flow<LoadingState> =
         flow {
             try {
-                emit(LoadingState.LoadingCore)
-
                 val system = GameSystem.findById(game.systemId)
+                val isNetworkGame = game.fileUri.startsWith("smb://", ignoreCase = true)
+                val isArchiveGame = isArchiveGame(game)
 
                 if (!isArchitectureSupported(systemCoreConfig)) {
                     throw GameLoaderException(GameLoaderError.UnsupportedArchitecture)
@@ -83,11 +93,26 @@ class GameLoader(
                         findLibrary(appContext, systemCoreConfig.coreID)!!.absolutePath
                     }.getOrElse { throw GameLoaderException(GameLoaderError.LoadCore) }
 
-                emit(LoadingState.LoadingGame)
+                emit(
+                    LoadingState.LoadingCore(
+                        coreName = systemCoreConfig.coreID.libretroFileName,
+                        coreVersion = extractCoreVersion(coreLibrary),
+                    ),
+                )
+
+                emit(LoadingState.LoadingGame(LoadingGameStage.CHECKING_BIOS))
 
                 val missingBiosFiles = biosManager.getMissingBiosFiles(systemCoreConfig, game)
                 if (missingBiosFiles.isNotEmpty()) {
                     throw GameLoaderException(GameLoaderError.MissingBiosFiles(missingBiosFiles))
+                }
+
+                if (isNetworkGame) {
+                    emit(LoadingState.LoadingGame(LoadingGameStage.FETCHING_ROM))
+                }
+
+                if (isArchiveGame) {
+                    emit(LoadingState.LoadingGame(LoadingGameStage.EXTRACTING_ARCHIVE))
                 }
 
                 val gameFiles =
@@ -96,6 +121,8 @@ class GameLoader(
                         val dataFiles = retrogradeDatabase.dataFileDao().selectDataFilesForGame(game.id)
                         lemuroidLibrary.getGameFiles(game, dataFiles, useVFS)
                     }.getOrElse { throw it }
+
+                emit(LoadingState.LoadingGame(LoadingGameStage.OPENING_GAME))
 
                 val saveRAM =
                     runCatching {
@@ -150,6 +177,21 @@ class GameLoader(
             }
         }
 
+    private fun isArchiveGame(game: Game): Boolean {
+        return sequenceOf(game.fileName, game.fileUri)
+            .map { it.lowercase() }
+            .any { candidate ->
+                candidate.endsWith(".zip") ||
+                    candidate.endsWith(".7z") ||
+                    candidate.endsWith(".rar")
+            }
+    }
+
+    private fun extractCoreVersion(coreLibraryPath: String): String? {
+        val parentName = File(coreLibraryPath).parentFile?.name ?: return null
+        return if (VERSION_REGEX.matches(parentName)) parentName else null
+    }
+
     private fun isArchitectureSupported(systemCoreConfig: SystemCoreConfig): Boolean {
         val supportedOnlyArchitectures = systemCoreConfig.supportedOnlyArchitectures ?: return true
         return Build.SUPPORTED_ABIS.toSet().intersect(supportedOnlyArchitectures).isNotEmpty()
@@ -181,4 +223,8 @@ class GameLoader(
         val systemDirectory: File,
         val savesDirectory: File,
     )
+
+    companion object {
+        private val VERSION_REGEX = Regex("\\d+\\.\\d+\\.\\d+")
+    }
 }

@@ -134,6 +134,12 @@
     <string name="game_menu_tilt_sensor">Tilt Sensor</string>
 
     <string name="game_loading_preparing_game">Preparing game…</string>
+    <string name="game_loading_core">Loading core (%1$s)…</string>
+    <string name="game_loading_core_with_version">Loading core (%1$s, v%2$s)…</string>
+    <string name="game_loading_checking_bios">Checking BIOS files…</string>
+    <string name="game_loading_fetching_from_network">Downloading game from network share…</string>
+    <string name="game_loading_extracting_archive">Extracting compressed game archive…</string>
+    <string name="game_loading_opening_game">Opening game…</string>
 
     <string name="game_toast_settings_button_using_gamepad">Gamepad detected. Access settings menu with %1$s.</string>
     <string name="game_toast_load_state_failed">Cannot load this state</string>

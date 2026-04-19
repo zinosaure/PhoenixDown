@@ -257,11 +257,35 @@ class GameViewModelRetroGameView(
     private fun getLoadingMessage(loadingState: GameLoader.LoadingState): String {
         return when (loadingState) {
             is GameLoader.LoadingState.LoadingCore -> {
-                appContext.getString(com.swordfish.lemuroid.ext.R.string.game_loading_download_core)
+                if (loadingState.coreVersion != null) {
+                    appContext.getString(
+                        R.string.game_loading_core_with_version,
+                        loadingState.coreName,
+                        loadingState.coreVersion,
+                    )
+                } else {
+                    appContext.getString(R.string.game_loading_core, loadingState.coreName)
+                }
             }
 
             is GameLoader.LoadingState.LoadingGame -> {
-                appContext.getString(R.string.game_loading_preparing_game)
+                when (loadingState.stage) {
+                    GameLoader.LoadingGameStage.CHECKING_BIOS -> {
+                        appContext.getString(R.string.game_loading_checking_bios)
+                    }
+
+                    GameLoader.LoadingGameStage.FETCHING_ROM -> {
+                        appContext.getString(R.string.game_loading_fetching_from_network)
+                    }
+
+                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> {
+                        appContext.getString(R.string.game_loading_extracting_archive)
+                    }
+
+                    GameLoader.LoadingGameStage.OPENING_GAME -> {
+                        appContext.getString(R.string.game_loading_opening_game)
+                    }
+                }
             }
 
             else -> ""
