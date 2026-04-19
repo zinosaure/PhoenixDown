@@ -54,7 +54,7 @@ fun PadKitScope.N64Right(
         modifier = modifier,
         primaryDial = {
             LemuroidControlFaceButtons(
-                rotationInDegrees = 45f,
+                rotationInDegrees = 90f,
                 ids =
                     persistentListOf(
                         Id.Key(KeyEvent.KEYCODE_BUTTON_B),
