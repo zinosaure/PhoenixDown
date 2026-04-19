@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.File
 import java.io.InputStream
+import java.util.Locale
 import java.util.zip.ZipInputStream
 
 /**
@@ -270,8 +271,9 @@ class SmbStorageProvider(
                             // But keep it in the cache directory
                             // Sanitize name to avoid path traversal AND remove spaces/special chars
                             // Some cores fail with spaces in paths
-                            val entryExtension = File(entry.name).extension
-                            val safeName = "game.${entryExtension}" 
+                            val entryExtension = File(entry.name).extension.lowercase(Locale.US)
+                            val extension = if (entryExtension.isBlank()) "rom" else entryExtension
+                            val safeName = buildExtractedFileName(game, extension)
                             extractedFile = File(cacheFile.parentFile, safeName)
                             
                             // Only extract if not already extracted or if extracted file is empty
@@ -309,6 +311,25 @@ class SmbStorageProvider(
         val cacheDir = File(context.cacheDir, SMB_CACHE_SUBFOLDER)
         cacheDir.mkdirs()
         return File(cacheDir, "${game.id}_${game.fileName}")
+    }
+
+    private fun buildExtractedFileName(game: Game, extension: String): String {
+        val uriHash = game.fileUri.hashCode().toUInt().toString(16)
+        return "game_${game.id}_$uriHash.$extension"
+    }
+
+    private fun deleteExtractedFilesForGame(game: Game, cacheDir: File?) {
+        if (cacheDir == null || !cacheDir.exists()) {
+            return
+        }
+
+        val prefix = "game_${game.id}_"
+        cacheDir.listFiles()
+            ?.filter { file -> file.isFile && file.name.startsWith(prefix) }
+            ?.forEach { file ->
+                val deleted = file.delete()
+                Timber.d("SMB_ROM: Deleted extracted file: ${file.name}, success=$deleted")
+            }
     }
     
     private fun buildSmbUri(config: SmbLibraryConfig, smbPath: String): Uri {
@@ -352,20 +373,7 @@ class SmbStorageProvider(
             Timber.d("SMB_ROM: Deleted cache file: ${cacheFile.name}, success=$deleted")
         }
         
-        // Also check if there's an extracted file
-        if (cacheFile.extension.equals("zip", ignoreCase = true)) {
-            // We can't easily know the exact extracted name without peeking the zip again
-            // But we can check for likely candidates based on our naming logic
-            val likelyExtracted = File(cacheFile.parentFile, "game." + cacheFile.name.substringBeforeLast(".") + ".smc") // Simplified guess
-            // Actually, we rename to game.ext, so we can try key extensions
-            SmbClient.ROM_EXTENSIONS.forEach { ext ->
-                val cand = File(cacheFile.parentFile, "game.$ext")
-                if (cand.exists() && cand.lastModified() > System.currentTimeMillis() - 86400000) { // Only recent? weak heuristic
-                    // Ideally we should track extracted files better, but for now this is minor temp space
-                }
-            }
-            // Better: just leave the temp extracted file, Android cache will clear it eventually
-        }
+        deleteExtractedFilesForGame(game, cacheFile.parentFile)
         
         return true
     }

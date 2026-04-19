@@ -59,7 +59,13 @@ class GameViewModelRetroGameView(
     sealed interface GameState {
         data object Uninitialized : GameState
 
-        data class Loading(val message: String) : GameState
+        data class Loading(
+            val title: String,
+            val subtitle: String,
+            val message: String,
+            val progressStart: Int,
+            val progressMax: Int,
+        ) : GameState
 
         data class Loaded(
             val gameData: GameLoader.GameData,
@@ -73,6 +79,10 @@ class GameViewModelRetroGameView(
 
     private val retroGameViewFlow = MutableStateFlow<GLRetroView?>(null)
     var retroGameView: GLRetroView? by MutableStateProperty(retroGameViewFlow)
+    private var currentGameTitle: String? = null
+    private var currentCoreName: String? = null
+    private var currentPlatformName: String? = null
+    private var currentCoreVersion: String? = null
 
     fun getGameState(): Flow<GameState> {
         return gameState.debounce(200)
@@ -87,6 +97,10 @@ class GameViewModelRetroGameView(
     ) {
         val currentState = gameState.value
         if (currentState != GameState.Uninitialized) return
+
+        currentGameTitle = game.title
+        currentCoreName = systemCoreConfig.coreID.libretroFileName
+        currentPlatformName = appContext.getString(system.titleResId)
 
         val autoSaveEnabled = settingsManager.autoSave()
         val filter = settingsManager.screenFilter()
@@ -148,7 +162,13 @@ class GameViewModelRetroGameView(
                             retroViewData = retroViewData,
                         )
                     } else {
-                        GameState.Loading(getLoadingMessage(loadingState))
+                        GameState.Loading(
+                            title = currentGameTitle ?: game.title,
+                            subtitle = getLoadingSubtitle(),
+                            message = getLoadingMessage(loadingState),
+                            progressStart = getLoadingProgressStart(loadingState),
+                            progressMax = getLoadingProgressMax(loadingState),
+                        )
                     }
             }
     }
@@ -255,8 +275,10 @@ class GameViewModelRetroGameView(
     }
 
     private fun getLoadingMessage(loadingState: GameLoader.LoadingState): String {
-        return when (loadingState) {
+        val baseMessage =
+            when (loadingState) {
             is GameLoader.LoadingState.LoadingCore -> {
+                currentCoreVersion = loadingState.coreVersion
                 if (loadingState.coreVersion != null) {
                     appContext.getString(
                         R.string.game_loading_core_with_version,
@@ -289,6 +311,47 @@ class GameViewModelRetroGameView(
             }
 
             else -> ""
+        }
+
+        return baseMessage
+    }
+
+    private fun getLoadingProgressStart(loadingState: GameLoader.LoadingState): Int {
+        return when (loadingState) {
+            is GameLoader.LoadingState.LoadingCore -> 5
+            is GameLoader.LoadingState.LoadingGame -> {
+                when (loadingState.stage) {
+                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 20
+                    GameLoader.LoadingGameStage.FETCHING_ROM -> 35
+                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 70
+                    GameLoader.LoadingGameStage.OPENING_GAME -> 90
+                }
+            }
+        }
+    }
+
+    private fun getLoadingProgressMax(loadingState: GameLoader.LoadingState): Int {
+        return when (loadingState) {
+            is GameLoader.LoadingState.LoadingCore -> 20
+            is GameLoader.LoadingState.LoadingGame -> {
+                when (loadingState.stage) {
+                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 35
+                    GameLoader.LoadingGameStage.FETCHING_ROM -> 70
+                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 90
+                    GameLoader.LoadingGameStage.OPENING_GAME -> 97
+                }
+            }
+        }
+    }
+
+    private fun getLoadingSubtitle(): String {
+        val platformName = currentPlatformName.orEmpty()
+        val coreName = currentCoreName.orEmpty()
+        val coreVersion = currentCoreVersion
+        return if (coreVersion.isNullOrBlank()) {
+            appContext.getString(R.string.game_loading_subtitle_without_version, platformName, coreName)
+        } else {
+            appContext.getString(R.string.game_loading_subtitle_with_version, platformName, coreName, coreVersion)
         }
     }
 

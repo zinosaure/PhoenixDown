@@ -105,6 +105,14 @@
     <string name="game_menu_change_disk_disk">Disque %1$s</string>
     <string name="game_menu_tilt_sensor">Capteur d\'inclinaison</string>
     <string name="game_loading_preparing_game">Préparation du jeu…</string>
+    <string name="game_loading_core">Chargement du core (%1$s)…</string>
+    <string name="game_loading_core_with_version">Chargement du core (%1$s, v%2$s)…</string>
+    <string name="game_loading_checking_bios">Vérification des fichiers BIOS…</string>
+    <string name="game_loading_fetching_from_network">Téléchargement du jeu depuis le partage réseau…</string>
+    <string name="game_loading_extracting_archive">Décompression de l\'archive du jeu…</string>
+    <string name="game_loading_opening_game">Ouverture du jeu…</string>
+    <string name="game_loading_progress_format">%1$s (%2$d%%)</string>
+    <string name="game_loading_context_format">%1$s - %2$s - %3$s</string>
     <string name="game_toast_settings_button_using_gamepad">La manette a été détectée. Accédez au menu des paramètres avec %1$s.</string>
     <string name="game_toast_load_state_failed">Impossible de charger cet état de sauvegarde</string>
     <string name="game_toast_quick_save_loaded">Chargement rapide</string>
@@ -155,6 +163,8 @@
     <string name="tv_game_message_missing_gamepad">Les manettes sont nécessaires pour jouer. Veuillez en connecter une.</string>
     <string name="game_edit_touch_controls_error_not_visible">Déconnectez votre manette pour modifier vos commandes tactiles</string>
     <string name="game_interactory_busy">Attendez que l\'opération se termine</string>
+    <string name="game_interactor_notification_permission_required">Veuillez activer les notifications depuis l\'écran d\'accueil pour continuer</string>
+    <string name="game_already_running">Un jeu est déjà en cours d\'exécution</string>
     <string name="mobile_settings_help">Aide</string>
     <string name="mobile_settings_support">Soutien</string>
     <string name="lemuroid_help_content"><![CDATA[        <b>&#8226;Comment utiliser Lemuroid?</b><br/>
