@@ -398,11 +398,7 @@
     <string name="about_section_licenses">Third-party Licenses</string>
     <string name="about_section_legal">Legal Notice</string>
     <string name="about_content_legal">This application does not include ROMs and does not download content automatically. The exploration feature only shows collections publicly available on Archive.org. The user is responsible for verifying their rights to access or use any external files.</string>
-    <string name="about_section_report">Report a Bug</string>
-    <string name="about_content_report">Found an error or have a suggestion? Help us improve by sending an anonymous report.</string>
-    <string name="about_button_report">🐛 Report a bug</string>
     <string name="about_no_browser">No web browser installed to open the link</string>
-    <string name="about_no_browser_report">No web browser installed to open the bug report page</string>
     <string name="bug_report_error">Could not load the bug report form. Please check your internet connection.</string>
     <string name="bug_report_select_images">Select images</string>
     <string name="about_open_with">Open with</string>

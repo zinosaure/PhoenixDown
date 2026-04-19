@@ -24,4 +24,4 @@ chmod +x src/scripts/build-release-inside.sh
 "${COMPOSE[@]}" build "${SERVICE_NAME}"
 "${COMPOSE[@]}" run --rm "${SERVICE_NAME}"
 
-echo "Build terminé. APK final: ./releases/Retromul-${VARIANT}.apk"
+echo "Build terminé. APK final: artifacts/Retromul-${VARIANT}.apk"

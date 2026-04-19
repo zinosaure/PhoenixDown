@@ -316,11 +316,7 @@
     <string name="about_section_licenses">Licencias de terceros</string>
     <string name="about_section_legal">Aviso legal</string>
     <string name="about_content_legal">Esta aplicación no incluye ROMs ni descarga contenido automáticamente. La función de exploración solo muestra colecciones disponibles públicamente en Archive.org. El usuario es responsable de comprobar si posee los derechos para acceder o usar cualquier archivo externo.</string>
-    <string name="about_section_report">Reportar un fallo</string>
-    <string name="about_content_report">¿Has encontrado un error o tienes una sugerencia? Ayúdanos a mejorar enviando un reporte anónimo.</string>
-    <string name="about_button_report">🐛 Reportar un fallo</string>
     <string name="about_no_browser">No hay navegador web instalado para abrir el enlace</string>
-    <string name="about_no_browser_report">No hay navegador web instalado para abrir la página de reporte de errores</string>
     <string name="bug_report_error">No se pudo cargar el formulario de reporte. Por favor, comprueba tu conexión a internet.</string>
     <string name="bug_report_select_images">Seleccionar imágenes</string>
     <string name="about_open_with">Abrir con</string>

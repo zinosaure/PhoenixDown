@@ -163,7 +163,7 @@
 
         <activity
             android:name=".app.shared.bugreport.BugReportActivity"
-            android:label="@string/about_section_report"
+            android:label="@string/lemuroid_name"
             android:theme="@style/LemuroidMaterialTheme" />
 
         <activity

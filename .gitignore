@@ -41,3 +41,8 @@ src/captures/
 src/.externalNativeBuild/
 src/.cxx/
 src/*.aab
+src/*.android
+src/*.apk
+src/output-metadata.json
+src/.kotlin/
+src/artifacts/
