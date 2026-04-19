@@ -14,7 +14,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +34,7 @@ fun LemuroidSettingsPage(
             modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, bottom = 16.dp),
+                .padding(top = 16.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         content()
@@ -91,15 +90,13 @@ fun LemuroidSettingsGroup(
     title: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface {
-        Column(
-            modifier = modifier.fillMaxWidth(),
-        ) {
-            if (title != null) {
-                SettingsGroupTitleSmall(title)
-            }
-            content()
+    Column(
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        if (title != null) {
+            SettingsGroupTitleSmall(title)
         }
+        content()
     }
 }
 
@@ -109,19 +106,17 @@ fun LemuroidCardSettingsGroup(
     title: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface {
-        Column(
-            modifier =
-                modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp),
-        ) {
-            OutlinedCard {
-                if (title != null) {
-                    SettingsGroupTitleSmall(title)
-                }
-                content()
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp),
+    ) {
+        OutlinedCard {
+            if (title != null) {
+                SettingsGroupTitleSmall(title)
             }
+            content()
         }
     }
 }
