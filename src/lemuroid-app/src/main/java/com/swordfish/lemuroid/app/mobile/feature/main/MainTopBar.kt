@@ -18,11 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewList
@@ -131,13 +127,9 @@ fun LemuroidTopAppBar(
                 saveSyncEnabled = mainUIState.saveSyncEnabled,
                 onHelpPressed = onHelpPressed,
                 operationsInProgress = mainUIState.operationInProgress,
-                // Music and view toggle
+                // View toggle
                 viewMode = mainUIState.viewMode,
                 onToggleView = mainUIState.onToggleView,
-                isMusicPlaying = mainUIState.isMusicPlaying,
-                onMusicPrevious = mainUIState.onMusicPrevious,
-                onMusicPlayPause = mainUIState.onMusicPlayPause,
-                onMusicNext = mainUIState.onMusicNext,
             )
         },
     )
@@ -151,47 +143,11 @@ fun LemuroidTopBarActions(
     saveSyncEnabled: Boolean,
     operationsInProgress: Boolean,
     onHelpPressed: () -> Unit,
-    // Music and view toggle (only used in HOME)
+    // View toggle (only used in HOME)
     viewMode: HomeViewMode = HomeViewMode.CAROUSEL,
     onToggleView: () -> Unit = {},
-    isMusicPlaying: Boolean = false,
-    onMusicPrevious: () -> Unit = {},
-    onMusicPlayPause: () -> Unit = {},
-    onMusicNext: () -> Unit = {},
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Music controls (always visible in all screens)
-        IconButton(
-            onClick = onMusicPrevious,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Icon(
-                Icons.Filled.SkipPrevious,
-                contentDescription = "Previous",
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        IconButton(
-            onClick = onMusicPlayPause,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Icon(
-                if (isMusicPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isMusicPlaying) "Pause" else "Play",
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        IconButton(
-            onClick = onMusicNext,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Icon(
-                Icons.Filled.SkipNext,
-                contentDescription = "Next",
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        
         // Toggle view (Carousel -> Grid -> List -> Carousel) - only in HOME route
         if (route == MainRoute.HOME) {
             Spacer(modifier = Modifier.width(4.dp))

@@ -124,9 +124,6 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
         MainViewModel.Factory(applicationContext, saveSyncManager)
     }
     
-    // Music player - created early to play intro during splash
-    private lateinit var musicPlayer: com.swordfish.lemuroid.app.mobile.feature.home.MusicPlayerManager
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             SystemBarStyle.dark(Color.TRANSPARENT),
@@ -141,9 +138,6 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             return
         }
         
-        // Start music player immediately (plays intro during loading)
-        musicPlayer = com.swordfish.lemuroid.app.mobile.feature.home.MusicPlayerManager(applicationContext)
-
         GlobalScope.safeLaunch {
             reviewManager.initialize(applicationContext)
         }
@@ -182,11 +176,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
     override fun onResume() {
         super.onResume()
-        // Resume music when returning from game (with fade-in effect)
-        if (::musicPlayer.isInitialized && !musicPlayer.isPlaying.value) {
-            musicPlayer.fadeIn()
-        }
-        
+
         // V10 FIX: Fallback for broken SAF on some devices (Android 10/11)
         ensureLegacyStoragePermissionsIfNeeded()
         // If we have "All Files Access", ensure the default folder is set immediately
@@ -258,12 +248,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
         return androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
     
-    override fun onDestroy() {
-        if (::musicPlayer.isInitialized) {
-            musicPlayer.release()
-        }
-        super.onDestroy()
-    }
+    override fun onDestroy() = super.onDestroy()
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -309,15 +294,11 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
             // View mode toggle state (Carousel -> Grid -> List -> Carousel)
             var viewMode by remember { mutableStateOf(HomeViewMode.CAROUSEL) }
             
-            // Music player (use the one from Activity, started in onCreate)
-            val isMusicPlaying by musicPlayer.isPlaying.collectAsState()
-
             val onGameLongClick = { game: Game ->
                 selectedGameState.value = game
             }
 
             val onGameClick = { game: Game ->
-                musicPlayer.fadeOut() // Fade out music before launching game
                 gameInteractor.onGamePlay(game)
             }
 
@@ -334,10 +315,9 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                     .collectAsState(MainViewModel.UiState())
                     .value
             
-            // Enrich UiState with music and view mode callbacks
+            // Enrich UiState with view mode callbacks
             val mainUIState = baseUIState.copy(
                 viewMode = viewMode,
-                isMusicPlaying = isMusicPlaying,
                 onToggleView = { 
                     viewMode = when (viewMode) {
                         HomeViewMode.CAROUSEL -> HomeViewMode.GRID
@@ -345,9 +325,6 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                         HomeViewMode.LIST -> HomeViewMode.CAROUSEL
                     }
                 },
-                onMusicPrevious = { musicPlayer.previous() },
-                onMusicPlayPause = { musicPlayer.togglePlayPause() },
-                onMusicNext = { musicPlayer.next() },
             )
 
             BackgroundWithOverlay {

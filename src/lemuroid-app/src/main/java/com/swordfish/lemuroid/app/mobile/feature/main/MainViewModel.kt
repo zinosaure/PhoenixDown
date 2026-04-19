@@ -38,12 +38,8 @@ class MainViewModel(appContext: Context, private val saveSyncManager: SaveSyncMa
         val searchQuery: String = "",
         // View mode state (3 modes: Carousel, Grid, List)
         val viewMode: HomeViewMode = HomeViewMode.CAROUSEL,
-        val isMusicPlaying: Boolean = false,
         // Callbacks (set from MainActivity)
         val onToggleView: () -> Unit = {},
-        val onMusicPrevious: () -> Unit = {},
-        val onMusicPlayPause: () -> Unit = {},
-        val onMusicNext: () -> Unit = {},
     )
 
     private val currentRouteFlow = MutableStateFlow(MainRoute.HOME)

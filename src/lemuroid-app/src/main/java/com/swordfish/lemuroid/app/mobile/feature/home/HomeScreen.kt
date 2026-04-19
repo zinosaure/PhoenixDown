@@ -38,12 +38,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.swordfish.lemuroid.R
-import com.swordfish.lemuroid.app.mobile.shared.compose.ui.DynamicGameBackground
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.GameCarousel
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameImage
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
@@ -89,28 +89,12 @@ fun HomeScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedGames by remember { mutableStateOf(setOf<Game>()) }
     
-    // Sound manager
-    val soundManager = remember { CarouselSoundManager(applicationContext) }
-    
-    // Selected game for background (in carousel mode)
-    var selectedGame by remember { mutableStateOf<Game?>(null) }
-    
-    // Track page changes for sound
-    var lastPage by remember { mutableStateOf(0) }
-    
-    DisposableEffect(Unit) {
-        onDispose {
-            soundManager.release()
-        }
-    }
-    
     HomeScreenContent(
         modifier = modifier,
         state = state.value,
         viewMode = viewMode,
         isSelectionMode = isSelectionMode,
         selectedGames = selectedGames,
-        selectedGame = selectedGame,
         onGameClicked = { game ->
             if (isSelectionMode) {
                 selectedGames = if (game in selectedGames) {
@@ -119,17 +103,10 @@ fun HomeScreen(
                     selectedGames + game
                 }
             } else {
-                soundManager.playSelect()
                 onGameClick(game)
             }
         },
         onGameLongClick = onGameLongClick,
-        onGameSelected = { game ->
-            if (game != selectedGame) {
-                selectedGame = game
-                soundManager.playSwipe()
-            }
-        },
         onOpenCoreSelection = onOpenCoreSelection,
         onEnableNotificationsClicked = {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -146,7 +123,6 @@ fun HomeScreen(
             }
         },
         onConfirmDelete = {
-            soundManager.playDelete()
             onDeleteGames(selectedGames.toList())
             selectedGames = emptySet()
             isSelectionMode = false
@@ -165,10 +141,8 @@ private fun HomeScreenContent(
     viewMode: HomeViewMode,
     isSelectionMode: Boolean,
     selectedGames: Set<Game>,
-    selectedGame: Game?,
     onGameClicked: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
-    onGameSelected: (Game) -> Unit,
     onOpenCoreSelection: () -> Unit,
     onEnableNotificationsClicked: () -> Unit,
     onEnableMicrophoneClicked: () -> Unit,
@@ -183,15 +157,11 @@ private fun HomeScreenContent(
     }
     val hasGames = allGames.isNotEmpty()
     
-    Box(modifier = modifier.fillMaxSize()) {
-        // Dynamic background (only in carousel mode)
-        if (viewMode == HomeViewMode.CAROUSEL && hasGames) {
-            DynamicGameBackground(
-                game = selectedGame ?: allGames.firstOrNull(),
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
         // Content
         Crossfade(
             targetState = viewMode,
@@ -204,7 +174,6 @@ private fun HomeScreenContent(
                         games = allGames,
                         onGameClick = onGameClicked,
                         onGameLongClick = onGameLongClick,
-                        onGameSelected = onGameSelected,
                     )
                 }
                 currentViewMode == HomeViewMode.LIST && hasGames && !isSelectionMode -> {
@@ -260,12 +229,10 @@ private fun CarouselViewContent(
     games: List<Game>,
     onGameClick: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
-    onGameSelected: (Game) -> Unit,
 ) {
     GameCarousel(
         games = games,
         modifier = Modifier.fillMaxSize(),
-        onGameSelected = onGameSelected,
         onGameClick = onGameClick,
         onGameLongClick = onGameLongClick,
     )

@@ -2,18 +2,21 @@ package com.swordfish.lemuroid.app.mobile.feature.settings.about
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,22 @@ fun AboutScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val versionName = remember {
+        runCatching {
+            val packageInfo =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    context.packageManager.getPackageInfo(
+                        context.packageName,
+                        android.content.pm.PackageManager.PackageInfoFlags.of(0)
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.packageManager.getPackageInfo(context.packageName, 0)
+                }
+
+            packageInfo.versionName ?: BuildConfig.VERSION_NAME
+        }.getOrElse { BuildConfig.VERSION_NAME }
+    }
     
     Column(
         modifier = modifier
@@ -47,11 +66,10 @@ fun AboutScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Info,
+                Image(
+                    painter = painterResource(id = R.mipmap.emulaitor_launcher),
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    modifier = Modifier.size(72.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -61,7 +79,7 @@ fun AboutScreen(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = stringResource(id = R.string.about_version, BuildConfig.VERSION_NAME),
+                    text = stringResource(id = R.string.about_version, versionName),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -139,29 +157,6 @@ fun AboutScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        // Reportar un fallo
-        AboutSection(title = stringResource(id = R.string.about_section_report)) {
-            Text(
-                text = stringResource(id = R.string.about_content_report),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    val intent = Intent(context, com.swordfish.lemuroid.app.shared.bugreport.BugReportActivity::class.java)
-                    context.startActivity(intent)
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text(stringResource(id = R.string.about_button_report))
-            }
-        }
-
         
         Spacer(modifier = Modifier.height(24.dp))
     }
