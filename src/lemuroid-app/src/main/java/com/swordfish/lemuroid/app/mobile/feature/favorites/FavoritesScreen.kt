@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidEmptyView
@@ -25,7 +26,7 @@ fun FavoritesScreen(
     val games = viewModel.favorites.collectAsLazyPagingItems()
 
     if (games.itemCount == 0) {
-        LemuroidEmptyView()
+        LemuroidEmptyView(textColor = Color(0xFFE0E0E0))
         return
     }
 

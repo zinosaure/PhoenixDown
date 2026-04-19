@@ -15,6 +15,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -67,9 +68,10 @@ fun AboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.mipmap.emulaitor_launcher),
+                    painter = painterResource(id = R.drawable.ic_lemuroid_tiny),
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(40.dp),
+                    contentScale = ContentScale.Fit
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

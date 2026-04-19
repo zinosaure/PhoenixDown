@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -323,7 +324,8 @@ fun CatalogScreen(
             ) {
                 Text(
                     text = "${uiState.filteredPacks.size} de ${uiState.totalResults} paquetes",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFE0E0E0)
                 )
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {

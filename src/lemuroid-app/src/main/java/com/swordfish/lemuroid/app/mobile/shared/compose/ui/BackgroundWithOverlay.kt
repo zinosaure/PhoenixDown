@@ -18,7 +18,7 @@ fun BackgroundWithOverlay(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
+            .background(Color(0xFF3B3B3B))
     ) {
         content()
     }
