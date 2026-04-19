@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 /**
- * Background container now using a flat white surface.
+ * Background container with a flat dark surface.
  */
 @Composable
 fun BackgroundWithOverlay(
@@ -18,7 +18,7 @@ fun BackgroundWithOverlay(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFF1A1A1A))
     ) {
         content()
     }

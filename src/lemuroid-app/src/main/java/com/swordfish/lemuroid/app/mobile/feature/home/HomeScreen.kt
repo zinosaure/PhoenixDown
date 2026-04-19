@@ -160,7 +160,7 @@ private fun HomeScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFF1A1A1A))
     ) {
         // Content
         Crossfade(

@@ -13,10 +13,12 @@ services:
             ANDROID_USER_HOME: /workspace/.android
             GRADLE_USER_HOME: /workspace/.gradle-cache
             CI: "true"
+            BUILD_VARIANT: "${BUILD_VARIANT:-freeBundleRelease}"
+            VARIANT_LABEL: "${VARIANT_LABEL:-freeBundleRelease}"
         volumes:
             - android-sdk-cache:/opt/android-sdk
             - ./src:/workspace
-            - ./releases:/workspace/artifacts
+            - ./releases:/workspace/releases
         command: [ "bash", "/workspace/scripts/build-release-inside.sh" ]
 
 volumes:

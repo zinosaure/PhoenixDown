@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 VARIANT="${1:-v1.0.0}"
+BUILD_VARIANT="${2:-freeBundleRelease}"
 SERVICE_NAME="retromul-build"
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
@@ -17,11 +18,12 @@ fi
 
 export HOST_UID="$(id -u)"
 export HOST_GID="$(id -g)"
-export VARIANT
+export VARIANT_LABEL="${VARIANT}"
+export BUILD_VARIANT
 
 chmod +x src/scripts/build-release-inside.sh
 
 "${COMPOSE[@]}" build "${SERVICE_NAME}"
 "${COMPOSE[@]}" run --rm "${SERVICE_NAME}"
 
-echo "Build terminé. APK final: artifacts/Retromul-${VARIANT}.apk"
+echo "Build terminé. APK final: releases/Retromul-${VARIANT}.apk"

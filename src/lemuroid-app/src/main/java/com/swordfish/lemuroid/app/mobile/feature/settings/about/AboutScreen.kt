@@ -69,7 +69,7 @@ fun AboutScreen(
                 Image(
                     painter = painterResource(id = R.mipmap.emulaitor_launcher),
                     contentDescription = null,
-                    modifier = Modifier.size(72.dp)
+                    modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

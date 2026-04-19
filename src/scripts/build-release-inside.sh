@@ -19,8 +19,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-VARIANT="${VARIANT:-freeBundleRelease}"
-TASK_SUFFIX="$(tr '[:lower:]' '[:upper:]' <<<"${VARIANT:0:1}")${VARIANT:1}"
+BUILD_VARIANT="${BUILD_VARIANT:-${VARIANT:-freeBundleRelease}}"
+VARIANT_LABEL="${VARIANT_LABEL:-${VARIANT:-${BUILD_VARIANT}}}"
+TASK_SUFFIX="$(tr '[:lower:]' '[:upper:]' <<<"${BUILD_VARIANT:0:1}")${BUILD_VARIANT:1}"
 TASK=":lemuroid-app:assemble${TASK_SUFFIX}"
 
 if [[ ! -f "local.properties" ]] || ! grep -q "sdk.dir=/opt/android-sdk" local.properties; then
@@ -57,17 +58,29 @@ fi
 bash ./gradlew --no-daemon --stacktrace "${TASK}"
 
 OUT_DIR="lemuroid-app/build/outputs/apk"
-mkdir -p artifacts
+mkdir -p releases
 
-FLAVOR_DIR="${VARIANT%Release}"
-APK_PATH="$(find "${OUT_DIR}/${FLAVOR_DIR}/release" -type f -name "*.apk" | sort | tail -n 1 || true)"
+BUILD_TYPE="release"
+if [[ "${BUILD_VARIANT}" == *Debug ]]; then
+  BUILD_TYPE="debug"
+fi
+
+FLAVOR_DIR="${BUILD_VARIANT%Release}"
+if [[ "${FLAVOR_DIR}" == "${BUILD_VARIANT}" ]]; then
+  FLAVOR_DIR="${BUILD_VARIANT%Debug}"
+fi
+
+APK_PATH="$(find "${OUT_DIR}/${FLAVOR_DIR}/${BUILD_TYPE}" -type f -name "*.apk" | sort | tail -n 1 || true)"
 if [[ -z "${APK_PATH}" ]]; then
-  APK_PATH="$(find "${OUT_DIR}" -type f -name "*release*.apk" | sort | tail -n 1 || true)"
+  APK_PATH="$(find "${OUT_DIR}" -type f -name "*${BUILD_TYPE}*.apk" | sort | tail -n 1 || true)"
 fi
 if [[ -z "${APK_PATH}" ]]; then
-  echo "Aucun APK trouvé pour la variante ${VARIANT}."
+  APK_PATH="$(find "${OUT_DIR}" -type f -name "*.apk" | sort | tail -n 1 || true)"
+fi
+if [[ -z "${APK_PATH}" ]]; then
+  echo "Aucun APK trouvé pour la variante ${BUILD_VARIANT}."
   exit 1
 fi
 
-cp -f "${APK_PATH}" "artifacts/Retromul-${VARIANT}.apk"
-echo "APK généré: artifacts/Retromul-${VARIANT}.apk"
+cp -f "${APK_PATH}" "releases/Retromul-${VARIANT_LABEL}.apk"
+echo "APK généré: releases/Retromul-${VARIANT_LABEL}.apk"
