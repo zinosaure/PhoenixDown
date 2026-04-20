@@ -95,8 +95,8 @@ fun AdvancedSettingsScreen(
             return@LemuroidSettingsPage
         }
 
-        GeneralSettings(viewModel, navController)
-        InputSettings()
+        GeneralSettings()
+        SystemInteractionSettings()
         CacheManagementSettings(uiState.cache)
         SaveGamesBackupSettings(
             onExport = {
@@ -106,13 +106,14 @@ fun AdvancedSettingsScreen(
                 importLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
             },
         )
+        FactoryResetSection(viewModel, navController)
     }
 }
 
 @Composable
-private fun InputSettings() {
+private fun SystemInteractionSettings() {
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_input)) },
+        title = { Text(text = stringResource(id = R.string.settings_category_system_interaction)) },
     ) {
         val rumbleEnabled = booleanPreferenceState(R.string.pref_key_enable_rumble, false)
         LemuroidSettingsSwitch(
@@ -141,12 +142,7 @@ private fun InputSettings() {
 }
 
 @Composable
-private fun GeneralSettings(
-    viewModel: AdvancedSettingsViewModel,
-    navController: NavController,
-) {
-    val factoryResetDialogState = remember { mutableStateOf(false) }
-
+private fun GeneralSettings() {
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_general)) },
     ) {
@@ -160,6 +156,19 @@ private fun GeneralSettings(
             title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
             subtitle = { Text(text = stringResource(id = R.string.settings_description_direct_game_load)) },
         )
+    }
+}
+
+@Composable
+private fun FactoryResetSection(
+    viewModel: AdvancedSettingsViewModel,
+    navController: NavController,
+) {
+    val factoryResetDialogState = remember { mutableStateOf(false) }
+
+    LemuroidCardSettingsGroup(
+        title = { Text(text = stringResource(id = R.string.settings_category_factory_reset)) },
+    ) {
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.settings_title_reset_settings)) },
             subtitle = { Text(text = stringResource(id = R.string.settings_description_reset_settings)) },

@@ -116,11 +116,18 @@
                     app:iconSpaceReserved="false"
                     android:defaultValue="true"/>
 
-                <Preference
-                    android:key="@string/pref_key_reset_settings"
-                    android:title="@string/settings_title_reset_settings"
-                    app:summary="@string/settings_description_reset_settings"
-                    app:iconSpaceReserved="false"/>
+            </PreferenceCategory>
+
+            <PreferenceCategory
+                android:title="@string/settings_category_system_interaction"
+                app:iconSpaceReserved="false">
+
+                <SwitchPreference
+                    android:key="@string/pref_key_enable_rumble"
+                    android:title="@string/settings_title_enable_rumble"
+                    android:summary="@string/settings_description_enable_rumble"
+                    app:iconSpaceReserved="false"
+                    android:defaultValue="false"/>
 
             </PreferenceCategory>
 
@@ -171,24 +178,47 @@
             </PreferenceCategory>
 
             <PreferenceCategory
-                android:title="@string/settings_category_input"
+                android:title="@string/settings_savegames_backup_section"
                 app:iconSpaceReserved="false">
 
-                <SwitchPreference
-                    android:key="@string/pref_key_enable_rumble"
-                    android:title="@string/settings_title_enable_rumble"
-                    android:summary="@string/settings_description_enable_rumble"
-                    app:iconSpaceReserved="false"
-                    android:defaultValue="false"/>
+                <Preference
+                    android:key="@string/pref_key_export_save_games"
+                    android:title="@string/settings_savegames_export_zip"
+                    android:summary="@string/settings_savegames_export_zip_description"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_import_save_games"
+                    android:title="@string/settings_savegames_import_zip"
+                    android:summary="@string/settings_savegames_import_zip_description"
+                    app:iconSpaceReserved="false"/>
+
+            </PreferenceCategory>
+
+            <PreferenceCategory
+                android:title="@string/settings_category_factory_reset"
+                app:iconSpaceReserved="false">
+
+                <Preference
+                    android:key="@string/pref_key_reset_settings"
+                    android:title="@string/settings_title_reset_settings"
+                    app:summary="@string/settings_description_reset_settings"
+                    app:iconSpaceReserved="false"/>
 
             </PreferenceCategory>
 
         </PreferenceScreen>
 
         <Preference
-            android:key="pref_key_manual"
+            android:key="@string/pref_key_open_manual"
             android:title="@string/settings_title_manual"
             android:summary="@string/settings_description_manual"
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="@string/pref_key_open_about"
+            android:title="@string/settings_title_about"
+            android:summary="@string/settings_description_about"
             app:iconSpaceReserved="false"/>
 
     </PreferenceCategory>

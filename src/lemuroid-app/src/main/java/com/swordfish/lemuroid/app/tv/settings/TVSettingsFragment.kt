@@ -1,9 +1,11 @@
 package com.swordfish.lemuroid.app.tv.settings
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.InputDevice
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -15,6 +17,7 @@ import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
+import com.swordfish.lemuroid.app.shared.storage.saves.SaveGamesBackupManager
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
 import android.text.format.Formatter
@@ -49,6 +52,28 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     lateinit var saveSyncManager: SaveSyncManager
 
     lateinit var saveSyncPreferences: SaveSyncPreferences
+
+    private val exportSavesLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            runCatching { SaveGamesBackupManager.exportToZip(requireContext(), uri) }
+                .onSuccess { requireActivity().displayToast(getString(R.string.settings_savegames_export_success, it.filesCount)) }
+                .onFailure { requireActivity().displayToast(getString(R.string.settings_savegames_backup_failed, it.message ?: "error")) }
+        }
+    }
+
+    private val importSavesLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            runCatching { SaveGamesBackupManager.importFromZip(requireContext(), uri) }
+                .onSuccess { requireActivity().displayToast(getString(R.string.settings_savegames_import_success, it.filesCount)) }
+                .onFailure { requireActivity().displayToast(getString(R.string.settings_savegames_backup_failed, it.message ?: "error")) }
+        }
+    }
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -203,8 +228,16 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 lifecycleScope.launch {
                     handleResetGamePadBindings()
                 }
-            getString(R.string.pref_key_reset_settings) -> handleResetSettings()
+            getString(R.string.pref_key_reset_settings) -> confirmResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
+            getString(R.string.pref_key_export_save_games) ->
+                exportSavesLauncher.launch("retromul-savegames-backup.zip")
+            getString(R.string.pref_key_import_save_games) ->
+                importSavesLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
+            getString(R.string.pref_key_open_manual) ->
+                startActivity(Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.manual.TVManualActivity::class.java))
+            getString(R.string.pref_key_open_about) ->
+                startActivity(Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.about.TVAboutActivity::class.java))
         }
         return super.onPreferenceTreeClick(preference)
     }
@@ -250,6 +283,15 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     private fun handleResetSettings() {
         settingsInteractor.resetAllSettings()
         activity?.finish()
+    }
+
+    private fun confirmResetSettings() {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.reset_settings_warning_message_title)
+            .setMessage(R.string.reset_settings_warning_message_description)
+            .setPositiveButton(R.string.ok) { _, _ -> handleResetSettings() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private suspend fun refreshCleanupPreferenceSummaries() {

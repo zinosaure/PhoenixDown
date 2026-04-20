@@ -170,6 +170,16 @@ object CoverUtils {
             }
 
             is CoverLocation.SmbRemote -> {
+                // Only upload if the SMB share is writable
+                val isRw = runCatching {
+                    SmbClient().isShareWritable(
+                        server = location.server,
+                        share = location.share,
+                        credentials = location.credentials,
+                    )
+                }.getOrDefault(false)
+                if (!isRw) return
+
                 runCatching {
                     val smbClient = SmbClient()
                     val coverBytes = bitmapToJpegBytes(bitmap)
@@ -191,6 +201,30 @@ object CoverUtils {
         appContext: Context,
         game: Game,
     ): Uri? {
+        val coverName = "${game.id}.jpg"
+        val uri = Uri.parse(game.fileUri)
+
+        // For SMB games, always check the SMB .covers folder first (even before local cache)
+        if (uri.scheme == "smb") {
+            val smb = resolveSmbCoverLocation(appContext, uri, coverName) ?: return null
+            val existsOnSmb = runCatching {
+                val smbClient = SmbClient()
+                kotlinx.coroutines.runBlocking {
+                    smbClient.fileExists(
+                        server = smb.server,
+                        share = smb.share,
+                        remotePath = smb.remotePath,
+                        credentials = smb.credentials,
+                    )
+                }
+            }.getOrDefault(false)
+            if (existsOnSmb) {
+                // Stream the cover via SMB as a temp local file so Coil can load it
+                return resolveSmbCoverAsLocalCache(appContext, smb, coverName)
+            }
+            return null
+        }
+
         val location = resolvePreferredCoverLocation(appContext, game)
         return when (location) {
             is CoverLocation.LocalFile -> {
@@ -202,7 +236,6 @@ object CoverUtils {
                     if (legacy != null && legacy.exists()) Uri.fromFile(legacy) else null
                 }
             }
-
             is CoverLocation.SafUri -> {
                 if (locationExists(location, appContext.contentResolver)) {
                     location.uri
@@ -210,7 +243,6 @@ object CoverUtils {
                     findLegacySafCoverUri(appContext, game)
                 }
             }
-
             is CoverLocation.SmbRemote -> null
         }
     }
@@ -315,6 +347,34 @@ object CoverUtils {
         val legacyDir = safRoot.findFile(LEGACY_GAME_COVERS_SUBFOLDER) ?: return null
         val legacyFile = legacyDir.findFile("${game.id}.jpg") ?: return null
         return legacyFile.uri
+    }
+
+    /**
+     * Downloads a cover from SMB and saves it to local cache, returning a file:// URI for Coil.
+     */
+    private fun resolveSmbCoverAsLocalCache(
+        appContext: Context,
+        smb: CoverLocation.SmbRemote,
+        coverName: String,
+    ): Uri? {
+        val cacheDir = File(appContext.cacheDir, COVERS_CACHE_SUBFOLDER)
+        cacheDir.mkdirs()
+        val localFile = File(cacheDir, "smb_$coverName")
+        if (localFile.exists() && localFile.length() > 0) return Uri.fromFile(localFile)
+        return runCatching {
+            kotlinx.coroutines.runBlocking {
+                localFile.outputStream().use { out ->
+                    SmbClient().downloadFile(
+                        server = smb.server,
+                        share = smb.share,
+                        remotePath = smb.remotePath,
+                        outputStream = out,
+                        credentials = smb.credentials,
+                    )
+                }
+            }
+            Uri.fromFile(localFile)
+        }.getOrNull()
     }
 
     private fun bitmapToJpegBytes(bitmap: Bitmap): ByteArray {

@@ -371,6 +371,87 @@ class SmbClient {
     }
     
     /**
+     * Check whether a file exists on an SMB share
+     */
+    suspend fun fileExists(
+        server: String,
+        share: String,
+        remotePath: String,
+        credentials: SmbCredentials? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val endpoint = parseEndpoint(server)
+            val client = SMBClient()
+            val connection = client.connect(endpoint.host, endpoint.port)
+            val authContext = if (credentials != null && credentials.username.isNotBlank()) {
+                AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
+            } else {
+                AuthenticationContext.guest()
+            }
+            val session = connection.authenticate(authContext)
+            val diskShare = session.connectShare(share) as DiskShare
+            val smbPath = remotePath.replace("/", "\\")
+            val exists = diskShare.fileExists(smbPath)
+            diskShare.close()
+            session.close()
+            connection.close()
+            client.close()
+            exists
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking SMB file existence: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
+     * Check whether a share is writable by attempting a write probe.
+     */
+    suspend fun isShareWritable(
+        server: String,
+        share: String,
+        credentials: SmbCredentials? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val endpoint = parseEndpoint(server)
+            val client = SMBClient()
+            val connection = client.connect(endpoint.host, endpoint.port)
+            val authContext = if (credentials != null && credentials.username.isNotBlank()) {
+                AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
+            } else {
+                AuthenticationContext.guest()
+            }
+            val session = connection.authenticate(authContext)
+            val diskShare = session.connectShare(share) as DiskShare
+            // Try opening a probe file for write; if it succeeds, share is writable
+            val probePath = ".retromul_write_probe"
+            val writable = try {
+                val f = diskShare.openFile(
+                    probePath,
+                    EnumSet.of(AccessMask.GENERIC_WRITE),
+                    null,
+                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_WRITE),
+                    SMB2CreateDisposition.FILE_OVERWRITE_IF,
+                    EnumSet.noneOf(SMB2CreateOptions::class.java)
+                )
+                f.close()
+                // Clean up probe file (best effort)
+                runCatching { diskShare.rm(probePath) }
+                true
+            } catch (e: Exception) {
+                false
+            }
+            diskShare.close()
+            session.close()
+            connection.close()
+            client.close()
+            writable
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking SMB share writability: ${e.message}", e)
+            false
+        }
+    }
+
+    /**
      * Move/rename a file on SMB share
      */
     suspend fun moveFile(
