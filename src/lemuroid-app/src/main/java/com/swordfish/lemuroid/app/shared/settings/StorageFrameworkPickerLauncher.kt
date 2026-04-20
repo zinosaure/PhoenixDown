@@ -37,19 +37,37 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
         super.onCreate(savedInstanceState)
 
         if (savedInstanceState == null) {
-            val intent =
-                Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                    this.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    this.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    this.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-                    this.addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
-                    this.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-                }
-            try {
-                startActivityForResult(intent, REQUEST_CODE_PICK_FOLDER)
-            } catch (e: Exception) {
-                showStorageAccessFrameworkNotSupportedDialog()
+            showInitialSetupNotice()
+        }
+    }
+
+    private fun showInitialSetupNotice() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.initial_setup_local_only_title)
+            .setMessage(R.string.initial_setup_local_only_message)
+            .setPositiveButton(R.string.initial_setup_local_only_continue) { _, _ ->
+                launchFolderPicker()
             }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun launchFolderPicker() {
+        val intent =
+            Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                this.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                this.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                this.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                this.addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+                this.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+            }
+        try {
+            startActivityForResult(intent, REQUEST_CODE_PICK_FOLDER)
+        } catch (e: Exception) {
+            showStorageAccessFrameworkNotSupportedDialog()
         }
     }
 

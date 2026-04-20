@@ -32,8 +32,22 @@ class TVFolderPickerLauncher : ImmersiveActivity() {
         super.onCreate(savedInstanceState)
 
         if (savedInstanceState == null) {
-            startActivityForResult(Intent(this, TVFolderPickerActivity::class.java), REQUEST_CODE_PICK_FOLDER)
+            showInitialSetupNotice()
         }
+    }
+
+    private fun showInitialSetupNotice() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.initial_setup_local_only_title)
+            .setMessage(R.string.initial_setup_local_only_message)
+            .setPositiveButton(R.string.initial_setup_local_only_continue) { _, _ ->
+                startActivityForResult(Intent(this, TVFolderPickerActivity::class.java), REQUEST_CODE_PICK_FOLDER)
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     override fun onActivityResult(

@@ -153,8 +153,11 @@
     <string name="home_microphone_action">Enable</string>
 
     <string name="home_empty_title">Select ROMs directory</string>
-    <string name="home_empty_message">Lemuroid needs to scan a directory containing ROM files.\nThis might take up to a few minutes.</string>
+    <string name="home_empty_message">Lemuroid needs to scan a directory containing ROM files.\nThis might take up to a few minutes.\n\nNote: the first setup only supports a local folder. SMB/NAS sources can be added later from Settings &gt; ROMs.</string>
     <string name="home_empty_action">Select Directory</string>
+    <string name="initial_setup_local_only_title">Local setup first</string>
+    <string name="initial_setup_local_only_message">The first library setup currently supports only a local folder.\n\nIf you want to use SMB/NAS sources, complete this first step with a local folder, then add your network sources later from Settings &gt; ROMs.</string>
+    <string name="initial_setup_local_only_continue">Choose local folder</string>
 
     <string name="home_notification_desmume_deprecated_title">DeSmuME is being retired</string>
     <string name="home_notification_desmume_deprecated_message">Save in-game, then switch to melonDS to keep your progress. Save states won\’t transfer and will remain usable only in DeSmuME.</string>
