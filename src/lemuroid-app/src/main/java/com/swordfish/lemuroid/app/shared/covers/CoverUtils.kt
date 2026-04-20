@@ -18,18 +18,23 @@ import coil.request.CachePolicy
 import coil.request.SuccessResult
 import com.swordfish.lemuroid.common.drawable.TextDrawable
 import com.swordfish.lemuroid.common.graphics.ColorUtils
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.lemuroid.lib.storage.smb.SmbClient
+import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 object CoverUtils {
     const val IMAGE_CACHE_SUBFOLDER = "image_cache"
-    private const val GAME_COVERS_SUBFOLDER = ".gamecovers"
+    private const val GAME_COVERS_SUBFOLDER = ".covers"
+    private const val LEGACY_GAME_COVERS_SUBFOLDER = ".gamecovers"
     private const val COVERS_CACHE_SUBFOLDER = "gamecovers"
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -37,6 +42,13 @@ object CoverUtils {
         data class LocalFile(val file: File) : CoverLocation
 
         data class SafUri(val uri: Uri) : CoverLocation
+
+        data class SmbRemote(
+            val server: String,
+            val share: String,
+            val remotePath: String,
+            val credentials: SmbCredentials?,
+        ) : CoverLocation
     }
 
     fun loadCover(
@@ -126,7 +138,7 @@ object CoverUtils {
         return ColorUtils.randomColor(game.title)
     }
 
-    private fun persistCoverInternal(
+    private suspend fun persistCoverInternal(
         appContext: Context,
         game: Game,
         drawable: Drawable,
@@ -156,6 +168,22 @@ object CoverUtils {
                     }
                 }
             }
+
+            is CoverLocation.SmbRemote -> {
+                runCatching {
+                    val smbClient = SmbClient()
+                    val coverBytes = bitmapToJpegBytes(bitmap)
+                    ByteArrayInputStream(coverBytes).use { stream ->
+                        smbClient.uploadFile(
+                            server = location.server,
+                            share = location.share,
+                            remotePath = location.remotePath,
+                            inputStream = stream,
+                            credentials = location.credentials,
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -169,7 +197,9 @@ object CoverUtils {
                 if (location.file.exists()) {
                     Uri.fromFile(location.file)
                 } else {
-                    null
+                    val legacyRoot = location.file.parentFile?.parentFile
+                    val legacy = legacyRoot?.resolve(LEGACY_GAME_COVERS_SUBFOLDER)?.resolve(location.file.name)
+                    if (legacy != null && legacy.exists()) Uri.fromFile(legacy) else null
                 }
             }
 
@@ -177,9 +207,11 @@ object CoverUtils {
                 if (locationExists(location, appContext.contentResolver)) {
                     location.uri
                 } else {
-                    null
+                    findLegacySafCoverUri(appContext, game)
                 }
             }
+
+            is CoverLocation.SmbRemote -> null
         }
     }
 
@@ -189,6 +221,13 @@ object CoverUtils {
     ): CoverLocation {
         val coverName = "${game.id}.jpg"
         val uri = Uri.parse(game.fileUri)
+
+        if (uri.scheme == "smb") {
+            val smb = resolveSmbCoverLocation(appContext, uri, coverName)
+            if (smb != null) {
+                return smb
+            }
+        }
 
         if (uri.scheme == "file") {
             val romParent = File(uri.path ?: "").parentFile
@@ -233,7 +272,55 @@ object CoverUtils {
                     } ?: false
                 }.getOrDefault(false)
             }
+            is CoverLocation.SmbRemote -> false
         }
+    }
+
+    private fun resolveSmbCoverLocation(
+        appContext: Context,
+        uri: Uri,
+        coverName: String,
+    ): CoverLocation.SmbRemote? {
+        val fullPath = uri.path?.removePrefix("/")?.replace("\\", "/") ?: return null
+        val shareFromUri = fullPath.substringBefore("/", "")
+        val share = if (shareFromUri.isNotBlank()) shareFromUri else return null
+
+        val romPathInShare = fullPath.substringAfter("/", "")
+        val romDir = romPathInShare.substringBeforeLast("/", "")
+        val coversDir = if (romDir.isBlank()) GAME_COVERS_SUBFOLDER else "$romDir/$GAME_COVERS_SUBFOLDER"
+        val remotePath = "$coversDir/$coverName"
+
+        val prefs = SharedPreferencesHelper.getSharedPreferences(appContext)
+        val server = uri.authority?.takeIf { it.isNotBlank() }
+            ?: prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, null)
+            ?: return null
+
+        val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, null)
+        val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, null).orEmpty()
+        val credentials = username?.takeIf { it.isNotBlank() }?.let { SmbCredentials(it, password) }
+
+        return CoverLocation.SmbRemote(
+            server = server,
+            share = share,
+            remotePath = remotePath,
+            credentials = credentials,
+        )
+    }
+
+    private fun findLegacySafCoverUri(
+        appContext: Context,
+        game: Game,
+    ): Uri? {
+        val safRoot = resolveSafRootWritable(appContext) ?: return null
+        val legacyDir = safRoot.findFile(LEGACY_GAME_COVERS_SUBFOLDER) ?: return null
+        val legacyFile = legacyDir.findFile("${game.id}.jpg") ?: return null
+        return legacyFile.uri
+    }
+
+    private fun bitmapToJpegBytes(bitmap: Bitmap): ByteArray {
+        val output = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        return output.toByteArray()
     }
 
     private fun drawableToBitmap(drawable: Drawable): Bitmap {

@@ -246,6 +246,10 @@ class SmbClient {
             val diskShare = session.connectShare(share) as DiskShare
             
             val smbPath = remotePath.replace("/", "\\")
+            val parentDir = smbPath.substringBeforeLast("\\", "")
+            if (parentDir.isNotBlank() && !diskShare.folderExists(parentDir)) {
+                createDirectoryRecursive(diskShare, parentDir)
+            }
             
             val smbFile = diskShare.openFile(
                 smbPath,
