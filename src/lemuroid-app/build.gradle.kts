@@ -13,7 +13,7 @@ plugins {
 
 android {
     defaultConfig {
-        versionCode = 237
+        versionCode = 238
         versionName = getChangelogVersion() // Always remember to update Cores Tag!
         applicationId = "com.zinosaure.phoenixdown"
 

@@ -1,4 +1,22 @@
 ****************************************************************************************************
+20/04/2026 14:00 - Phoenix Down 2.0 Development Started - v2.0.0
+****************************************************************************************************
+- Description:
+  Launched development for Phoenix Down 2.0 with major feature expansion.
+
+- Planned features:
+  Multi-folder ROM source support (scan multiple local/network directories in parallel)
+  WebDAV network protocol support for remote libraries
+  SFTP protocol support for SSH-based file access
+  Enhanced source management UI and per-folder status reporting
+  Smarter deduplication across multiple ROM sources
+
+- Development status:
+  Architecture planning and refactoring in progress
+  Multi-folder foundation phase initiated
+  Expected release timeline: Q3 2026
+
+****************************************************************************************************
 20/04/2026 12:00 - Upstream Watch: Lemuroid 1.17.0 announced on stores/blog (non-Google) - v017
 ****************************************************************************************************
 - Description:
