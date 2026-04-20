@@ -23,7 +23,6 @@ Retromul extends the base feature set with premium-style features that are compl
 *   **Touch Controls:** Optimized and customizable.
 *   **Gamepad Support:** Native Bluetooth and USB controller support.
 *   **Shaders:** CRT/LCD screen simulation for a nostalgic look.
-*   **Cloud Save Sync:** Saved-game synchronization (experimental).
 *   **Ad-Free:** 100% free software with no tracking.
 
 ---

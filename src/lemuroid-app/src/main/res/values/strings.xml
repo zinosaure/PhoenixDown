@@ -243,7 +243,7 @@
     <string name="pref_key_redownload_covers">pref_key_redownload_covers</string>
     <string name="settings_title_choose_directory">ROMs Directory</string>
     <string name="settings_description_choose_directory">Select the folder containing your games</string>
-    <string name="settings_title_covers_storage_location">Covers storage</string>
+    <string name="settings_title_covers_storage_location">Cover locations</string>
     <string name="settings_title_redownload_covers">Re-download covers</string>
     <string name="settings_description_redownload_covers">Clear cached cover images and request fresh downloads during the next scan.</string>
     <string name="settings_covers_redownload_started">Cover re-download requested.</string>

@@ -238,7 +238,7 @@
     <string name="tv_smb_connection_failed">Erreur : %1$s</string>
     <string name="tv_smb_path_must_start_with_share">Le chemin doit commencer par /NomDuPartage</string>
     <string name="tv_smb_configured_successfully">SMB configuré avec succès</string>
-    <string name="settings_title_covers_storage_location">Stockage des jaquettes</string>
+    <string name="settings_title_covers_storage_location">Emplacements des jaquettes</string>
     <string name="settings_title_redownload_covers">Retélécharger les jaquettes</string>
     <string name="settings_description_redownload_covers">Vide le cache des jaquettes et redemande de nouvelles images au prochain scan.</string>
     <string name="settings_covers_redownload_started">Retéléchargement des jaquettes demandé.</string>

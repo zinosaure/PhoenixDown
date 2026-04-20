@@ -182,7 +182,7 @@ object CoverUtils {
                             credentials = location.credentials,
                         )
                     }
-                }.isSuccess
+                }.getOrNull()?.isSuccess == true
 
                 // If SMB write is unavailable (RO share, ACLs, etc.), keep a local mirror cache.
                 if (!uploaded) {
