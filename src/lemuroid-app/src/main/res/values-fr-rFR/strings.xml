@@ -113,6 +113,8 @@
     <string name="game_loading_opening_game">Ouverture du jeu…</string>
     <string name="game_loading_progress_format">%1$s (%2$d%%)</string>
     <string name="game_loading_context_format">%1$s - %2$s - %3$s</string>
+    <string name="game_loading_subtitle_without_version">%1$s - %2$s</string>
+    <string name="game_loading_subtitle_with_version">%1$s - %2$s v%3$s</string>
     <string name="game_toast_settings_button_using_gamepad">La manette a été détectée. Accédez au menu des paramètres avec %1$s.</string>
     <string name="game_toast_load_state_failed">Impossible de charger cet état de sauvegarde</string>
     <string name="game_toast_quick_save_loaded">Chargement rapide</string>

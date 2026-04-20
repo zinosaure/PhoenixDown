@@ -68,9 +68,9 @@ fun AboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_lemuroid_tiny),
+                    painter = painterResource(id = R.mipmap.emulaitor_launcher),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(56.dp),
                     contentScale = ContentScale.Fit
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -115,7 +115,7 @@ fun AboutScreen(
             OutlinedButton(
                 onClick = {
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/rolemiaster/Retromul"))
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zinosaure/Retromul"))
                         context.startActivity(intent)
                     } catch (e: android.content.ActivityNotFoundException) {
                         android.widget.Toast.makeText(

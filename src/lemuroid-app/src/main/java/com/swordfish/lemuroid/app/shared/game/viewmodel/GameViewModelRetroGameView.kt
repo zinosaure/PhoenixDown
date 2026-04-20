@@ -327,6 +327,8 @@ class GameViewModelRetroGameView(
                     GameLoader.LoadingGameStage.OPENING_GAME -> 90
                 }
             }
+
+            is GameLoader.LoadingState.Ready -> 100
         }
     }
 
@@ -341,6 +343,8 @@ class GameViewModelRetroGameView(
                     GameLoader.LoadingGameStage.OPENING_GAME -> 97
                 }
             }
+
+            is GameLoader.LoadingState.Ready -> 100
         }
     }
 

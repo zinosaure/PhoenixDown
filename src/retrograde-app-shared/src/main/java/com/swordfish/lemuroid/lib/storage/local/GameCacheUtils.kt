@@ -30,7 +30,7 @@ object GameCacheUtils {
         game: Game,
         context: Context,
     ): File {
-        val gamesCachePath = buildPath(folderName, game.systemId)
+        val gamesCachePath = buildPath(folderName, game.systemId, game.id.toString())
         val gamesCacheDir = File(context.cacheDir, gamesCachePath)
         gamesCacheDir.mkdirs()
         return gamesCacheDir
