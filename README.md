@@ -36,6 +36,15 @@ Phoenix Down extends the base feature set with premium-style features that are c
 
 The following updates were recently implemented in this fork:
 
+*   **Official Phoenix Down release polish:**
+    * Finalized Phoenix Down branding in reset/factory-reset messaging across localized resources.
+    * Kept Phoenix Down visual identity for in-app branding while using a dedicated Android launcher icon asset.
+    * Updated launcher icon resources (adaptive + fallback mipmaps) for cleaner rendering.
+
+*   **Game launch loading UX refresh:**
+    * Replaced percentage-based loading feedback with an indeterminate progress bar.
+    * Removed backward-jumping percentage behavior during long-running startup steps.
+
 *   **Upstream tracking: Lemuroid 1.17.0 (announced):**
     * Upstream announced 1.17.0 with major updates: MelonDS microphone support, DeSmuME deprecation, redesigned touch controls, immersive mode, stronger autosave flow, quicksave/quickload shortcuts, 16Kb page support, and updated cores/databases.
     * Upstream also confirmed large internal refactors (mobile UI now fully Jetpack Compose, TV still pending).
@@ -53,6 +62,15 @@ The following updates were recently implemented in this fork:
 ---
 
 ## Coming in a Future Version
+
+*   **🌐 Extended network sources (SFTP/WebDAV):**
+    * Add first-class support for SFTP and WebDAV libraries in addition to SMB/local sources.
+    * Reuse the existing scan/index flow so remote libraries behave like local collections.
+
+*   **📁 Multiple ROM folders in parallel:**
+    * Allow configuring multiple ROM roots at the same time (local and/or network).
+    * Scan and index these libraries in parallel to reduce total import time.
+    * Keep per-folder status and error reporting to make troubleshooting easier.
 
 *   **📦 Cover persistence on SMB / local storage:**
     * Once a cover is downloaded, it will be saved alongside the ROMs (in a `.covers` subfolder) so it's available offline and reused on next launch without hitting the network again.
