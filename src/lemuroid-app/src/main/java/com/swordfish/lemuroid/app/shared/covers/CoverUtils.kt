@@ -1,21 +1,43 @@
 package com.swordfish.lemuroid.app.shared.covers
 
+import android.content.ContentResolver
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.widget.ImageView
+import androidx.documentfile.provider.DocumentFile
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.imageLoader
 import coil.load
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
+import coil.request.SuccessResult
 import com.swordfish.lemuroid.common.drawable.TextDrawable
 import com.swordfish.lemuroid.common.graphics.ColorUtils
+import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import java.io.File
 
 object CoverUtils {
     const val IMAGE_CACHE_SUBFOLDER = "image_cache"
+    private const val GAME_COVERS_SUBFOLDER = ".gamecovers"
+    private const val COVERS_CACHE_SUBFOLDER = "gamecovers"
+    private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private sealed interface CoverLocation {
+        data class LocalFile(val file: File) : CoverLocation
+
+        data class SafUri(val uri: Uri) : CoverLocation
+    }
 
     fun loadCover(
         game: Game,
@@ -23,10 +45,33 @@ object CoverUtils {
     ) {
         if (imageView == null) return
 
-        imageView.load(game.coverFrontUrl, imageView.context.imageLoader) {
+        imageView.load(getCoverModel(imageView.context, game), imageView.context.imageLoader) {
             val fallbackDrawable = getFallbackDrawable(game)
             fallback(fallbackDrawable)
             error(fallbackDrawable)
+            listener(
+                onSuccess = { _, result ->
+                    persistCoverAsync(imageView.context.applicationContext, game, result)
+                },
+            )
+        }
+    }
+
+    fun getCoverModel(
+        appContext: Context,
+        game: Game,
+    ): Any? {
+        val localUri = getExistingStoredCoverUri(appContext, game)
+        return localUri ?: game.coverFrontUrl
+    }
+
+    fun persistCoverAsync(
+        appContext: Context,
+        game: Game,
+        result: SuccessResult,
+    ) {
+        ioScope.launch {
+            persistCoverInternal(appContext, game, result.drawable)
         }
     }
 
@@ -79,5 +124,129 @@ object CoverUtils {
 
     private fun computeColor(game: Game): Int {
         return ColorUtils.randomColor(game.title)
+    }
+
+    private fun persistCoverInternal(
+        appContext: Context,
+        game: Game,
+        drawable: Drawable,
+    ) {
+        val location = resolvePreferredCoverLocation(appContext, game)
+
+        if (locationExists(location, appContext.contentResolver)) {
+            return
+        }
+
+        val bitmap = drawableToBitmap(drawable)
+
+        when (location) {
+            is CoverLocation.LocalFile -> {
+                runCatching {
+                    location.file.parentFile?.mkdirs()
+                    location.file.outputStream().use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                    }
+                }
+            }
+
+            is CoverLocation.SafUri -> {
+                runCatching {
+                    appContext.contentResolver.openOutputStream(location.uri, "w")?.use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getExistingStoredCoverUri(
+        appContext: Context,
+        game: Game,
+    ): Uri? {
+        val location = resolvePreferredCoverLocation(appContext, game)
+        return when (location) {
+            is CoverLocation.LocalFile -> {
+                if (location.file.exists()) {
+                    Uri.fromFile(location.file)
+                } else {
+                    null
+                }
+            }
+
+            is CoverLocation.SafUri -> {
+                if (locationExists(location, appContext.contentResolver)) {
+                    location.uri
+                } else {
+                    null
+                }
+            }
+        }
+    }
+
+    private fun resolvePreferredCoverLocation(
+        appContext: Context,
+        game: Game,
+    ): CoverLocation {
+        val coverName = "${game.id}.jpg"
+        val uri = Uri.parse(game.fileUri)
+
+        if (uri.scheme == "file") {
+            val romParent = File(uri.path ?: "").parentFile
+            if (romParent != null && romParent.exists() && romParent.canWrite()) {
+                return CoverLocation.LocalFile(File(File(romParent, GAME_COVERS_SUBFOLDER), coverName))
+            }
+        }
+
+        val safRoot = resolveSafRootWritable(appContext)
+        if (safRoot != null) {
+            val coversDir = safRoot.findFile(GAME_COVERS_SUBFOLDER) ?: safRoot.createDirectory(GAME_COVERS_SUBFOLDER)
+            if (coversDir != null && coversDir.canWrite()) {
+                val existing = coversDir.findFile(coverName)
+                val file = existing ?: coversDir.createFile("image/jpeg", coverName)
+                if (file != null) {
+                    return CoverLocation.SafUri(file.uri)
+                }
+            }
+        }
+
+        val fallback = File(File(appContext.cacheDir, COVERS_CACHE_SUBFOLDER), coverName)
+        return CoverLocation.LocalFile(fallback)
+    }
+
+    private fun resolveSafRootWritable(appContext: Context): DocumentFile? {
+        val uriString = SharedPreferencesHelper.getSAFUri(appContext) ?: return null
+        val treeUri = runCatching { Uri.parse(uriString) }.getOrNull() ?: return null
+        val root = DocumentFile.fromTreeUri(appContext, treeUri) ?: return null
+        return if (root.canWrite()) root else null
+    }
+
+    private fun locationExists(
+        location: CoverLocation,
+        contentResolver: ContentResolver,
+    ): Boolean {
+        return when (location) {
+            is CoverLocation.LocalFile -> location.file.exists() && location.file.length() > 0
+            is CoverLocation.SafUri -> {
+                runCatching {
+                    contentResolver.openInputStream(location.uri)?.use { stream ->
+                        stream.read() != -1
+                    } ?: false
+                }.getOrDefault(false)
+            }
+        }
+    }
+
+    private fun drawableToBitmap(drawable: Drawable): Bitmap {
+        if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            return drawable.bitmap
+        }
+
+        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 512
+        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 512
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
     }
 }

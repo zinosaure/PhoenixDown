@@ -99,19 +99,6 @@
             app:iconSpaceReserved="false">
 
             <PreferenceCategory
-                android:title="@string/settings_category_input"
-                app:iconSpaceReserved="false">
-
-                <SwitchPreference
-                    android:key="@string/pref_key_enable_rumble"
-                    android:title="@string/settings_title_enable_rumble"
-                    android:summary="@string/settings_description_enable_rumble"
-                    app:iconSpaceReserved="false"
-                    android:defaultValue="false"/>
-
-            </PreferenceCategory>
-
-            <PreferenceCategory
                 android:title="@string/settings_category_general"
                 app:iconSpaceReserved="false">
 
@@ -121,52 +108,6 @@
                     android:summary="@string/settings_description_low_latency_audio"
                     app:iconSpaceReserved="false"
                     android:defaultValue="false"/>
-
-                <PreferenceCategory
-                    android:title="@string/settings_cleanup_section_title"
-                    app:iconSpaceReserved="false">
-
-                    <ListPreference
-                        android:key="@string/pref_key_max_cache_size"
-                        android:title="@string/settings_title_maximum_cache_usage"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_rom_cache_local"
-                        android:title="@string/settings_cleanup_rom_cache_local"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_rom_cache_saf"
-                        android:title="@string/settings_cleanup_rom_cache_saf"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_rom_cache_smb"
-                        android:title="@string/settings_cleanup_rom_cache_smb"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_cover_images_cache"
-                        android:title="@string/settings_cleanup_cover_images"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_save_files"
-                        android:title="@string/settings_cleanup_save_files"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_save_states"
-                        android:title="@string/settings_cleanup_save_states"
-                        app:iconSpaceReserved="false"/>
-
-                    <Preference
-                        android:key="@string/pref_key_clear_state_previews"
-                        android:title="@string/settings_cleanup_state_previews"
-                        app:iconSpaceReserved="false"/>
-
-                </PreferenceCategory>
 
                 <SwitchPreference
                     android:key="@string/pref_key_allow_direct_game_load"
@@ -180,6 +121,65 @@
                     android:title="@string/settings_title_reset_settings"
                     app:summary="@string/settings_description_reset_settings"
                     app:iconSpaceReserved="false"/>
+
+            </PreferenceCategory>
+
+            <PreferenceCategory
+                android:title="@string/settings_cleanup_section_title"
+                app:iconSpaceReserved="false">
+
+                <ListPreference
+                    android:key="@string/pref_key_max_cache_size"
+                    android:title="@string/settings_title_maximum_cache_usage"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_rom_cache_local"
+                    android:title="@string/settings_cleanup_rom_cache_local"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_rom_cache_saf"
+                    android:title="@string/settings_cleanup_rom_cache_saf"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_rom_cache_smb"
+                    android:title="@string/settings_cleanup_rom_cache_smb"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_cover_images_cache"
+                    android:title="@string/settings_cleanup_cover_images"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_save_files"
+                    android:title="@string/settings_cleanup_save_files"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_save_states"
+                    android:title="@string/settings_cleanup_save_states"
+                    app:iconSpaceReserved="false"/>
+
+                <Preference
+                    android:key="@string/pref_key_clear_state_previews"
+                    android:title="@string/settings_cleanup_state_previews"
+                    app:iconSpaceReserved="false"/>
+
+            </PreferenceCategory>
+
+            <PreferenceCategory
+                android:title="@string/settings_category_input"
+                app:iconSpaceReserved="false">
+
+                <SwitchPreference
+                    android:key="@string/pref_key_enable_rumble"
+                    android:title="@string/settings_title_enable_rumble"
+                    android:summary="@string/settings_description_enable_rumble"
+                    app:iconSpaceReserved="false"
+                    android:defaultValue="false"/>
 
             </PreferenceCategory>
 

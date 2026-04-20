@@ -52,6 +52,14 @@
     <string name="settings_cleanup_save_files">Save files (.srm, .sav)</string>
     <string name="settings_cleanup_save_states">Save states</string>
     <string name="settings_cleanup_state_previews">Save state previews</string>
+    <string name="settings_savegames_backup_section">Save games backup</string>
+    <string name="settings_savegames_export_zip">Export save games as ZIP</string>
+    <string name="settings_savegames_export_zip_description">Export saves, states and previews into one archive</string>
+    <string name="settings_savegames_import_zip">Import save games from ZIP</string>
+    <string name="settings_savegames_import_zip_description">Import saves, states and previews from a backup archive</string>
+    <string name="settings_savegames_export_success">%1$d file(s) exported</string>
+    <string name="settings_savegames_import_success">%1$d file(s) imported</string>
+    <string name="settings_savegames_backup_failed">Backup operation failed: %1$s</string>
     <string name="pref_key_clear_rom_cache_local">pref_key_clear_rom_cache_local</string>
     <string name="pref_key_clear_rom_cache_saf">pref_key_clear_rom_cache_saf</string>
     <string name="pref_key_clear_rom_cache_smb">pref_key_clear_rom_cache_smb</string>

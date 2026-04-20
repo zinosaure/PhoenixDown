@@ -38,7 +38,7 @@
     <string name="settings_clear_confirm_title">Supprimer les données ?</string>
     <string name="settings_clear_confirm_message">Supprimer %1$s (%2$s) ? Cette action est irréversible.</string>
     <string name="settings_clear_done">Supprimé : %1$s (%2$s)</string>
-    <string name="settings_cleanup_section_title">Nettoyage du stockage</string>
+    <string name="settings_cleanup_section_title">Gestion du cache</string>
     <string name="settings_cleanup_rom_cache_local">Cache ROM (fichiers locaux)</string>
     <string name="settings_cleanup_rom_cache_saf">Cache ROM (Storage Access Framework)</string>
     <string name="settings_cleanup_rom_cache_smb">Cache ROM (téléchargements SMB)</string>
@@ -46,6 +46,14 @@
     <string name="settings_cleanup_save_files">Fichiers de sauvegarde (.srm, .sav)</string>
     <string name="settings_cleanup_save_states">États de sauvegarde</string>
     <string name="settings_cleanup_state_previews">Aperçus des états</string>
+    <string name="settings_savegames_backup_section">Sauvegarde des parties</string>
+    <string name="settings_savegames_export_zip">Exporter les sauvegardes en ZIP</string>
+    <string name="settings_savegames_export_zip_description">Exporte les saves, états et aperçus dans une archive</string>
+    <string name="settings_savegames_import_zip">Importer les sauvegardes depuis un ZIP</string>
+    <string name="settings_savegames_import_zip_description">Importe les saves, états et aperçus depuis une archive</string>
+    <string name="settings_savegames_export_success">%1$d fichier(s) exporté(s)</string>
+    <string name="settings_savegames_import_success">%1$d fichier(s) importé(s)</string>
+    <string name="settings_savegames_backup_failed">Échec de l\'opération de sauvegarde : %1$s</string>
     <string name="settings_title_hd_mode">Mode HD</string>
     <string name="settings_description_hd_mode">Appliquer le filtre d\'haute gamme post-traitement</string>
     <string name="settings_description_hd_quality">Ajuster la qualité du mode HD</string>

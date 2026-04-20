@@ -1,11 +1,13 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.advanced
 
 import android.content.Context
+import android.net.Uri
 import android.text.format.Formatter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
+import com.swordfish.lemuroid.app.shared.storage.saves.SaveGamesBackupManager
 import com.swordfish.lemuroid.lib.storage.cache.CacheCleaner
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,6 +73,32 @@ class AdvancedSettingsViewModel(
             val freedBytes = CacheCleaner.getCurrentCacheSize(appContext)
             CacheCleaner.cleanAll(appContext)
             onDone(freedBytes)
+        }
+    }
+
+    fun exportSaveGames(
+        destinationUri: Uri,
+        onDone: (Result<SaveGamesBackupManager.ExportResult>) -> Unit,
+    ) {
+        viewModelScope.launch {
+            onDone(
+                runCatching {
+                    SaveGamesBackupManager.exportToZip(appContext, destinationUri)
+                },
+            )
+        }
+    }
+
+    fun importSaveGames(
+        sourceUri: Uri,
+        onDone: (Result<SaveGamesBackupManager.ImportResult>) -> Unit,
+    ) {
+        viewModelScope.launch {
+            onDone(
+                runCatching {
+                    SaveGamesBackupManager.importFromZip(appContext, sourceUri)
+                },
+            )
         }
     }
 }

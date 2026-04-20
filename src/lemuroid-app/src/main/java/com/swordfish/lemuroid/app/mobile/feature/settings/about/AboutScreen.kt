@@ -68,7 +68,8 @@ fun AboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(id = R.mipmap.emulaitor_launcher),
+                    // Use a drawable here because adaptive mipmap icons can crash with painterResource.
+                    painter = painterResource(id = R.drawable.lemuroid_launcher_foreground),
                     contentDescription = null,
                     modifier = Modifier.size(56.dp),
                     contentScale = ContentScale.Fit
