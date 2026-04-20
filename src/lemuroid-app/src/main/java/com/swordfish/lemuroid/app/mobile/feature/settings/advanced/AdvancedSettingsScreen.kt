@@ -51,7 +51,8 @@ fun AdvancedSettingsScreen(
         }
 
         InputSettings()
-        GeneralSettings(uiState.cache, viewModel, navController)
+        GeneralSettings(viewModel, navController)
+        CacheManagementSettings(uiState.cache)
     }
 }
 
@@ -88,13 +89,40 @@ private fun InputSettings() {
 
 @Composable
 private fun GeneralSettings(
-    cacheState: AdvancedSettingsViewModel.CacheState,
     viewModel: AdvancedSettingsViewModel,
     navController: NavController,
 ) {
+    val factoryResetDialogState = remember { mutableStateOf(false) }
+
+    LemuroidCardSettingsGroup(
+        title = { Text(text = stringResource(id = R.string.settings_category_general)) },
+    ) {
+        LemuroidSettingsSwitch(
+            state = booleanPreferenceState(R.string.pref_key_low_latency_audio, false),
+            title = { Text(text = stringResource(id = R.string.settings_title_low_latency_audio)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_low_latency_audio)) },
+        )
+        LemuroidSettingsSwitch(
+            state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
+            title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_direct_game_load)) },
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_reset_settings)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_reset_settings)) },
+            onClick = { factoryResetDialogState.value = true },
+        )
+    }
+
+    if (factoryResetDialogState.value) {
+        FactoryResetDialog(factoryResetDialogState, viewModel, navController)
+    }
+}
+
+@Composable
+private fun CacheManagementSettings(cacheState: AdvancedSettingsViewModel.CacheState) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val factoryResetDialogState = remember { mutableStateOf(false) }
     val cleanupDialogState = remember { mutableStateOf<StorageCleanupManager.Bucket?>(null) }
     val cleanupRefreshToken = remember { mutableStateOf(0) }
     val cleanupBuckets =
@@ -106,13 +134,8 @@ private fun GeneralSettings(
         }
 
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_general)) },
+        title = { Text(text = stringResource(id = R.string.settings_cleanup_section_title)) },
     ) {
-        LemuroidSettingsSwitch(
-            state = booleanPreferenceState(R.string.pref_key_low_latency_audio, false),
-            title = { Text(text = stringResource(id = R.string.settings_title_low_latency_audio)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_low_latency_audio)) },
-        )
         LemuroidSettingsList(
             title = { Text(text = stringResource(R.string.settings_title_maximum_cache_usage)) },
             items = cacheState.displayNames,
@@ -134,21 +157,6 @@ private fun GeneralSettings(
                 },
             )
         }
-
-        LemuroidSettingsSwitch(
-            state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
-            title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_direct_game_load)) },
-        )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_reset_settings)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_reset_settings)) },
-            onClick = { factoryResetDialogState.value = true },
-        )
-    }
-
-    if (factoryResetDialogState.value) {
-        FactoryResetDialog(factoryResetDialogState, viewModel, navController)
     }
 
     cleanupDialogState.value?.let { bucket ->

@@ -44,7 +44,7 @@
     <string name="settings_clear_confirm_title">Delete data?</string>
     <string name="settings_clear_confirm_message">Delete %1$s (%2$s)? This action cannot be undone.</string>
     <string name="settings_clear_done">Deleted: %1$s (%2$s)</string>
-    <string name="settings_cleanup_section_title">Storage cleanup</string>
+    <string name="settings_cleanup_section_title">Cache management</string>
     <string name="settings_cleanup_rom_cache_local">ROM cache (local files)</string>
     <string name="settings_cleanup_rom_cache_saf">ROM cache (Storage Access Framework)</string>
     <string name="settings_cleanup_rom_cache_smb">ROM cache (SMB downloads)</string>
