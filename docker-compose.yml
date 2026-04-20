@@ -1,9 +1,9 @@
 services:
-    retromul-build:
+    phoenix-down-build:
         build:
             context: .
             dockerfile: Dockerfile
-        image: retromul-build
+        image: phoenix-down-build
         working_dir: /workspace
         user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
         environment:

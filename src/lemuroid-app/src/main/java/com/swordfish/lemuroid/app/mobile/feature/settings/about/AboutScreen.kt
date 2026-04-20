@@ -69,14 +69,14 @@ fun AboutScreen(
             ) {
                 Image(
                     // Use a drawable here because adaptive mipmap icons can crash with painterResource.
-                    painter = painterResource(id = R.drawable.lemuroid_launcher_foreground),
+                    painter = painterResource(id = R.drawable.phoenix_down_logo),
                     contentDescription = null,
                     modifier = Modifier.size(56.dp),
                     contentScale = ContentScale.Fit
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Retromul",
+                    text = "Phoenix Down",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -116,7 +116,7 @@ fun AboutScreen(
             OutlinedButton(
                 onClick = {
                     try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zinosaure/Retromul"))
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/zinosaure/PhoenixDown"))
                         context.startActivity(intent)
                     } catch (e: android.content.ActivityNotFoundException) {
                         android.widget.Toast.makeText(

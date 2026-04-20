@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Δόνηση συσκευής</string>
     <string name="settings_description_enable_device_rumble">Όταν κανένας controller δεν είναι συνδεδεμένος, δονείται η συσκευή</string>
     <string name="reset_settings_warning_message_title">Είστε σίγουρος/η;</string>
-    <string name="reset_settings_warning_message_description">Αυτό θα επαναφέρει το Lemuroid στις εργοστασιακές του ρυθμίσεις. Τα saves και τα states θα διατηρηθούν.</string>
+    <string name="reset_settings_warning_message_description">Αυτό θα επαναφέρει το Phoenix Down στις εργοστασιακές του ρυθμίσεις. Τα saves και τα states θα διατηρηθούν.</string>
     <string name="settings_title_save_sync">Αποθηκευμένα στο Cloud</string>
     <string name="settings_description_save_sync">Δημιουργία αντίγραφου ασφαλείας και συγχρονισμός των saves στο cloud</string>
     <string name="settings_save_sync_refresh">Χειροκίνητος συγχρονισμός</string>

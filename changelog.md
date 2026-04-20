@@ -346,7 +346,7 @@
   Icon and bulk deletion
 
 - Changes:
-  Retromul icon (logo_simple.png) with correct adaptive icon
+  Phoenix Down icon (logo_simple.png) with correct adaptive icon
   Background with dark gradient (biblioteca.jpg)
   Trash FAB in HomeScreen for multi-select mode
   Checkboxes on games for multiselect
@@ -361,7 +361,7 @@
   Icon and bulk deletion
 
 - Changes:
-  Retromul icon (logo_simple.png) with correct adaptive icon
+  Phoenix Down icon (logo_simple.png) with correct adaptive icon
   Background with dark gradient (biblioteca.jpg)
   Trash FAB in HomeScreen for multi-select mode
   Checkboxes on games for multiselect
@@ -377,7 +377,7 @@
 
 - Changes:
   Complete Spanish/English internationalization (Disclaimer, GameEdit, SourceDialogs, CatalogScreen)
-  Integrated Retromul icon (Logo.png in 5 densities)
+  Integrated Phoenix Down icon (Logo.png in 5 densities)
   Copied biblioteca.jpg and banner.jpg to drawable
   Updated AndroidManifest with the new icon
 
@@ -389,7 +389,7 @@
 
 - Changes:
   Complete Spanish/English internationalization (Disclaimer, GameEdit, SourceDialogs, CatalogScreen)
-  Integrated Retromul icon (Logo.png in 5 densities)
+  Integrated Phoenix Down icon (Logo.png in 5 densities)
   Copied biblioteca.jpg and banner.jpg to drawable
   Updated AndroidManifest with the new icon
 

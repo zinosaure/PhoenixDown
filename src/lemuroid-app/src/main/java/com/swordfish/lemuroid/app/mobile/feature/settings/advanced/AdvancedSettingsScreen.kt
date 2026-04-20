@@ -100,7 +100,7 @@ fun AdvancedSettingsScreen(
         CacheManagementSettings(uiState.cache)
         SaveGamesBackupSettings(
             onExport = {
-                exportLauncher.launch("retromul-savegames-backup.zip")
+                exportLauncher.launch("phoenix-down-savegames-backup.zip")
             },
             onImport = {
                 importLauncher.launch(arrayOf("application/zip", "application/octet-stream"))

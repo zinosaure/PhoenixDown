@@ -1,13 +1,13 @@
-# Retromul
+# Phoenix Down
 
-**Retromul** is an open-source all-in-one emulator for Android based on [Libretro](https://www.libretro.com/).
+**Phoenix Down** is an open-source all-in-one emulator for Android based on [Libretro](https://www.libretro.com/).
 It is an advanced [Lemuroid](https://github.com/Swordfish90/Lemuroid) fork designed to provide a better user experience with integrated game downloads (files hosted on archive.org, with no direct affiliation to this project), cloud/NAS support, and full Android TV compatibility.
 
 ---
 
 ## Key Differences from Lemuroid
 
-Retromul extends the base feature set with premium-style features that are completely free:
+Phoenix Down extends the base feature set with premium-style features that are completely free:
 
 *   **☁️ Integrated Game Downloads:** Native **Archive.org** browser to search for and download legally preserved ROMs without leaving the app.
 *   **📂 SMB/NAS Support:** Scan and play directly from your local server or NAS.
@@ -80,7 +80,7 @@ The following updates were recently implemented in this fork:
 
 ## 🏗️ Project Structure (Fork)
 
-The following modules and files make up the main Retromul additions:
+The following modules and files make up the main Phoenix Down additions:
 
 ```text
 lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/
@@ -182,8 +182,8 @@ export JAVA_HOME="/path/to/jdk17"
 
 This project is distributed under the **GNU General Public License v3.0 (GPLv3)**.
 
-*   Retromul Copyright (C) 2026
+*   Phoenix Down Copyright (C) 2026
 *   Based on Lemuroid Copyright (C) Filippo Scognamiglio (Swordfish90)
 *   Libretro cores have their own individual licenses.
 
-> **Important:** Retromul does not include games or copyrighted BIOS files. Users are responsible for providing their own legally acquired files.
+> **Important:** Phoenix Down does not include games or copyrighted BIOS files. Users are responsible for providing their own legally acquired files.

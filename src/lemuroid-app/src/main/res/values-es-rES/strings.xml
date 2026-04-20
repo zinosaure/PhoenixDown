@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Vibración del dispositivo</string>
     <string name="settings_description_enable_device_rumble">Cuando ningún controlador esté conectado vibrar el dispositivo en su lugar</string>
     <string name="reset_settings_warning_message_title">¿Estás seguro?</string>
-    <string name="reset_settings_warning_message_description">Esto restablecerá Lemuroid a su configuración de fábrica. Se conservarán los estados y las partidas guardadas.</string>
+    <string name="reset_settings_warning_message_description">Esto restablecerá Phoenix Down a su configuración de fábrica. Se conservarán los estados y las partidas guardadas.</string>
     <string name="settings_title_save_sync">Guardados en la nube</string>
     <string name="settings_description_save_sync">Respaldar y sincronizar tus partidas en la nube</string>
     <string name="settings_save_sync_refresh">Sincronización manual</string>
@@ -158,7 +158,7 @@
     <string name="mobile_settings_help">Ayuda</string>
     <string name="mobile_settings_support">Soporte</string>
     <string name="lemuroid_help_content"><![CDATA[
-        <b>&#8226;Acerca de Retromul</b><br/>
+        <b>&#8226;Acerca de Phoenix Down</b><br/>
         Esta aplicación es un fork del proyecto de código abierto <b>Lemuroid</b>, distribuido bajo la licencia <b>GPL-3.0</b>.<br/><br/>
         <b>&#8226;Aviso Importante</b><br/>
         Esta aplicación no incluye juegos y no descarga ningún contenido automáticamente. La función de exploración muestra contenido disponible públicamente en Archive.org. El usuario es responsable de verificar sus derechos para acceder o usar cualquier ROM de fuentes externas.<br/><br/>
@@ -288,7 +288,7 @@
 
     <!-- User Manual -->
     <string name="settings_title_manual">Manual de Usuario</string>
-    <string name="settings_description_manual">Cómo usar Retromul</string>
+    <string name="settings_description_manual">Cómo usar Phoenix Down</string>
     <string name="manual_header">Manual de Usuario</string>
     <string name="manual_section_first_steps">🚀 Primeros pasos</string>
     <string name="manual_content_first_steps">1. Selecciona una carpeta donde guardarás tus ROMs desde Opciones → Directorio.\n\n2. Copia tus archivos ROM a esa carpeta.\n\n3. La aplicación escaneará automáticamente y mostrará tus juegos en la pantalla principal.</string>

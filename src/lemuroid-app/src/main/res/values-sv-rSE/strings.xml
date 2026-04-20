@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Enhetsvibration</string>
     <string name="settings_description_enable_device_rumble">När ingen styrenhet är ansluten vibrera enheten istället</string>
     <string name="reset_settings_warning_message_title">Är du säker?</string>
-    <string name="reset_settings_warning_message_description">Detta kommer att återställa Lemuroid till dess fabriksinställningar. Sparningar och lägen kommer att bevaras.</string>
+    <string name="reset_settings_warning_message_description">Detta kommer att återställa Phoenix Down till dess fabriksinställningar. Sparningar och lägen kommer att bevaras.</string>
     <string name="settings_title_save_sync">Spara till molnet</string>
     <string name="settings_description_save_sync">Säkerhetskopiera och synkronisera dina sparningar i molnet</string>
     <string name="settings_save_sync_refresh">Manuell synkronisering</string>

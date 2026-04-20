@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">장치 진동</string>
     <string name="settings_description_enable_device_rumble">연결된 컨트롤러가 없을 경우 장치를 진동합니다</string>
     <string name="reset_settings_warning_message_title">확실한가요?</string>
-    <string name="reset_settings_warning_message_description">Lemuroid 설정을 초기 설정으로 되돌립니다. 게임 세이브와 상태저장은 보존됩니다.</string>
+    <string name="reset_settings_warning_message_description">Phoenix Down 설정을 초기 설정으로 되돌립니다. 게임 세이브와 상태저장은 보존됩니다.</string>
     <string name="settings_title_save_sync">클라우드 저장</string>
     <string name="settings_description_save_sync">세이브 데이터를 클라우드에 백업 및 동기화합니다</string>
     <string name="settings_save_sync_refresh">수동 동기화</string>

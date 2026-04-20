@@ -7,7 +7,7 @@
     <string name="title_catalog">Catalog</string>
     <string name="settings_title_about">About</string>
     <string name="settings_title_manual">User Manual</string>
-    <string name="settings_description_manual">How to use Retromul</string>
+    <string name="settings_description_manual">How to use Phoenix Down</string>
     <string name="settings_description_about">Version information and credits</string>
     <string name="recent">Recents</string>
     <string name="favorites">Favorites</string>
@@ -121,7 +121,7 @@
     <string name="settings_description_enable_device_rumble">When no controller is connected vibrate the device instead</string>
 
     <string name="reset_settings_warning_message_title">Are you sure?</string>
-    <string name="reset_settings_warning_message_description">This will reset Lemuroid to its factory settings. Saves and States will be preserved.</string>
+    <string name="reset_settings_warning_message_description">This will reset Phoenix Down to its factory settings. Saves and States will be preserved.</string>
 
     <string name="settings_title_save_sync">Cloud saves</string>
     <string name="settings_description_save_sync">Back up and Sync your saves on the cloud</string>
@@ -270,7 +270,7 @@
     <string name="mobile_settings_help">Help</string>
     <string name="mobile_settings_support">Support</string>
     <string name="lemuroid_help_content"><![CDATA[
-        <b>&#8226;About Retromul</b><br/>
+        <b>&#8226;About Phoenix Down</b><br/>
         This application is a fork of the open source project <b>Lemuroid</b>, distributed under the <b>GPL-3.0</b> license.<br/><br/>
         <b>&#8226;Important Notice</b><br/>
         This application does not include games and does not automatically download any content. The browse feature shows content publicly available on Archive.org. The user is responsible for verifying their rights to access or use any ROM from external sources.<br/><br/>

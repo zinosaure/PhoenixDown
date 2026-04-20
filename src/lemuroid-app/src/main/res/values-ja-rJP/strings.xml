@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">デバイスの振動</string>
     <string name="settings_description_enable_device_rumble">コントローラーが接続されていない場合は、代わりにデバイスを振動させます</string>
     <string name="reset_settings_warning_message_title">本当によろしいですか？</string>
-    <string name="reset_settings_warning_message_description">これを実行するとLemuroidが初期状態(ダウンロード時)の設定にリセットされます。セーブデータと一時保存データは保持されます。</string>
+    <string name="reset_settings_warning_message_description">これを実行するとPhoenix Downが初期状態(ダウンロード時)の設定にリセットされます。セーブデータと一時保存データは保持されます。</string>
     <string name="settings_title_save_sync">クラウドセーブ</string>
     <string name="settings_description_save_sync">セーブデータをクラウドにバックアップして同期する</string>
     <string name="settings_save_sync_refresh">手動同期</string>

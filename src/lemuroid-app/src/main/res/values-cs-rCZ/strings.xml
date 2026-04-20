@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Vybrace zařízení</string>
     <string name="settings_description_enable_device_rumble">Pokud není připojen žádný ovladač, vibrujte tímto zařízením</string>
     <string name="reset_settings_warning_message_title">Jste si jisti?</string>
-    <string name="reset_settings_warning_message_description">Tohle vyresetuje Lemuroid do továrního nastavení, Savy a Stavu budou zachovány.</string>
+    <string name="reset_settings_warning_message_description">Tohle vyresetuje Phoenix Down do továrního nastavení, Savy a Stavu budou zachovány.</string>
     <string name="settings_title_save_sync">Ukládání do cloudu</string>
     <string name="settings_description_save_sync">Zálohovat a synchronizovat vaše uložené pozice na cloudu</string>
     <string name="settings_save_sync_refresh">Manuální synchronizace</string>

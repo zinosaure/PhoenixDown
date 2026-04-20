@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 VARIANT="${1:-v1.17.0}"
 BUILD_VARIANT="${2:-freeBundleRelease}"
-SERVICE_NAME="retromul-build"
+SERVICE_NAME="phoenix-down-build"
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     COMPOSE=(docker compose)
@@ -26,4 +26,4 @@ chmod +x src/scripts/build-release-inside.sh
 "${COMPOSE[@]}" build "${SERVICE_NAME}"
 "${COMPOSE[@]}" run --rm "${SERVICE_NAME}"
 
-echo "Build terminé. APK final: releases/Retromul-${VARIANT}.apk"
+echo "Build terminé. APK final: releases/phoenix-down-${VARIANT}.apk"

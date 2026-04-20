@@ -60,7 +60,7 @@
     <string name="settings_title_enable_device_rumble">設備振動</string>
     <string name="settings_description_enable_device_rumble">當沒有連接控制器時，請振動設備。</string>
     <string name="reset_settings_warning_message_title">是否確定？</string>
-    <string name="reset_settings_warning_message_description">將Lemuroid重置為出廠設置，並保留遊戲的存檔。</string>
+    <string name="reset_settings_warning_message_description">將Phoenix Down重置為出廠設置，並保留遊戲的存檔。</string>
     <string name="settings_title_save_sync">雲端存檔</string>
     <string name="settings_description_save_sync">備份和同步您的遊戲存檔到雲端硬碟</string>
     <string name="settings_save_sync_refresh">手動同步</string>

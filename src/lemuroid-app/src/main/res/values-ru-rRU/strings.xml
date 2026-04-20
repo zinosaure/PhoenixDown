@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Вибрация устройства</string>
     <string name="settings_description_enable_device_rumble">Если не подключены контроллеры перенаправлять вибрацию на устройство</string>
     <string name="reset_settings_warning_message_title">Вы уверены?</string>
-    <string name="reset_settings_warning_message_description">Данное действие сбросит настройки Lemuroid к начальным значениям. Файлы сохранений и состояний не будут затронуты.</string>
+    <string name="reset_settings_warning_message_description">Данное действие сбросит настройки Phoenix Down к начальным значениям. Файлы сохранений и состояний не будут затронуты.</string>
     <string name="settings_title_save_sync">Облачные сохранения</string>
     <string name="settings_description_save_sync">Резервирование и синхронизация ваших сохранений в облаке</string>
     <string name="settings_save_sync_refresh">Ручная синхронизация</string>

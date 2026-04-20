@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Wibracje urządzenia</string>
     <string name="settings_description_enable_device_rumble">Jeśli kontroler nie jest podłączony, wibruj urządzeniem</string>
     <string name="reset_settings_warning_message_title">Jesteś pewien?</string>
-    <string name="reset_settings_warning_message_description">To zresetuje Lemuroid do ustawień fabrycznych. Zapisy i stany zostaną zachowane.</string>
+    <string name="reset_settings_warning_message_description">To zresetuje Phoenix Down do ustawień fabrycznych. Zapisy i stany zostaną zachowane.</string>
     <string name="settings_title_save_sync">Zapisy w chmurze</string>
     <string name="settings_description_save_sync">Utwórz kopię zapasową i zsynchronizuj swoje zapisy w chmurze</string>
     <string name="settings_save_sync_refresh">Ręczna synchronizacja</string>

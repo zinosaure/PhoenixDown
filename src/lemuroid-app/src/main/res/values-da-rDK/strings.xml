@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Enhedens rumble</string>
     <string name="settings_description_enable_device_rumble">Når ingen controller er tilsluttet, vibrer enheden i stedet</string>
     <string name="reset_settings_warning_message_title">Er du sikker?</string>
-    <string name="reset_settings_warning_message_description">Dette vil nulstille Lemuroid til fabriksindstillingerne. Gemte spil og nivauer vil blive bevaret.</string>
+    <string name="reset_settings_warning_message_description">Dette vil nulstille Phoenix Down til fabriksindstillingerne. Gemte spil og nivauer vil blive bevaret.</string>
     <string name="settings_title_save_sync">Cloud-lagring</string>
     <string name="settings_description_save_sync">Sikkerhedskopier og synkroniserer dine gemte spil i Cloud</string>
     <string name="settings_save_sync_refresh">Manuel synkronisering</string>

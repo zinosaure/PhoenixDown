@@ -42,7 +42,7 @@ class TheGamesDBMetadataProvider(
         try {
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "Retromul/1.0")
+                .header("User-Agent", "PhoenixDown/1.0")
                 .header("Accept", "application/json")
                 .build()
 

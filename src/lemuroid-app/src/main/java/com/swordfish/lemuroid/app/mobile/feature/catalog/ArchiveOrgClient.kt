@@ -75,7 +75,7 @@ class ArchiveOrgClient {
         try {
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "Retromul/1.0")
+                .header("User-Agent", "PhoenixDown/1.0")
                 .build()
 
             Log.d(TAG, "Making HTTP request...")
@@ -168,7 +168,7 @@ class ArchiveOrgClient {
         try {
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "Retromul/1.0")
+                .header("User-Agent", "PhoenixDown/1.0")
                 .build()
 
             val response = httpClient.newCall(request).execute()

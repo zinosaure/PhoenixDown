@@ -60,7 +60,7 @@
     <string name="settings_title_enable_device_rumble">Тутњава уређаја</string>
     <string name="settings_description_enable_device_rumble">Када контролер није повезан уместо њега вибрирај уређај</string>
     <string name="reset_settings_warning_message_title">Јесте ли сигурни?</string>
-    <string name="reset_settings_warning_message_description">Ово ће ресетовати Lemuroid на фабричка подешавања. Сачуване игре и стања ће бити очувани.</string>
+    <string name="reset_settings_warning_message_description">Ово ће ресетовати Phoenix Down на фабричка подешавања. Сачуване игре и стања ће бити очувани.</string>
     <string name="settings_title_save_sync">Чувања на облаку</string>
     <string name="settings_description_save_sync">Прави и синхронизуј резервне копије чувања на облаку</string>
     <string name="settings_save_sync_refresh">Ручна синхронизација</string>

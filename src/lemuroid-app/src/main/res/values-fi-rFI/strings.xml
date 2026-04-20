@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Laitteen rumble</string>
     <string name="settings_description_enable_device_rumble">Kun ohjainta ei ole kytketty, värise laite sen sijaan</string>
     <string name="reset_settings_warning_message_title">Oletko varma?</string>
-    <string name="reset_settings_warning_message_description">Tämä palauttaa Lemuroidin tehdasasetuksiinsa. Tallennukset ja valtiot säilyvät.</string>
+    <string name="reset_settings_warning_message_description">Tämä palauttaa Phoenix Downin tehdasasetuksiinsa. Tallennukset ja valtiot säilyvät.</string>
     <string name="settings_title_save_sync">Pilvi tallentaa</string>
     <string name="settings_description_save_sync">Varmuuskopioi ja synkronoi tallenteet pilvessä</string>
     <string name="settings_save_sync_refresh">Manuaalinen Synkronointi</string>

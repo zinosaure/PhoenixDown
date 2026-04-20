@@ -423,7 +423,7 @@ class SmbClient {
             val session = connection.authenticate(authContext)
             val diskShare = session.connectShare(share) as DiskShare
             // Try opening a probe file for write; if it succeeds, share is writable
-            val probePath = ".retromul_write_probe"
+            val probePath = ".phoenix_down_write_probe"
             val writable = try {
                 val f = diskShare.openFile(
                     probePath,

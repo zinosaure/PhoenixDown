@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Vibrazione dispositivo</string>
     <string name="settings_description_enable_device_rumble">Quando nessun controller è collegato fai vibrare il dispositivo</string>
     <string name="reset_settings_warning_message_title">Sei sicuro?</string>
-    <string name="reset_settings_warning_message_description">Questo ripristinerà Lemuroid alle sue impostazioni di fabbrica. Salvataggi e Stati saranno preservati.</string>
+    <string name="reset_settings_warning_message_description">Questo ripristinerà Phoenix Down alle sue impostazioni di fabbrica. Salvataggi e Stati saranno preservati.</string>
     <string name="settings_title_save_sync">Salvataggi Cloud</string>
     <string name="settings_description_save_sync">Backup e sincronizzazione dei tuoi salvataggi sul Cloud</string>
     <string name="settings_save_sync_refresh">Sincronizzazione Manuale</string>

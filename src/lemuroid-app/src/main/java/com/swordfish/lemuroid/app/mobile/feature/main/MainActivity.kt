@@ -588,7 +588,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
 
                 AlertDialog(
                     title = {
-                        Text(text = "Retromul v${com.swordfish.lemuroid.BuildConfig.VERSION_NAME}")
+                        Text(text = "Phoenix Down v${com.swordfish.lemuroid.BuildConfig.VERSION_NAME}")
                     },
                     text = {
                         androidx.compose.foundation.layout.Column(

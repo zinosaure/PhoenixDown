@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Vibração do dispositivo</string>
     <string name="settings_description_enable_device_rumble">Vibrar o dispositivo quando nenhum comando estiver conectado</string>
     <string name="reset_settings_warning_message_title">Tem a certeza?</string>
-    <string name="reset_settings_warning_message_description">Isto redefinirá o Lemuroid para as suas configurações de fábrica. Gravações e Estados serão preservados.</string>
+    <string name="reset_settings_warning_message_description">Isto redefinirá o Phoenix Down para as suas configurações de fábrica. Gravações e Estados serão preservados.</string>
     <string name="settings_title_save_sync">Gravações da cloud</string>
     <string name="settings_description_save_sync">Fazer backup e sincronizar as gravações na nuvem</string>
     <string name="settings_save_sync_refresh">Sincronização Manual</string>

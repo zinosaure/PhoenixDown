@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">设备振动</string>
     <string name="settings_description_enable_device_rumble">当没有控制器连接时启用设备振动</string>
     <string name="reset_settings_warning_message_title">您确定吗？</string>
-    <string name="reset_settings_warning_message_description">这将会重置 Lemuroid 所有数据。存档和保存状态将被保留。</string>
+    <string name="reset_settings_warning_message_description">这将会重置 Phoenix Down 所有数据。存档和保存状态将被保留。</string>
     <string name="settings_title_save_sync">云端保存</string>
     <string name="settings_description_save_sync">备份并同步您在云端上的存档</string>
     <string name="settings_save_sync_refresh">手动同步</string>

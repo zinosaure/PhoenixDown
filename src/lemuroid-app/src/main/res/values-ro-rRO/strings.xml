@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Vibrare dispozitiv</string>
     <string name="settings_description_enable_device_rumble">Când nu este conectat nici un controler, folosește vibrarea dispozitivului</string>
     <string name="reset_settings_warning_message_title">Ești sigur?</string>
-    <string name="reset_settings_warning_message_description">Acest lucru va reseta Lemuroid la setările din fabrică. Salvările și Statele vor fi păstrate.</string>
+    <string name="reset_settings_warning_message_description">Acest lucru va reseta Phoenix Down la setările din fabrică. Salvările și Statele vor fi păstrate.</string>
     <string name="settings_title_save_sync">Salvare în cloud</string>
     <string name="settings_description_save_sync">Fă o copie de rezervă și sincronizează salvările tale în cloud</string>
     <string name="settings_save_sync_refresh">Sincronizare manuală</string>

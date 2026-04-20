@@ -53,7 +53,7 @@
     <string name="settings_title_enable_device_rumble">רטט מכשיר</string>
     <string name="settings_description_enable_device_rumble">הפעל רטט ישירות דרך הטלפון כאשר בקר חיצוני אינו מחובר</string>
     <string name="reset_settings_warning_message_title">האם אתה בטוח?</string>
-    <string name="reset_settings_warning_message_description">פעולה זו תאפס את Lemuroid אל הגדרות היצרן. שמירות ומצבי משחק יישמרו.</string>
+    <string name="reset_settings_warning_message_description">פעולה זו תאפס את Phoenix Down אל הגדרות היצרן. שמירות ומצבי משחק יישמרו.</string>
     <string name="settings_title_save_sync">שמירות בענן</string>
     <string name="settings_description_save_sync">גבה וסנכרן את השמירות שלך אל הענן</string>
     <string name="settings_save_sync_refresh">סנכרון ידני</string>

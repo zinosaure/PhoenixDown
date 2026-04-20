@@ -177,7 +177,7 @@ class BugReportActivity : ComponentActivity() {
     
     private fun loadBugReportForm() {
         val baseUrl = "https://script.google.com/macros/s/AKfycbxgLtUJcImGpEz0TdPtZZ852DjxdwxzsJ0GT1CjsMHdqErJ-BrNDh1O-RLjHmU5oyhhNg/exec"
-        val fullUrl = "$baseUrl?app=Retromul&version=${BuildConfig.VERSION_NAME}"
+        val fullUrl = "$baseUrl?app=PhoenixDown&version=${BuildConfig.VERSION_NAME}"
         webView.loadUrl(fullUrl)
     }
     

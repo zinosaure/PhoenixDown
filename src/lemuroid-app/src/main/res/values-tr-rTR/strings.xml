@@ -60,7 +60,7 @@
     <string name="settings_title_enable_device_rumble">Cihaz titreşimi</string>
     <string name="settings_description_enable_device_rumble">Kontrolcü bağlı değilken cihazı titreştir</string>
     <string name="reset_settings_warning_message_title">emin misiniz?</string>
-    <string name="reset_settings_warning_message_description">Bu Lemuroid\'i fabrika ayarlarına sıfırlayacak. Kayıtlar ve Durumlar korunacak.</string>
+    <string name="reset_settings_warning_message_description">Bu Phoenix Down\'i fabrika ayarlarına sıfırlayacak. Kayıtlar ve Durumlar korunacak.</string>
     <string name="settings_title_save_sync">Bulut Depolama</string>
     <string name="settings_description_save_sync">Bulutta kayıtlarınızı yedekleyin ve senkronize edin</string>
     <string name="settings_save_sync_refresh">Manuel Senkronize</string>

@@ -15,7 +15,7 @@ android {
     defaultConfig {
         versionCode = 237
         versionName = getChangelogVersion() // Always remember to update Cores Tag!
-        applicationId = "com.rolemiaster.Retromul"
+        applicationId = "com.zinosaure.phoenixdown"
 
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
@@ -106,12 +106,12 @@ android {
             isMinifyEnabled = true
             signingConfig = signingConfigs["release"]
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
-            resValue("string", "lemuroid_name", "Retromul")
+            resValue("string", "lemuroid_name", "Phoenix Down")
         }
         getByName("debug") {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
-            resValue("string", "lemuroid_name", "Retromul")
+            resValue("string", "lemuroid_name", "Phoenix Down")
         }
     }
 

@@ -60,7 +60,7 @@
     <string name="settings_title_enable_device_rumble">Rumble thiết bị</string>
     <string name="settings_description_enable_device_rumble">Khi không có tay cầm điều khiển nào được kết nối, thiết bị sẽ rung</string>
     <string name="reset_settings_warning_message_title">Bạn có chắc không?</string>
-    <string name="reset_settings_warning_message_description">Việc này sẽ đặt lại Lemuroid về cài đặt gốc. Các Bản lưu và Trạng thái sẽ được giữ lại.</string>
+    <string name="reset_settings_warning_message_description">Việc này sẽ đặt lại Phoenix Down về cài đặt gốc. Các Bản lưu và Trạng thái sẽ được giữ lại.</string>
     <string name="settings_title_save_sync">Bản lưu trên đám mây</string>
     <string name="settings_description_save_sync">Sao lưu và Đồng bộ các bản lưu của bạn trên đám mây</string>
     <string name="settings_save_sync_refresh">Đồng bộ thủ công</string>

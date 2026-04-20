@@ -40,7 +40,7 @@ if [[ ! -f "release.jks" ]]; then
     -keyalg RSA \
     -keysize 2048 \
     -validity 36500 \
-    -dname "CN=Retromul, OU=Dev, O=Retromul, L=NA, ST=NA, C=US"
+    -dname "CN=Phoenix Down, OU=Dev, O=Phoenix Down, L=NA, ST=NA, C=US"
 fi
 
 if [[ ! -f "debug.keystore" ]]; then
@@ -82,5 +82,5 @@ if [[ -z "${APK_PATH}" ]]; then
   exit 1
 fi
 
-cp -f "${APK_PATH}" "releases/Retromul-${VARIANT_LABEL}.apk"
-echo "APK généré: releases/Retromul-${VARIANT_LABEL}.apk"
+cp -f "${APK_PATH}" "releases/phoenix-down-${VARIANT_LABEL}.apk"
+echo "APK généré: releases/phoenix-down-${VARIANT_LABEL}.apk"

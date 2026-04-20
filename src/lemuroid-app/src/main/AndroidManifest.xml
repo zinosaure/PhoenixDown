@@ -60,7 +60,7 @@
                 <data
                     android:host="${applicationId}"
                     android:pathPattern="/play-game/id/.*"
-                    android:scheme="lemuroid" />
+                    android:scheme="phoenixdown" />
             </intent-filter>
         </activity>
 
@@ -113,7 +113,7 @@
                 <data
                     android:host="${applicationId}"
                     android:pathPattern="/open-leanback"
-                    android:scheme="lemuroid" />
+                    android:scheme="phoenixdown" />
             </intent-filter>
         </activity>
 

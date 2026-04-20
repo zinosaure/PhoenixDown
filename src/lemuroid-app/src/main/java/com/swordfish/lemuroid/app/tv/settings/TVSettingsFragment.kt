@@ -236,7 +236,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
             getString(R.string.pref_key_edit_thegamesdb_apikey) -> showApiKeyDialog()
             getString(R.string.pref_key_export_save_games) ->
-                exportSavesLauncher.launch("retromul-savegames-backup.zip")
+                exportSavesLauncher.launch("phoenix-down-savegames-backup.zip")
             getString(R.string.pref_key_import_save_games) ->
                 importSavesLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
             getString(R.string.pref_key_open_manual) ->

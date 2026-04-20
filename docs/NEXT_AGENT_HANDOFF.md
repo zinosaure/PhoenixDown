@@ -1,22 +1,21 @@
-# Retromul - Next Agent Handoff
+# Phoenix Down - Next Agent Handoff
 
 ## 1) Current Snapshot
 
-This repository is a Lemuroid fork with major additions around:
+This repository is a Lemuroid fork branded as Phoenix Down with major additions around:
 - Archive.org catalog/download integration
 - SMB/NAS support
 - Android TV support and TV-specific settings flows
 - Metadata/API management
 
-Recent work focused on settings restructuring, SMB covers persistence, and UI stability.
+Recent work focused on settings restructuring, branding migration to Phoenix Down, and UI stability.
 
 ## 2) What Was Recently Changed
 
-### SMB Covers
-- Cover destination folder was switched to `GameCovers` (instead of hidden dot folders).
-- Covers attempt SMB write first for SMB libraries.
-- If SMB write fails (RO share, ACL, permission mismatch), a local cache mirror is used.
-- UI cover model resolution avoids blocking SMB network checks on critical UI render paths.
+### Covers
+- Cover persistence experiments were reverted.
+- Current behavior matches the pre-feature state again.
+- The cover location row was removed from both mobile and TV settings.
 
 Main file:
 - `src/lemuroid-app/src/main/java/com/swordfish/lemuroid/app/shared/covers/CoverUtils.kt`
@@ -29,7 +28,7 @@ Main file:
   4. Metadata/API
   5. Consoles
 - TV includes Metadata/API key editing support.
-- Cover location row is present in settings on mobile and TV.
+- Cover location row is no longer present in settings on mobile and TV.
 
 Main files:
 - `src/lemuroid-app/src/main/java/com/swordfish/lemuroid/app/mobile/feature/settings/general/SettingsScreen.kt`
@@ -46,33 +45,24 @@ Main file:
 
 ## 3) Known Sensitive Areas
 
-1. SMB write checks can vary by NAS ACLs
+1. SMB behavior can vary by NAS ACLs
 - Some shares allow root writes but deny subfolder creation.
-- Dot-prefixed folder restrictions are common on certain servers.
+- If remote storage support is extended again, validate behavior on real NAS devices.
 
 2. UI performance in covers loading
-- Avoid blocking SMB I/O calls in `getCoverModel`/compose list rendering paths.
+- Avoid blocking SMB I/O calls in hot UI rendering paths.
 
-3. Settings wording consistency
-- Ensure user-facing strings for SMB RO/RW remain accurate and localized.
+3. Branding consistency
+- Prefer Phoenix Down naming and the new repository URL in user-facing surfaces and docs.
 
 ## 4) Suggested Next Tasks
 
-1. Validate SMB cover writes on multiple NAS implementations
-- Samba (Linux), Synology, Unraid, Windows SMB.
-- Confirm `GameCovers` creation and write behavior for RW shares.
+1. Plan next storage protocols
+- WebDAV first, then SFTP, while keeping SMB support intact.
 
-2. Add diagnostics toggle for covers persistence
-- Log server/share/path and write result.
-- Log fallback reason when local cache is used.
-
-3. Add tests
-- Cover persistence fallback (SMB write fail -> local cache)
-- Non-blocking cover model resolution
+2. Add tests
 - Settings layout/order smoke tests (mobile + TV)
-
-4. Improve status UX
-- If SMB status cannot be checked, show clear neutral wording (not RW by default).
+- Branding regression checks for exported filenames and launcher identity.
 
 ## 5) Build / Validation
 

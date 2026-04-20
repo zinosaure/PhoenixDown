@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Enhets vibrasjon</string>
     <string name="settings_description_enable_device_rumble">Bruk vibrasjon på enheten når ingen kontroller er koblet til</string>
     <string name="reset_settings_warning_message_title">Er du sikker?</string>
-    <string name="reset_settings_warning_message_description">Dette vil tilbakestille Lemuroid til fabrikkinnstillingene. Lagrede filer og hurtiglagring vil bli bevart.</string>
+    <string name="reset_settings_warning_message_description">Dette vil tilbakestille Phoenix Down til fabrikkinnstillingene. Lagrede filer og hurtiglagring vil bli bevart.</string>
     <string name="settings_title_save_sync">Sky lagring</string>
     <string name="settings_description_save_sync">Sikkerhetskopier og synkroniser lagringer i skyen</string>
     <string name="settings_save_sync_refresh">Manuell synkronisering</string>

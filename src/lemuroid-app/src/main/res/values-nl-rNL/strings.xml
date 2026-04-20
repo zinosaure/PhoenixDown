@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Trilling van apparaat</string>
     <string name="settings_description_enable_device_rumble">Gebruik apparaattrilling indien er geen controller is aangesloten</string>
     <string name="reset_settings_warning_message_title">Weet u het zeker?</string>
-    <string name="reset_settings_warning_message_description">Dit zal Lemuroid terugzetten naar de fabrieksinstellingen. Saves en states zullen behouden blijven.</string>
+    <string name="reset_settings_warning_message_description">Dit zal Phoenix Down terugzetten naar de fabrieksinstellingen. Saves en states zullen behouden blijven.</string>
     <string name="settings_title_save_sync">Cloud-saves</string>
     <string name="settings_description_save_sync">Maak een back-up en synchroniseer uw saves in de cloud</string>
     <string name="settings_save_sync_refresh">Handmatig synchroniseren</string>
