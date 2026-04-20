@@ -13,6 +13,18 @@
             android:summary="@string/settings_description_choose_directory"
             app:iconSpaceReserved="false"/>
 
+        <Preference
+            android:key="@string/pref_key_cover_storage_info"
+            android:title="@string/settings_title_covers_storage_location"
+            android:summary="@string/none"
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="@string/pref_key_redownload_covers"
+            android:title="@string/settings_title_redownload_covers"
+            android:summary="@string/settings_description_redownload_covers"
+            app:iconSpaceReserved="false"/>
+
         <SwitchPreference
             android:key="@string/pref_key_autosave"
             android:title="@string/settings_title_enable_autosave"

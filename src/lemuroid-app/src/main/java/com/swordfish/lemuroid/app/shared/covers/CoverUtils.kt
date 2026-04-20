@@ -204,25 +204,15 @@ object CoverUtils {
         val coverName = "${game.id}.jpg"
         val uri = Uri.parse(game.fileUri)
 
-        // For SMB games, always check the SMB .covers folder first (even before local cache)
+        // Never do SMB I/O here: this path is hit from UI rendering.
+        // Only use local cached mirrors for SMB and let normal metadata/cover fetch proceed asynchronously.
         if (uri.scheme == "smb") {
-            val smb = resolveSmbCoverLocation(appContext, uri, coverName) ?: return null
-            val existsOnSmb = runCatching {
-                val smbClient = SmbClient()
-                kotlinx.coroutines.runBlocking {
-                    smbClient.fileExists(
-                        server = smb.server,
-                        share = smb.share,
-                        remotePath = smb.remotePath,
-                        credentials = smb.credentials,
-                    )
-                }
-            }.getOrDefault(false)
-            if (existsOnSmb) {
-                // Stream the cover via SMB as a temp local file so Coil can load it
-                return resolveSmbCoverAsLocalCache(appContext, smb, coverName)
+            val localMirror = File(File(appContext.cacheDir, COVERS_CACHE_SUBFOLDER), "smb_$coverName")
+            return if (localMirror.exists() && localMirror.length() > 0) {
+                Uri.fromFile(localMirror)
+            } else {
+                null
             }
-            return null
         }
 
         val location = resolvePreferredCoverLocation(appContext, game)

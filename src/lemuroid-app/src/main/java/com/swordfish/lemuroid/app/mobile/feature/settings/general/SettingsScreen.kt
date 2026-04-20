@@ -1,6 +1,7 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +36,7 @@ import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun SettingsScreen(
@@ -299,6 +301,15 @@ private fun RomsSettings(
             }
         }
 
+    val coverStorageSummary =
+        remember(state.currentDirectory, libraryType) {
+            buildCoverStorageSummary(
+                directoryUri = state.currentDirectory,
+                libraryType = libraryType,
+                appContext = context,
+            )
+        }
+
     // Show LibrarySourceDialog
     if (showLibrarySourceDialog) {
         com.swordfish.lemuroid.app.shared.library.LibrarySourceDialog(
@@ -364,6 +375,33 @@ private fun RomsSettings(
             onClick = { showLibrarySourceDialog = true },
             enabled = !indexingInProgress,
         )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_covers_storage_location)) },
+            subtitle = { Text(text = coverStorageSummary) },
+            enabled = false,
+            onClick = {},
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_redownload_covers)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_redownload_covers)) },
+            onClick = {
+                scope.launch {
+                    com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager.cleanBucket(
+                        context,
+                        com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager.BucketType.COVER_IMAGES,
+                    )
+
+                    // Remove local SMB cover mirrors so they are fetched again from SMB when needed.
+                    val smbCoverCache = File(context.cacheDir, "gamecovers")
+                    smbCoverCache.deleteRecursively()
+                    smbCoverCache.mkdirs()
+
+                    LibraryIndexScheduler.scheduleLibrarySync(context)
+                    Toast.makeText(context, context.getString(R.string.settings_covers_redownload_started), Toast.LENGTH_SHORT).show()
+                }
+            },
+            enabled = !indexingInProgress,
+        )
         if (scanInProgress) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.stop)) },
@@ -377,4 +415,37 @@ private fun RomsSettings(
             )
         }
     }
+}
+
+private fun buildCoverStorageSummary(
+    directoryUri: String,
+    libraryType: String?,
+    appContext: android.content.Context,
+): String {
+    val uri = runCatching { Uri.parse(directoryUri) }.getOrNull()
+
+    if (libraryType == "smb") {
+        val prefs = com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.getSharedPreferences(appContext)
+        val server = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "")
+        val share = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
+        val path = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "")
+        val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
+            .joinToString("/")
+        return if (smbBase.isNotBlank()) {
+            "SMB: //$smbBase/.covers (network)"
+        } else {
+            "SMB: .covers (network)"
+        }
+    }
+
+    if (uri?.scheme == "file") {
+        val romDir = uri.path ?: ""
+        return "$romDir/.covers (local)"
+    }
+
+    if (uri != null) {
+        return "SAF: .covers in selected storage (local)"
+    }
+
+    return appContext.getString(R.string.none)
 }

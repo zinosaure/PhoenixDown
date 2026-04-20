@@ -2,10 +2,13 @@ package com.swordfish.lemuroid.app.tv.settings
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.text.format.Formatter
 import android.view.InputDevice
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,6 +16,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
+import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
@@ -20,7 +24,6 @@ import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
 import com.swordfish.lemuroid.app.shared.storage.saves.SaveGamesBackupManager
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
-import android.text.format.Formatter
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -30,6 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
@@ -148,6 +152,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
+            refreshCoverStorageSummary()
         }
     }
 
@@ -156,6 +161,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         refreshSaveSyncScreen()
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
+            refreshCoverStorageSummary()
         }
     }
 
@@ -230,6 +236,10 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 }
             getString(R.string.pref_key_reset_settings) -> confirmResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
+            getString(R.string.pref_key_redownload_covers) ->
+                lifecycleScope.launch {
+                    handleRedownloadCovers()
+                }
             getString(R.string.pref_key_export_save_games) ->
                 exportSavesLauncher.launch("retromul-savegames-backup.zip")
             getString(R.string.pref_key_import_save_games) ->
@@ -306,6 +316,60 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             )
             findPreference<Preference>(key)?.summary = summary
         }
+    }
+
+    private suspend fun handleRedownloadCovers() {
+        val context = requireContext()
+        StorageCleanupManager.cleanBucket(context, StorageCleanupManager.BucketType.COVER_IMAGES)
+
+        // Remove local SMB cover mirrors so they are fetched again from SMB when needed.
+        val smbCoverCache = File(context.cacheDir, "gamecovers")
+        smbCoverCache.deleteRecursively()
+        smbCoverCache.mkdirs()
+
+        LibraryIndexScheduler.scheduleLibrarySync(context)
+        requireActivity().displayToast(getString(R.string.settings_covers_redownload_started))
+    }
+
+    private fun refreshCoverStorageSummary() {
+        val prefs = SharedPreferencesHelper.getSharedPreferences(requireContext())
+        val directoryUri = prefs.getString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, "") ?: ""
+        val libraryType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
+        val summary = buildCoverStorageSummary(directoryUri, libraryType)
+        findPreference<Preference>(getString(R.string.pref_key_cover_storage_info))?.summary = summary
+    }
+
+    private fun buildCoverStorageSummary(
+        directoryUri: String,
+        libraryType: String?,
+    ): String {
+        val context = requireContext()
+        val uri = runCatching { Uri.parse(directoryUri) }.getOrNull()
+
+        if (libraryType == "smb") {
+            val prefs = SharedPreferencesHelper.getSharedPreferences(context)
+            val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "")
+            val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
+            val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "")
+            val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
+                .joinToString("/")
+            return if (smbBase.isNotBlank()) {
+                "SMB: //$smbBase/.covers (network)"
+            } else {
+                "SMB: .covers (network)"
+            }
+        }
+
+        if (uri?.scheme == "file") {
+            val romDir = uri.path ?: ""
+            return "$romDir/.covers (local)"
+        }
+
+        if (uri != null && DocumentFile.fromTreeUri(context, uri) != null) {
+            return "SAF: .covers in selected storage (local)"
+        }
+
+        return getString(R.string.none)
     }
 
     private suspend fun confirmAndCleanBucket(type: StorageCleanupManager.BucketType) {

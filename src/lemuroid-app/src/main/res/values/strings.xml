@@ -237,8 +237,14 @@
     <string name="tv_folder_error_access">This folder is not accessible. Please select a subdirectory or a different location.</string>
     
     <string name="pref_key_choose_directory">choose_directory</string>
+    <string name="pref_key_cover_storage_info">pref_key_cover_storage_info</string>
+    <string name="pref_key_redownload_covers">pref_key_redownload_covers</string>
     <string name="settings_title_choose_directory">ROMs Directory</string>
     <string name="settings_description_choose_directory">Select the folder containing your games</string>
+    <string name="settings_title_covers_storage_location">Covers storage</string>
+    <string name="settings_title_redownload_covers">Re-download covers</string>
+    <string name="settings_description_redownload_covers">Clear cached cover images and request fresh downloads during the next scan.</string>
+    <string name="settings_covers_redownload_started">Cover re-download requested.</string>
 
     <string name="tv_home_section_favorites">Favorites</string>
     <string name="tv_home_section_recents">Recent</string>
