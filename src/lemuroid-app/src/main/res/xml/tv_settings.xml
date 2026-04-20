@@ -13,12 +13,6 @@
             android:summary="@string/settings_description_choose_directory"
             app:iconSpaceReserved="false"/>
 
-        <Preference
-            android:key="@string/pref_key_cover_storage_info"
-            android:title="@string/settings_title_covers_storage_location"
-            android:summary="@string/none"
-            app:iconSpaceReserved="false"/>
-
     </PreferenceCategory>
 
     <PreferenceCategory

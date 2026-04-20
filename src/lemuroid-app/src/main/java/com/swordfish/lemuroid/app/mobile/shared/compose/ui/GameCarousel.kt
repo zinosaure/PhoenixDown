@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.swordfish.lemuroid.app.shared.covers.CoverUtils
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlin.math.absoluteValue
 
@@ -149,16 +148,10 @@ private fun GameCarouselCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        val context = LocalContext.current
         AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(CoverUtils.getCoverModel(context, game))
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(game.coverFrontUrl)
                 .crossfade(true)
-                .listener(
-                    onSuccess = { _, result ->
-                        CoverUtils.persistCoverAsync(context.applicationContext, game, result)
-                    },
-                )
                 .build(),
             contentDescription = game.title,
             contentScale = ContentScale.Crop,

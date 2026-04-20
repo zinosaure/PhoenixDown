@@ -9,7 +9,6 @@ import android.view.InputDevice
 import android.view.View
 import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -27,8 +26,6 @@ import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
-import com.swordfish.lemuroid.lib.storage.smb.SmbClient
-import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.coroutines.flow.combine
@@ -153,7 +150,6 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
-            refreshCoverStorageSummary()
             refreshMetadataSummary()
         }
     }
@@ -163,7 +159,6 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         refreshSaveSyncScreen()
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
-            refreshCoverStorageSummary()
             refreshMetadataSummary()
         }
     }
@@ -318,14 +313,6 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         }
     }
 
-    private suspend fun refreshCoverStorageSummary() {
-        val prefs = SharedPreferencesHelper.getSharedPreferences(requireContext())
-        val directoryUri = prefs.getString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, "") ?: ""
-        val libraryType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
-        val summary = buildCoverStorageSummary(directoryUri, libraryType)
-        findPreference<Preference>(getString(R.string.pref_key_cover_storage_info))?.summary = summary
-    }
-
     private fun refreshMetadataSummary() {
         val prefs = SharedPreferencesHelper.getSharedPreferences(requireContext())
         val key = getString(R.string.settings_title_thegamesdb_apikey)
@@ -356,49 +343,6 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-    }
-
-    private suspend fun buildCoverStorageSummary(
-        directoryUri: String,
-        libraryType: String?,
-    ): String {
-        val context = requireContext()
-        val uri = runCatching { Uri.parse(directoryUri) }.getOrNull()
-
-        if (libraryType == "smb") {
-            val prefs = SharedPreferencesHelper.getSharedPreferences(context)
-            val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "")
-            val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
-            val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "")
-            val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
-                .joinToString("/")
-            val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, null)
-            val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, null).orEmpty()
-            val credentials = username?.takeIf { it.isNotBlank() }?.let { SmbCredentials(it, password) }
-            val smbWritable = if (!server.isNullOrBlank() && !share.isNullOrBlank()) {
-                runCatching { SmbClient().isShareWritable(server, share, credentials) }.getOrDefault(false)
-            } else {
-                null
-            }
-
-            val remotePath = if (smbBase.isNotBlank()) "//$smbBase/GameCovers" else "GameCovers"
-            return when (smbWritable) {
-                true -> "SMB RW: $remotePath"
-                false -> "SMB RO: cache local (GameCovers)"
-                null -> "SMB: verification en cours..."
-            }
-        }
-
-        if (uri?.scheme == "file") {
-            val romDir = uri.path ?: ""
-            return "$romDir/GameCovers (local)"
-        }
-
-        if (uri != null && DocumentFile.fromTreeUri(context, uri) != null) {
-            return "SAF: GameCovers in selected storage (local)"
-        }
-
-        return getString(R.string.none)
     }
 
     private suspend fun confirmAndCleanBucket(type: StorageCleanupManager.BucketType) {

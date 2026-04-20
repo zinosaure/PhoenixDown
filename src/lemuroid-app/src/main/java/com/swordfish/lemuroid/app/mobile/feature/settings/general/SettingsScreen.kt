@@ -34,8 +34,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
-import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -301,39 +299,6 @@ private fun RomsSettings(
             }
         }
 
-    val smbWritableState = androidx.compose.runtime.produceState<Boolean?>(
-        initialValue = null,
-        key1 = libraryType,
-        key2 = state.currentDirectory,
-    ) {
-        if (libraryType != "smb") {
-            value = null
-            return@produceState
-        }
-
-        val share = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, null)
-        val server = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, null)
-        val username = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, null)
-        val password = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, null).orEmpty()
-        val credentials = username?.takeIf { it.isNotBlank() }?.let { SmbCredentials(it, password) }
-
-        value = if (!server.isNullOrBlank() && !share.isNullOrBlank()) {
-            runCatching { smbClient.isShareWritable(server, share, credentials) }.getOrDefault(false)
-        } else {
-            null
-        }
-    }
-
-    val coverStorageSummary =
-        remember(state.currentDirectory, libraryType, smbWritableState.value) {
-            buildCoverStorageSummary(
-                directoryUri = state.currentDirectory,
-                libraryType = libraryType,
-                appContext = context,
-                smbWritable = smbWritableState.value,
-            )
-        }
-
     // Show LibrarySourceDialog
     if (showLibrarySourceDialog) {
         com.swordfish.lemuroid.app.shared.library.LibrarySourceDialog(
@@ -399,12 +364,6 @@ private fun RomsSettings(
             onClick = { showLibrarySourceDialog = true },
             enabled = !indexingInProgress,
         )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_covers_storage_location)) },
-            subtitle = { Text(text = coverStorageSummary) },
-            enabled = false,
-            onClick = {},
-        )
         if (scanInProgress) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.stop)) },
@@ -420,37 +379,4 @@ private fun RomsSettings(
     }
 }
 
-private fun buildCoverStorageSummary(
-    directoryUri: String,
-    libraryType: String?,
-    appContext: android.content.Context,
-    smbWritable: Boolean?,
-): String {
-    val uri = runCatching { Uri.parse(directoryUri) }.getOrNull()
 
-    if (libraryType == "smb") {
-        val prefs = com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.getSharedPreferences(appContext)
-        val server = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "")
-        val share = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
-        val path = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "")
-        val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
-            .joinToString("/")
-        val remotePath = if (smbBase.isNotBlank()) "//$smbBase/GameCovers" else "GameCovers"
-        return when (smbWritable) {
-            true -> "SMB RW: $remotePath"
-            false -> "SMB RO: cache local (GameCovers)"
-            null -> "SMB: verification en cours..."
-        }
-    }
-
-    if (uri?.scheme == "file") {
-        val romDir = uri.path ?: ""
-        return "$romDir/GameCovers (local)"
-    }
-
-    if (uri != null) {
-        return "SAF: GameCovers in selected storage (local)"
-    }
-
-    return appContext.getString(R.string.none)
-}
