@@ -52,11 +52,28 @@ fun BaseGameScreen(
         LaunchedEffect(loadingInfo?.message, loadingInfo?.progressStart, loadingInfo?.progressMax) {
             val start = loadingInfo?.progressStart ?: return@LaunchedEffect
             val max = loadingInfo.progressMax
-            animatedProgress = start
-            while (animatedProgress < max) {
-                delay(350)
-                val step = if (max - animatedProgress > 10) 2 else 1
-                animatedProgress = (animatedProgress + step).coerceAtMost(max)
+            val visualMax = if (max >= 100) 100 else (max - 1).coerceAtLeast(start)
+            val loopingFloor = (start + 2).coerceAtMost(visualMax)
+            if (animatedProgress < start || animatedProgress > visualMax) {
+                animatedProgress = start
+            }
+
+            while (true) {
+                delay(320)
+                if (animatedProgress >= visualMax) {
+                    // Long-running operations can stay in one state for a while.
+                    // Loop within the stage range so progress keeps moving.
+                    animatedProgress = loopingFloor
+                    continue
+                }
+
+                val remaining = visualMax - animatedProgress
+                val step = when {
+                    remaining > 20 -> 3
+                    remaining > 8 -> 2
+                    else -> 1
+                }
+                animatedProgress = (animatedProgress + step).coerceAtMost(visualMax)
             }
         }
 

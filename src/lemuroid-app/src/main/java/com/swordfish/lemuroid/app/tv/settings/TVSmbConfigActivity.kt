@@ -84,13 +84,13 @@ class TVSmbConfigActivity : FragmentActivity() {
         val password = passwordInput.text.toString()
         
         if (server.isBlank() || path.isBlank()) {
-            statusText.text = "Enter the server and path first"
+            statusText.text = getString(R.string.tv_smb_enter_server_and_path)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
             return
         }
         
-        statusText.text = "Testing connection..."
+        statusText.text = getString(R.string.sources_smb_testing)
         statusText.setTextColor(getColor(android.R.color.white))
         statusText.visibility = View.VISIBLE
         
@@ -107,11 +107,11 @@ class TVSmbConfigActivity : FragmentActivity() {
             
             withContext(Dispatchers.Main) {
                 if (result.isSuccess) {
-                    statusText.text = "✓ Connection successful!"
+                    statusText.text = getString(R.string.tv_smb_connection_success)
                     statusText.setTextColor(getColor(android.R.color.holo_green_light))
                 } else {
                     val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
-                    statusText.text = "✗ Error: $errorMsg"
+                    statusText.text = getString(R.string.tv_smb_connection_failed, errorMsg)
                     statusText.setTextColor(getColor(android.R.color.holo_red_light))
                 }
             }
@@ -127,7 +127,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         android.util.Log.e("ANTIGRAVITY", "UI Save: User Input Path: '$fullPath'")
         
         if (server.isBlank() || fullPath.isBlank()) {
-            statusText.text = "Enter the server and path first"
+            statusText.text = getString(R.string.tv_smb_enter_server_and_path)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
             return
@@ -146,7 +146,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         android.util.Log.e("ANTIGRAVITY", "UI Parse: Share='$shareName', SubPath='$subPath'")
         
         if (shareName.isBlank()) {
-            statusText.text = "The path must start with /ShareName"
+            statusText.text = getString(R.string.tv_smb_path_must_start_with_share)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
             return
@@ -170,7 +170,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         // Trigger library rescan
         LibraryIndexScheduler.scheduleLibrarySync(this)
         
-        Toast.makeText(this, "SMB configured successfully", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
         finish()
     }
 }

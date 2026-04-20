@@ -110,7 +110,7 @@
     <string name="game_loading_checking_bios">Vérification des fichiers BIOS…</string>
     <string name="game_loading_fetching_from_network">Téléchargement du jeu depuis le partage réseau…</string>
     <string name="game_loading_extracting_archive">Décompression de l\'archive du jeu…</string>
-    <string name="game_loading_opening_game">Ouverture du jeu…</string>
+    <string name="game_loading_opening_game">Lancement en cours…</string>
     <string name="game_loading_progress_format">%1$s (%2$d%%)</string>
     <string name="game_loading_context_format">%1$s - %2$s - %3$s</string>
     <string name="game_loading_subtitle_without_version">%1$s - %2$s</string>
@@ -196,4 +196,17 @@
     <string name="tilt_configuration_buttons_l_r">L - R</string>
     <string name="tilt_configuration_buttons_l1_r1">L1 - R1</string>
     <string name="tilt_configuration_buttons_l2_r2">L2 - R2</string>
+    <string name="sources_smb_username">Nom d’utilisateur (optionnel)</string>
+    <string name="sources_smb_password">Mot de passe (optionnel)</string>
+    <string name="sources_smb_server_placeholder">192.168.1.100</string>
+    <string name="sources_smb_path_placeholder">/partage/roms/snes</string>
+    <string name="sources_smb_test_connection">Tester la connexion</string>
+    <string name="sources_smb_testing">Test de la connexion…</string>
+    <string name="sources_save">Enregistrer</string>
+    <string name="sources_cancel">Annuler</string>
+    <string name="tv_smb_enter_server_and_path">Renseignez d’abord le serveur et le chemin</string>
+    <string name="tv_smb_connection_success">Connexion réussie !</string>
+    <string name="tv_smb_connection_failed">Erreur : %1$s</string>
+    <string name="tv_smb_path_must_start_with_share">Le chemin doit commencer par /NomDuPartage</string>
+    <string name="tv_smb_configured_successfully">SMB configuré avec succès</string>
 </resources>

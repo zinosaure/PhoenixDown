@@ -139,7 +139,7 @@
     <string name="game_loading_checking_bios">Checking BIOS files…</string>
     <string name="game_loading_fetching_from_network">Downloading game from network share…</string>
     <string name="game_loading_extracting_archive">Extracting compressed game archive…</string>
-    <string name="game_loading_opening_game">Opening game…</string>
+    <string name="game_loading_opening_game">Launching game…</string>
     <string name="game_loading_progress_format">%1$s (%2$d%%)</string>
     <string name="game_loading_context_format">%1$s - %2$s - %3$s</string>
     <string name="game_loading_subtitle_without_version">%1$s - %2$s</string>
@@ -332,6 +332,11 @@
     <string name="sources_smb_connection_success">Connection successful!</string>
     <string name="sources_smb_connection_failed">Connection failed: %1$s</string>
     <string name="sources_no_custom">No custom sources configured</string>
+    <string name="tv_smb_enter_server_and_path">Enter the server and path first</string>
+    <string name="tv_smb_connection_success">Connection successful!</string>
+    <string name="tv_smb_connection_failed">Error: %1$s</string>
+    <string name="tv_smb_path_must_start_with_share">The path must start with /ShareName</string>
+    <string name="tv_smb_configured_successfully">SMB configured successfully</string>
 
     <!-- Catalog screen -->
     <string name="catalog_filter_cloud">Archive.org</string>

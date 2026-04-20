@@ -321,10 +321,10 @@ class GameViewModelRetroGameView(
             is GameLoader.LoadingState.LoadingCore -> 5
             is GameLoader.LoadingState.LoadingGame -> {
                 when (loadingState.stage) {
-                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 20
-                    GameLoader.LoadingGameStage.FETCHING_ROM -> 35
-                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 70
-                    GameLoader.LoadingGameStage.OPENING_GAME -> 90
+                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 18
+                    GameLoader.LoadingGameStage.FETCHING_ROM -> 30
+                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 58
+                    GameLoader.LoadingGameStage.OPENING_GAME -> 86
                 }
             }
 
@@ -334,12 +334,12 @@ class GameViewModelRetroGameView(
 
     private fun getLoadingProgressMax(loadingState: GameLoader.LoadingState): Int {
         return when (loadingState) {
-            is GameLoader.LoadingState.LoadingCore -> 20
+            is GameLoader.LoadingState.LoadingCore -> 18
             is GameLoader.LoadingState.LoadingGame -> {
                 when (loadingState.stage) {
-                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 35
-                    GameLoader.LoadingGameStage.FETCHING_ROM -> 70
-                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 90
+                    GameLoader.LoadingGameStage.CHECKING_BIOS -> 30
+                    GameLoader.LoadingGameStage.FETCHING_ROM -> 58
+                    GameLoader.LoadingGameStage.EXTRACTING_ARCHIVE -> 86
                     GameLoader.LoadingGameStage.OPENING_GAME -> 97
                 }
             }
