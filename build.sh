@@ -3,7 +3,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-VARIANT="${1:-v1.17.0}"
+if [[ -n "${1:-}" ]]; then
+    VARIANT="$1"
+else
+    # Use latest changelog version for output naming when no explicit variant is provided.
+    if [[ -f "changelog.md" ]]; then
+        CHANGELOG_VERSION="$(sed -n '2p' changelog.md | awk -F ' - ' '{print $NF}' | xargs || true)"
+        VARIANT="${CHANGELOG_VERSION:-latest}"
+    else
+        VARIANT="latest"
+    fi
+fi
 BUILD_VARIANT="${2:-freeBundleRelease}"
 SERVICE_NAME="phoenix-down-build"
 

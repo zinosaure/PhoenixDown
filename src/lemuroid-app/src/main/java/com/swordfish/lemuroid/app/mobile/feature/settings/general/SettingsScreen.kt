@@ -1,6 +1,9 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
+import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,6 +24,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.AddSourceDialog
+import com.swordfish.lemuroid.app.mobile.feature.catalog.ManageSourcesDialog
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceManager
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceType
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
@@ -274,6 +282,10 @@ private fun RomsSettings(
 ) {
     val context = LocalContext.current
     var showLibrarySourceDialog by remember { mutableStateOf(false) }
+    var showAddSourceDialog by remember { mutableStateOf(false) }
+    var showManageSourcesDialog by remember { mutableStateOf(false) }
+    val sourceManager = remember { SourceManager(context) }
+    var sources by remember { mutableStateOf(sourceManager.getSources()) }
     var connectionTestState by remember { mutableStateOf<com.swordfish.lemuroid.app.shared.library.ConnectionTestState>(
         com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Idle
     ) }
@@ -282,6 +294,30 @@ private fun RomsSettings(
 
     val currentDirectory = state.currentDirectory
     val emptyDirectory = stringResource(R.string.none)
+    val customSources = remember(sources) { sources.filter { it.type != SourceType.ARCHIVE_ORG } }
+    val customSourcesSubtitle = remember(customSources) {
+        when {
+            customSources.isEmpty() -> "0 sources"
+            customSources.size == 1 -> "1 source"
+            else -> "${customSources.size} sources"
+        }
+    }
+
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri?.let { selectedUri ->
+            context.contentResolver.takePersistableUriPermission(
+                selectedUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+
+            val folderName = DocumentFile.fromTreeUri(context, selectedUri)?.name ?: "Local Folder"
+            sourceManager.addSource(RomSource.local(folderName, selectedUri.toString()))
+            sources = sourceManager.getSources()
+            LibraryIndexScheduler.scheduleLibrarySync(context)
+        }
+    }
     
     // Check if SMB is configured
     val prefs = remember { com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.getSharedPreferences(context) }
@@ -357,11 +393,55 @@ private fun RomsSettings(
         )
     }
 
+    if (showAddSourceDialog) {
+        AddSourceDialog(
+            onDismiss = { showAddSourceDialog = false },
+            onAddLocal = {
+                folderPickerLauncher.launch(null)
+            },
+            onAddSmb = { name, server, _, path, credentials ->
+                sourceManager.addSource(RomSource.smb(name, server, path, credentials))
+                sources = sourceManager.getSources()
+                showAddSourceDialog = false
+                LibraryIndexScheduler.scheduleLibrarySync(context)
+            }
+        )
+    }
+
+    if (showManageSourcesDialog) {
+        ManageSourcesDialog(
+            sources = customSources,
+            onDismiss = { showManageSourcesDialog = false },
+            onEdit = { updatedSource ->
+                sourceManager.updateSource(updatedSource)
+                sources = sourceManager.getSources()
+                LibraryIndexScheduler.scheduleLibrarySync(context)
+            },
+            onDelete = { source ->
+                sourceManager.removeSource(source.id)
+                sources = sourceManager.getSources()
+                LibraryIndexScheduler.scheduleLibrarySync(context)
+            }
+        )
+    }
+
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.directory)) },
             subtitle = { Text(text = currentDirectoryName) },
             onClick = { showLibrarySourceDialog = true },
+            enabled = !indexingInProgress,
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.sources_add_title)) },
+            subtitle = { Text(text = customSourcesSubtitle) },
+            onClick = { showAddSourceDialog = true },
+            enabled = !indexingInProgress,
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.sources_manage_title)) },
+            subtitle = { Text(text = customSourcesSubtitle) },
+            onClick = { showManageSourcesDialog = true },
             enabled = !indexingInProgress,
         )
         if (scanInProgress) {
