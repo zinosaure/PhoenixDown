@@ -94,7 +94,7 @@ fun CatalogScreen(
     }
     
     // States for Local/SMB files
-    var localFiles by remember { mutableStateOf<List<LocalFile>>(emptyList()) }
+    var localFiles by remember { mutableStateOf<List<Pair<RomSource, LocalFile>>>(emptyList()) }
     var smbFiles by remember { mutableStateOf<List<Pair<RomSource, SmbFile>>>(emptyList()) }
     var isLoadingExternalFiles by remember { mutableStateOf(false) }
     
@@ -121,7 +121,10 @@ fun CatalogScreen(
             scanResult
                 .onSuccess { filesWithOrigin ->
                     localFiles = filesWithOrigin
-                        .mapNotNull { (_, file) -> file as? LocalFile }
+                        .mapNotNull { (source, file) ->
+                            val localFile = file as? LocalFile ?: return@mapNotNull null
+                            source to localFile
+                        }
 
                     smbFiles = filesWithOrigin
                         .mapNotNull { (source, file) ->
@@ -404,14 +407,40 @@ fun CatalogScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
-                            items(localFiles) { file ->
-                                LocalFileCard(
-                                    file = file,
-                                    onPlay = {
-                                        // La ROM local ya está en el dispositivo, se puede lanzar directamente
-                                        // Esto se integrará con el sistema de biblioteca existente
-                                    }
-                                )
+                            val filteredLocalFiles = if (uiState.searchQuery.isNotEmpty()) {
+                                localFiles.filter { (_, file) ->
+                                    file.name.contains(uiState.searchQuery, ignoreCase = true)
+                                }
+                            } else {
+                                localFiles
+                            }
+
+                            val groupedLocalFiles = filteredLocalFiles
+                                .sortedWith(compareBy({ it.first.name.lowercase() }, { it.second.cleanName.lowercase() }))
+                                .groupBy { it.first.id }
+
+                            groupedLocalFiles.forEach { (_, sourceEntries) ->
+                                val sourceName = sourceEntries.firstOrNull()?.first?.name ?: "Local"
+
+                                item {
+                                    Text(
+                                        text = sourceName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                items(sourceEntries) { (_, file) ->
+                                    LocalFileCard(
+                                        file = file,
+                                        sourceName = sourceName,
+                                        onPlay = {
+                                            // La ROM local ya está en el dispositivo, se puede lanzar directamente
+                                            // Esto se integrará con el sistema de biblioteca existente
+                                        }
+                                    )
+                                }
                             }
                         }
                         
@@ -433,32 +462,49 @@ fun CatalogScreen(
                             } else {
                                 smbFiles
                             }
-                            items(filteredSmbFiles) { (source, file) ->
-                                val isDownloading = file.path in smbDownloadsInProgress
-                                val isDownloaded = file.path in smbDownloadedFiles || 
-                                    romDownloader.isFileInRomsDir(file.name)
-                                
-                                SmbFileCard(
-                                    file = file,
-                                    sourceName = source.name,
-                                    isDownloading = isDownloading,
-                                    isDownloaded = isDownloaded,
-                                    onDownload = {
-                                        if (!isDownloading) {
-                                            smbDownloadsInProgress = smbDownloadsInProgress + file.path
-                                            coroutineScope.launch {
-                                                try {
-                                                    romDownloader.downloadFromSmbSource(file, source)
-                                                    smbDownloadedFiles = smbDownloadedFiles + file.path
-                                                } catch (e: Exception) {
-                                                    Log.e("CatalogScreen", "Download failed", e)
-                                                } finally {
-                                                    smbDownloadsInProgress = smbDownloadsInProgress - file.path
+                            val groupedSmbFiles = filteredSmbFiles
+                                .sortedWith(compareBy({ it.first.name.lowercase() }, { it.second.cleanName.lowercase() }))
+                                .groupBy { it.first.id }
+
+                            groupedSmbFiles.forEach { (_, sourceEntries) ->
+                                val sourceName = sourceEntries.firstOrNull()?.first?.name ?: "SMB"
+
+                                item {
+                                    Text(
+                                        text = sourceName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                items(sourceEntries) { (source, file) ->
+                                    val isDownloading = file.path in smbDownloadsInProgress
+                                    val isDownloaded = file.path in smbDownloadedFiles ||
+                                        romDownloader.isFileInRomsDir(file.name)
+
+                                    SmbFileCard(
+                                        file = file,
+                                        sourceName = source.name,
+                                        isDownloading = isDownloading,
+                                        isDownloaded = isDownloaded,
+                                        onDownload = {
+                                            if (!isDownloading) {
+                                                smbDownloadsInProgress = smbDownloadsInProgress + file.path
+                                                coroutineScope.launch {
+                                                    try {
+                                                        romDownloader.downloadFromSmbSource(file, source)
+                                                        smbDownloadedFiles = smbDownloadedFiles + file.path
+                                                    } catch (e: Exception) {
+                                                        Log.e("CatalogScreen", "Download failed", e)
+                                                    } finally {
+                                                        smbDownloadsInProgress = smbDownloadsInProgress - file.path
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                         
@@ -1100,6 +1146,7 @@ private fun DownloadItem(
 @Composable
 private fun LocalFileCard(
     file: LocalFile,
+    sourceName: String,
     onPlay: () -> Unit
 ) {
     Card(
@@ -1139,7 +1186,7 @@ private fun LocalFileCard(
                         )
                     }
                     Text(
-                        text = "${file.sizeFormatted} • ${file.extension.uppercase()}",
+                        text = "${file.sizeFormatted} • ${file.extension.uppercase()} • $sourceName",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
