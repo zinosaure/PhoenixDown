@@ -2,8 +2,16 @@ package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -13,9 +21,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,12 +43,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.padding
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.Dialog
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.catalog.AddSourceDialog
-import com.swordfish.lemuroid.app.mobile.feature.catalog.ManageSourcesDialog
 import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceManager
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceType
+import com.swordfish.lemuroid.app.mobile.feature.catalog.scanner.LocalFolderRomScanner
+import com.swordfish.lemuroid.app.mobile.feature.catalog.scanner.SmbRomScanner
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
@@ -283,14 +307,19 @@ private fun RomsSettings(
     val context = LocalContext.current
     var showLibrarySourceDialog by remember { mutableStateOf(false) }
     var showAddSourceDialog by remember { mutableStateOf(false) }
-    var showManageSourcesDialog by remember { mutableStateOf(false) }
+    var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
+    var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     val sourceManager = remember { SourceManager(context) }
     var sources by remember { mutableStateOf(sourceManager.getSources()) }
+    var scanningSourceIds by remember { mutableStateOf(setOf<String>()) }
+    var sourceScanMessages by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var connectionTestState by remember { mutableStateOf<com.swordfish.lemuroid.app.shared.library.ConnectionTestState>(
         com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Idle
     ) }
     val scope = rememberCoroutineScope()
     val smbClient = remember { com.swordfish.lemuroid.lib.storage.smb.SmbClient() }
+    val localSourceScanner = remember { LocalFolderRomScanner(context) }
+    val smbSourceScanner = remember { SmbRomScanner() }
 
     val currentDirectory = state.currentDirectory
     val emptyDirectory = stringResource(R.string.none)
@@ -317,6 +346,31 @@ private fun RomsSettings(
             sources = sourceManager.getSources()
             LibraryIndexScheduler.scheduleLibrarySync(context)
         }
+    }
+
+    val editLocalFolderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        val sourceId = editingLocalSourceId
+        if (uri != null && sourceId != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val folderName = DocumentFile.fromTreeUri(context, uri)?.name ?: "Local Folder"
+            val sourceToEdit = customSources.firstOrNull { it.id == sourceId }
+            if (sourceToEdit != null) {
+                sourceManager.updateSource(
+                    sourceToEdit.copy(
+                        name = folderName,
+                        path = uri.toString()
+                    )
+                )
+                sources = sourceManager.getSources()
+                LibraryIndexScheduler.scheduleLibrarySync(context)
+            }
+        }
+        editingLocalSourceId = null
     }
     
     // Check if SMB is configured
@@ -408,21 +462,28 @@ private fun RomsSettings(
         )
     }
 
-    if (showManageSourcesDialog) {
-        ManageSourcesDialog(
-            sources = customSources,
-            onDismiss = { showManageSourcesDialog = false },
-            onEdit = { updatedSource ->
-                sourceManager.updateSource(updatedSource)
-                sources = sourceManager.getSources()
-                LibraryIndexScheduler.scheduleLibrarySync(context)
-            },
-            onDelete = { source ->
-                sourceManager.removeSource(source.id)
-                sources = sourceManager.getSources()
-                LibraryIndexScheduler.scheduleLibrarySync(context)
+    if (editingSmbSource != null) {
+        Dialog(onDismissRequest = { editingSmbSource = null }) {
+            Card {
+                SmbConfigForm(
+                    onDismiss = { editingSmbSource = null },
+                    onBack = { editingSmbSource = null },
+                    editSource = editingSmbSource,
+                    onSave = { name, server, path, credentials ->
+                        val source = editingSmbSource ?: return@SmbConfigForm
+                        val updatedSource = source.copy(
+                            name = name,
+                            path = "smb://$server$path",
+                            credentials = credentials
+                        )
+                        sourceManager.updateSource(updatedSource)
+                        sources = sourceManager.getSources()
+                        editingSmbSource = null
+                        LibraryIndexScheduler.scheduleLibrarySync(context)
+                    }
+                )
             }
-        )
+        }
     }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {
@@ -438,12 +499,65 @@ private fun RomsSettings(
             onClick = { showAddSourceDialog = true },
             enabled = !indexingInProgress,
         )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.sources_manage_title)) },
-            subtitle = { Text(text = customSourcesSubtitle) },
-            onClick = { showManageSourcesDialog = true },
-            enabled = !indexingInProgress,
-        )
+
+        if (customSources.isEmpty()) {
+            Text(
+                text = "No additional ROM source configured",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        } else {
+            customSources.forEach { source ->
+                val sourceMessage = sourceScanMessages[source.id]
+                SourceEntryRow(
+                    source = source,
+                    scanMessage = sourceMessage,
+                    isScanning = source.id in scanningSourceIds,
+                    onScan = {
+                        scanningSourceIds = scanningSourceIds + source.id
+                        scope.launch {
+                            val result = when (source.type) {
+                                SourceType.LOCAL -> localSourceScanner.scan(source)
+                                SourceType.SMB -> smbSourceScanner.scan(source)
+                                else -> Result.failure(Exception("Unsupported source type for direct scan"))
+                            }
+
+                            sourceScanMessages = if (result.isSuccess) {
+                                sourceScanMessages + (source.id to "Scan OK: ${result.getOrElse { emptyList() }.size} ROMs")
+                            } else {
+                                val errorMessage = result.exceptionOrNull()?.message ?: "Unknown error"
+                                sourceScanMessages + (source.id to "Scan failed: $errorMessage")
+                            }
+
+                            if (result.isFailure) {
+                                Log.e("SettingsScreen", "Source scan failed for ${source.name}: ${result.exceptionOrNull()?.message}")
+                            }
+                            scanningSourceIds = scanningSourceIds - source.id
+                        }
+                    },
+                    onEdit = {
+                        when (source.type) {
+                            SourceType.LOCAL -> {
+                                editingLocalSourceId = source.id
+                                editLocalFolderPickerLauncher.launch(null)
+                            }
+                            SourceType.SMB -> editingSmbSource = source
+                            else -> Unit
+                        }
+                    },
+                    onDelete = {
+                        sourceManager.removeSource(source.id)
+                        sources = sourceManager.getSources()
+                        sourceScanMessages = sourceScanMessages - source.id
+                        scanningSourceIds = scanningSourceIds - source.id
+                        LibraryIndexScheduler.scheduleLibrarySync(context)
+                    },
+                    enabled = !indexingInProgress,
+                )
+            }
+        }
+
         if (scanInProgress) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.stop)) },
@@ -455,6 +569,78 @@ private fun RomsSettings(
                 onClick = { LibraryIndexScheduler.scheduleLibrarySync(context) },
                 enabled = !indexingInProgress,
             )
+        }
+    }
+}
+
+@Composable
+private fun SourceEntryRow(
+    source: RomSource,
+    scanMessage: String?,
+    isScanning: Boolean,
+    onScan: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    enabled: Boolean,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    imageVector = if (source.type == SourceType.LOCAL) Icons.Default.Folder else Icons.Default.Dns,
+                    contentDescription = null
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = source.name,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = source.path,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (!scanMessage.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = scanMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onScan, enabled = enabled && !isScanning) {
+                    if (isScanning) {
+                        CircularProgressIndicator(modifier = Modifier.height(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Sync, contentDescription = null)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Scan")
+                }
+
+                IconButton(onClick = onEdit, enabled = enabled) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit source")
+                }
+
+                IconButton(onClick = onDelete, enabled = enabled) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete source")
+                }
+            }
         }
     }
 }
