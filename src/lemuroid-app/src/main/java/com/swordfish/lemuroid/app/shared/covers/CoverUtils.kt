@@ -33,8 +33,7 @@ import java.io.File
 
 object CoverUtils {
     const val IMAGE_CACHE_SUBFOLDER = "image_cache"
-    private const val GAME_COVERS_SUBFOLDER = ".covers"
-    private const val LEGACY_GAME_COVERS_SUBFOLDER = ".gamecovers"
+    private const val GAME_COVERS_SUBFOLDER = "GameCovers"
     private const val COVERS_CACHE_SUBFOLDER = "gamecovers"
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -222,16 +221,14 @@ object CoverUtils {
                 if (location.file.exists()) {
                     Uri.fromFile(location.file)
                 } else {
-                    val legacyRoot = location.file.parentFile?.parentFile
-                    val legacy = legacyRoot?.resolve(LEGACY_GAME_COVERS_SUBFOLDER)?.resolve(location.file.name)
-                    if (legacy != null && legacy.exists()) Uri.fromFile(legacy) else null
+                    null
                 }
             }
             is CoverLocation.SafUri -> {
                 if (locationExists(location, appContext.contentResolver)) {
                     location.uri
                 } else {
-                    findLegacySafCoverUri(appContext, game)
+                    null
                 }
             }
             is CoverLocation.SmbRemote -> null
@@ -328,16 +325,6 @@ object CoverUtils {
             remotePath = remotePath,
             credentials = credentials,
         )
-    }
-
-    private fun findLegacySafCoverUri(
-        appContext: Context,
-        game: Game,
-    ): Uri? {
-        val safRoot = resolveSafRootWritable(appContext) ?: return null
-        val legacyDir = safRoot.findFile(LEGACY_GAME_COVERS_SUBFOLDER) ?: return null
-        val legacyFile = legacyDir.findFile("${game.id}.jpg") ?: return null
-        return legacyFile.uri
     }
 
     /**

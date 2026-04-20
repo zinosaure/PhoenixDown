@@ -27,6 +27,8 @@ import com.swordfish.lemuroid.common.coroutines.safeCollect
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.lemuroid.lib.storage.smb.SmbClient
+import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.coroutines.flow.combine
@@ -316,7 +318,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         }
     }
 
-    private fun refreshCoverStorageSummary() {
+    private suspend fun refreshCoverStorageSummary() {
         val prefs = SharedPreferencesHelper.getSharedPreferences(requireContext())
         val directoryUri = prefs.getString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, "") ?: ""
         val libraryType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
@@ -356,7 +358,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             .show()
     }
 
-    private fun buildCoverStorageSummary(
+    private suspend fun buildCoverStorageSummary(
         directoryUri: String,
         libraryType: String?,
     ): String {
@@ -370,20 +372,30 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "")
             val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
                 .joinToString("/")
-            return if (smbBase.isNotBlank()) {
-                "SMB RW: //$smbBase/.covers, sinon cache local"
+            val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, null)
+            val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, null).orEmpty()
+            val credentials = username?.takeIf { it.isNotBlank() }?.let { SmbCredentials(it, password) }
+            val smbWritable = if (!server.isNullOrBlank() && !share.isNullOrBlank()) {
+                runCatching { SmbClient().isShareWritable(server, share, credentials) }.getOrDefault(false)
             } else {
-                "SMB RW: .covers, sinon cache local"
+                null
+            }
+
+            val remotePath = if (smbBase.isNotBlank()) "//$smbBase/GameCovers" else "GameCovers"
+            return when (smbWritable) {
+                true -> "SMB RW: $remotePath"
+                false -> "SMB RO: cache local (GameCovers)"
+                null -> "SMB: verification en cours..."
             }
         }
 
         if (uri?.scheme == "file") {
             val romDir = uri.path ?: ""
-            return "$romDir/.covers (local)"
+            return "$romDir/GameCovers (local)"
         }
 
         if (uri != null && DocumentFile.fromTreeUri(context, uri) != null) {
-            return "SAF: .covers in selected storage (local)"
+            return "SAF: GameCovers in selected storage (local)"
         }
 
         return getString(R.string.none)
