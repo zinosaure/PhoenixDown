@@ -1,4 +1,29 @@
 ****************************************************************************************************
+20/04/2026 12:00 - Upstream Watch: Lemuroid 1.17.0 announced on stores/blog (non-Google) - v017
+****************************************************************************************************
+- Description:
+  Synced project documentation with the upstream Lemuroid 1.17.0 announcement.
+  Note: at the time of writing, GitHub Releases/Tags still publicly show 1.16.2 as latest.
+
+- Upstream headline changes announced:
+  Added microphone support for Nintendo DS (MelonDS only)
+  Deprecated DeSmuME, replaced by MelonDS
+  Completely redesigned touch controls
+  Added immersive mode with dynamic background color
+  Made autosave more robust
+  Slightly improved HD mode
+  Added quicksave/quickload gamepad shortcuts
+  Added support for 16Kb pages
+  Updated all cores and databases
+  Various UI/UX improvements
+
+- Notes:
+  Mobile UI is now fully Jetpack Compose upstream (TV migration still pending upstream)
+  Samsung multitouch/Game Booster issue mitigation was addressed upstream
+  Save reliability on app background/kill scenarios was improved upstream
+  Google Drive save sync remains Play-flavor only; GitHub/free builds do not include it
+
+****************************************************************************************************
 22/12/2025 17:19 - Integrated Bug Report Form - v016
 ****************************************************************************************************
 - Description:

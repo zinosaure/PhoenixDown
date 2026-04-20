@@ -14,6 +14,11 @@ Retromul extends the base feature set with premium-style features that are compl
 *   **📺 Android TV First:** TV-optimized interface and file pickers, including support for older devices without SAF (Storage Access Framework).
 *   **🤖 Metadata Editor:** Manually fix incorrectly identified game names and box art.
 
+## Distribution Notes
+
+*   **Google Drive save synchronization:** available only in the `play` flavor.
+*   **GitHub / free builds:** Google Drive sync is intentionally unavailable (no Play Services/Drive integration in `lemuroid-app-ext-free`).
+
 ---
 
 ## Features
@@ -30,6 +35,11 @@ Retromul extends the base feature set with premium-style features that are compl
 ## Latest Changes (April 2026)
 
 The following updates were recently implemented in this fork:
+
+*   **Upstream tracking: Lemuroid 1.17.0 (announced):**
+    * Upstream announced 1.17.0 with major updates: MelonDS microphone support, DeSmuME deprecation, redesigned touch controls, immersive mode, stronger autosave flow, quicksave/quickload shortcuts, 16Kb page support, and updated cores/databases.
+    * Upstream also confirmed large internal refactors (mobile UI now fully Jetpack Compose, TV still pending).
+    * Verification note: at the time of this README update, public GitHub Releases/Tags still show 1.16.2; this 1.17.0 entry is based on the official store/blog announcement.
 
 *   **Settings reorganization (mobile + TV):**
     * Settings are grouped into blocks in this order:
