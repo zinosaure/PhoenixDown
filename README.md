@@ -31,15 +31,6 @@ Retromul extends the base feature set with premium-style features that are compl
 
 The following updates were recently implemented in this fork:
 
-*   **Stability fixes (mobile + TV):**
-    * Home freeze/crash issues linked to blocking SMB cover checks during UI rendering were fixed.
-    * Cover loading now avoids SMB network calls on hot UI paths.
-
-*   **SMB cover behavior improvements:**
-    * Cover persistence now attempts direct write to SMB `GameCovers` for SMB libraries.
-    * If SMB write fails (RO share, ACLs, etc.), covers fall back to local cache automatically.
-    * Settings now show cover location behavior more explicitly (SMB RW path vs local fallback).
-
 *   **Settings reorganization (mobile + TV):**
     * Settings are grouped into blocks in this order:
       `Roms` -> `General` -> `System Interaction` -> `Metadata/API` -> `Consoles`.
@@ -48,32 +39,32 @@ The following updates were recently implemented in this fork:
 
 *   **UX fixes:**
     * Mobile home list items now use clearer card contrast so game entries remain visible against the page background.
-    * Cover settings label updated to **"Cover locations"** / **"Emplacements des jaquettes"**.
-    * Cover folder naming was normalized to `GameCovers` (to avoid NAS configurations that block leading `.` folders).
+
+---
+
+## Coming in a Future Version
+
+*   **📦 Cover persistence on SMB / local storage:**
+    * Once a cover is downloaded, it will be saved alongside the ROMs (in a `.covers` subfolder) so it's available offline and reused on next launch without hitting the network again.
+    * For SMB libraries: covers will be uploaded directly to the share when write access is available.
+    * For local/SAF libraries: covers will be stored in the ROM directory or the SAF-selected folder.
+    * A settings row will display where covers are currently being stored.
 
 ---
 
 ## Remaining Work / TODO
 
-*   Verify end-to-end SMB RW behavior on real NAS setups:
-    * Confirm `GameCovers` creation per ROM directory across different SMB servers (Samba, Synology, Unraid, Windows shares).
-    * Confirm ACL edge cases where share is writable but subfolder inheritance blocks writes.
-
-*   Add optional diagnostics for cover persistence:
-    * Debug log toggle for SMB cover upload path, write result, and fallback reason.
-
-*   Validate SMB status wording in settings on real devices:
-    * Confirm `SMB RO` / `SMB RW` detection is accurate across NAS vendors and permission setups.
-    * Confirm wording remains understandable when credentials/server are missing or temporarily unavailable.
+*   Implement and stabilize cover persistence for SMB / SAF / local libraries:
+    * Ensure `.covers` subfolder creation works across NAS vendors (Samba, Synology, Unraid, Windows shares).
+    * Handle ACL edge cases where share is writable but subfolder inheritance blocks writes.
+    * Add a settings row (mobile + TV) showing the active cover storage location.
 
 *   Add automated regression tests for:
-    * cover persistence fallback logic (SMB -> local),
-    * `GameCovers` folder write path for SMB/SAF/local,
+    * cover persistence logic (SMB / SAF / local),
     * settings block ordering (mobile + TV),
     * non-blocking cover model resolution.
 
-*   Add/verify basic documentation for contributors:
-    * maintain an up-to-date handoff file for next contributors/agents.
+*   Add/verify basic documentation for contributors.
 
 ---
 
