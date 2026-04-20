@@ -11,9 +11,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class AdvancedSettingsViewModel(
-    appContext: Context,
+    private val appContext: Context,
     private val settingsInteractor: SettingsInteractor,
 ) : ViewModel() {
     class Factory(
@@ -63,5 +64,13 @@ class AdvancedSettingsViewModel(
 
     fun resetAllSettings() {
         settingsInteractor.resetAllSettings()
+    }
+
+    fun clearCache(onDone: (Long) -> Unit) {
+        viewModelScope.launch {
+            val freedBytes = CacheCleaner.getCurrentCacheSize(appContext)
+            CacheCleaner.cleanAll(appContext)
+            onDone(freedBytes)
+        }
     }
 }

@@ -16,6 +16,10 @@ import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
+import com.swordfish.lemuroid.common.displayToast
+import android.text.format.Formatter
+import com.swordfish.lemuroid.lib.storage.cache.CacheCleaner
+import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
@@ -187,6 +191,10 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 }
             getString(R.string.pref_key_reset_settings) -> handleResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
+            getString(R.string.pref_key_clear_cache) ->
+                lifecycleScope.launch {
+                    handleClearCache()
+                }
         }
         return super.onPreferenceTreeClick(preference)
     }
@@ -232,6 +240,17 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     private fun handleResetSettings() {
         settingsInteractor.resetAllSettings()
         activity?.finish()
+    }
+
+    private suspend fun handleClearCache() {
+        val ctx = requireContext()
+        val freed = CacheCleaner.getCurrentCacheSize(ctx)
+        CacheCleaner.cleanAll(ctx)
+        val label = Formatter.formatShortFileSize(ctx, freed)
+        requireActivity().displayToast("${getString(R.string.settings_cache_cleared)} ($label)")
+        AdvancedSettingsPreferences.updateCachePreferences(
+            getAdvancedSettingsPreferenceScreen() ?: return
+        )
     }
 
     @dagger.Module

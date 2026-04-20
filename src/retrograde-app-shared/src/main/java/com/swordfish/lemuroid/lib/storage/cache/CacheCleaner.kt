@@ -9,6 +9,7 @@ import com.swordfish.lemuroid.common.kotlin.gigaBytes
 import com.swordfish.lemuroid.common.kotlin.megaBytes
 import com.swordfish.lemuroid.lib.storage.local.LocalStorageProvider
 import com.swordfish.lemuroid.lib.storage.local.StorageAccessFrameworkProvider
+import com.swordfish.lemuroid.lib.storage.smb.SmbStorageProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -46,6 +47,17 @@ object CacheCleaner {
         withContext(Dispatchers.IO) {
             Timber.i("Running cache cleanup everything task")
             appContext.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+        }
+
+    suspend fun getCurrentCacheSize(appContext: Context): Long =
+        withContext(Dispatchers.IO) {
+            sequenceOf(
+                File(appContext.cacheDir, StorageAccessFrameworkProvider.SAF_CACHE_SUBFOLDER),
+                File(appContext.cacheDir, LocalStorageProvider.LOCAL_STORAGE_CACHE_SUBFOLDER),
+                File(appContext.cacheDir, SmbStorageProvider.SMB_CACHE_SUBFOLDER),
+            ).sumOf { dir ->
+                dir.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+            }
         }
 
     suspend fun clean(

@@ -15,6 +15,8 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.game.BaseGameActivity
+import com.swordfish.lemuroid.app.shared.game.GameProcessLock
+import com.swordfish.lemuroid.app.tv.game.TVGameActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.main.BusyActivity
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
@@ -75,6 +77,14 @@ class MainTVActivity : BaseTVActivity(), BusyActivity {
 
     override fun onResume() {
         super.onResume()
+        // If the game process is still running (user pressed HOME during a game),
+        // bring TVGameActivity back to front instead of showing the home screen.
+        if (GameProcessLock.isHeldByAnotherProcess(applicationContext)) {
+            val intent = Intent(this, TVGameActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            startActivity(intent)
+            return
+        }
         if (isDisclaimerAccepted()) {
             ensureLegacyStoragePermissionsIfNeeded()
         }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -24,6 +25,8 @@ import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsSwitch
 import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
+import android.text.format.Formatter
+import android.widget.Toast
 
 @Composable
 fun AdvancedSettingsScreen(
@@ -85,6 +88,7 @@ private fun GeneralSettings(
     viewModel: AdvancedSettingsViewModel,
     navController: NavController,
 ) {
+    val context = LocalContext.current
     val factoryResetDialogState = remember { mutableStateOf(false) }
 
     LemuroidCardSettingsGroup(
@@ -104,6 +108,20 @@ private fun GeneralSettings(
                     cacheState.default,
                     cacheState.values,
                 ),
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_clear_cache)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_clear_cache)) },
+            onClick = {
+                viewModel.clearCache { freedBytes ->
+                    val sizeLabel = Formatter.formatShortFileSize(context, freedBytes)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.settings_cache_cleared) + " (" + sizeLabel + ")",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            },
         )
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
