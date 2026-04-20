@@ -19,6 +19,19 @@ Phoenix Down extends the base feature set with premium-style features that are c
 *   **Google Drive save synchronization:** available only in the `play` flavor.
 *   **GitHub / free builds:** Google Drive sync is intentionally unavailable (no Play Services/Drive integration in `lemuroid-app-ext-free`).
 
+## Important Notice: PSX Games Over Network
+
+Some PSX games can be problematic when played directly from network shares.
+
+Main reasons:
+
+*   **Copyright constraints:** this project cannot ship copyrighted game data or provide bypass workflows.
+*   **Multi-file disc dependency detection:** when a PSX game is not packaged as a single file (`.iso` or `.chd`), network scanning can miss companion files (for example `.bin` + `.cue` sets), which may prevent proper loading.
+
+Recommended workaround:
+
+*   For affected PS1 network cases, use **ePSXe** for playback compatibility.
+
 ---
 
 ## Features
