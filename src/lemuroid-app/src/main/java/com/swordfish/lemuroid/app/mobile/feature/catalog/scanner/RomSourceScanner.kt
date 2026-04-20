@@ -54,19 +54,18 @@ class MultiSourceRomScanner(
     /**
      * Scan all sources in parallel and deduplicate results
      */
-    suspend fun scanAllSources(sources: List<RomSource>): Result<List<RomFile>> = 
+    suspend fun scanAllSources(sources: List<RomSource>): Result<List<RomFile>> =
+        scanAllSourcesWithOrigin(sources).map { files -> files.map { it.second } }
+
+    /**
+     * Scan all sources in parallel, keep source origin, and deduplicate results.
+     */
+    suspend fun scanAllSourcesWithOrigin(sources: List<RomSource>): Result<List<Pair<RomSource, RomFile>>> =
         withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "Starting parallel scan of ${sources.size} sources")
-                
-                val results = coroutineScope {
-                    val jobs = sources.map { source ->
-                        async {
-                            scanSourceSafe(source)
-                        }
-                    }
-                    jobs.awaitAll()
-                }
+
+                val results = scanSourcesInParallel(sources)
                 
                 // Log per-source results
                 results.forEach { result ->
@@ -76,21 +75,34 @@ class MultiSourceRomScanner(
                         Log.e(TAG, "Source '${result.sourceName}': ${result.error?.message}")
                     }
                 }
-                
-                // Deduplicate and merge results
-                val allFiles = results.filter { it.isSuccess }
-                    .flatMap { it.filesFound }
-                
-                val deduplicatedFiles = deduplicateRoms(allFiles)
-                
+
+                val sourceById = sources.associateBy { it.id }
+                val allFilesWithOrigin = results
+                    .filter { it.isSuccess }
+                    .flatMap { result ->
+                        val source = sourceById[result.sourceId] ?: return@flatMap emptyList()
+                        result.filesFound.map { file -> source to file }
+                    }
+
+                val deduplicatedFiles = deduplicateRomsWithOrigin(allFilesWithOrigin)
+
                 Log.d(TAG, "Scan complete: ${deduplicatedFiles.size} unique ROMs after deduplication")
                 Result.success(deduplicatedFiles)
-                
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error during parallel scan: ${e.message}", e)
                 Result.failure(e)
             }
         }
+
+    private suspend fun scanSourcesInParallel(sources: List<RomSource>): List<ScanResult> = coroutineScope {
+        val jobs = sources.map { source ->
+            async {
+                scanSourceSafe(source)
+            }
+        }
+        jobs.awaitAll()
+    }
     
     /**
      * Scan a single source safely (with error handling)
@@ -151,26 +163,20 @@ class MultiSourceRomScanner(
      * Deduplicate ROMs by clean name and system.
      * Keep the first occurrence and mark alternatives (useful for display).
      */
-    private fun deduplicateRoms(files: List<RomFile>): List<RomFile> {
+    private fun deduplicateRomsWithOrigin(files: List<Pair<RomSource, RomFile>>): List<Pair<RomSource, RomFile>> {
         val seen = mutableSetOf<String>()
-        val deduplicated = mutableListOf<RomFile>()
+        val deduplicated = mutableListOf<Pair<RomSource, RomFile>>()
         
-        files.forEach { file ->
+        files.forEach { sourceAndFile ->
+            val file = sourceAndFile.second
             val key = "${file.system}::${file.cleanName}".lowercase()
             if (key !in seen) {
                 seen.add(key)
-                deduplicated.add(file)
+                deduplicated.add(sourceAndFile)
             }
         }
         
         Log.d(TAG, "Deduplication: ${files.size} files -> ${deduplicated.size} unique")
         return deduplicated
     }
-}
-
-/**
- * Extension function for safe Result handling
- */
-private fun <T> Result<T>.getOrEmptyList(): List<T> {
-    return if (isSuccess) getOrNull() as? List<T> ?: emptyList() else emptyList()
 }

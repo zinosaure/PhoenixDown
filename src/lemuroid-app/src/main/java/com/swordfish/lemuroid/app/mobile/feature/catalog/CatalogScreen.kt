@@ -40,6 +40,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import com.swordfish.lemuroid.app.mobile.feature.catalog.scanner.LocalFolderRomScanner
+import com.swordfish.lemuroid.app.mobile.feature.catalog.scanner.MultiSourceRomScanner
+import com.swordfish.lemuroid.app.mobile.feature.catalog.scanner.SmbRomScanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,67 +103,37 @@ fun CatalogScreen(
     var smbDownloadedFiles by remember { mutableStateOf<Set<String>>(emptySet()) }
     val romDownloader = viewModel.romDownloader
     
-    // Load files from Local and SMB sources
-    val localScanner = remember { LocalFolderScanner(context) }
-    val smbClient = remember { SmbClient() }
+    // Load files from Local and SMB sources using unified multi-source scanner
+    val localScanner = remember { LocalFolderRomScanner(context) }
+    val smbScanner = remember { SmbRomScanner() }
+    val multiSourceScanner = remember { MultiSourceRomScanner(localScanner, smbScanner) }
     val coroutineScope = rememberCoroutineScope()
     
     LaunchedEffect(sources, shouldReloadLocalFiles) {
         if (shouldReloadLocalFiles) {
             isLoadingExternalFiles = true
-            
-            // Load local files
-            val allLocalFiles = mutableListOf<LocalFile>()
-            sources.filter { it.type == SourceType.LOCAL }.forEach { source ->
-                try {
-                    val uri = Uri.parse(source.path)
-                    val result = localScanner.scanFolder(uri)
-                    result.onSuccess { files ->
-                        allLocalFiles.addAll(files)
-                    }
-                } catch (e: Exception) {
-                    // Log error but continue
-                }
+
+            val scannableSources = sources.filter {
+                it.type == SourceType.LOCAL || it.type == SourceType.SMB
             }
-            localFiles = allLocalFiles
-            
-            // Load SMB files
-            val allSmbFiles = mutableListOf<Pair<RomSource, SmbFile>>()
-            sources.filter { it.type == SourceType.SMB }.forEach { source ->
-                try {
-                    // Parse SMB path: smb://server/sharename/optional/subpath
-                    // El path ya incluye el sharename como primera parte
-                    val smbPath = source.path.removePrefix("smb://")
-                    val slashIndex = smbPath.indexOf('/')
-                    if (slashIndex <= 0) {
-                        Log.w("CatalogScreen", "Invalid SMB path: ${source.path}")
-                        return@forEach
-                    }
-                    
-                    val server = smbPath.substring(0, slashIndex)
-                    val fullPath = smbPath.substring(slashIndex) // /sharename/subpath
-                    
-                    // Extraer sharename (primera parte del path) y subpath (resto)
-                    val pathParts = fullPath.removePrefix("/").split("/", limit = 2)
-                    val share = pathParts.getOrNull(0) ?: return@forEach
-                    val subPath = if (pathParts.size > 1) pathParts[1] else ""
-                    
-                    Log.d("CatalogScreen", "SMB: server=$server, share=$share, subPath=$subPath")
-                    
-                    val result = smbClient.listFiles(server, share, subPath, source.credentials)
-                    result.onSuccess { files ->
-                        Log.d("CatalogScreen", "SMB found ${files.size} files")
-                        files.forEach { file ->
-                            allSmbFiles.add(source to file)
+
+            val scanResult = multiSourceScanner.scanAllSourcesWithOrigin(scannableSources)
+            scanResult
+                .onSuccess { filesWithOrigin ->
+                    localFiles = filesWithOrigin
+                        .mapNotNull { (_, file) -> file as? LocalFile }
+
+                    smbFiles = filesWithOrigin
+                        .mapNotNull { (source, file) ->
+                            val smbFile = file as? SmbFile ?: return@mapNotNull null
+                            source to smbFile
                         }
-                    }.onFailure { e ->
-                        Log.e("CatalogScreen", "SMB error: ${e.message}")
-                    }
-                } catch (e: Exception) {
-                    Log.e("CatalogScreen", "SMB exception: ${e.message}", e)
                 }
-            }
-            smbFiles = allSmbFiles
+                .onFailure { error ->
+                    Log.e("CatalogScreen", "Source scan failed: ${error.message}", error)
+                    localFiles = emptyList()
+                    smbFiles = emptyList()
+                }
             
             isLoadingExternalFiles = false
             shouldReloadLocalFiles = false
