@@ -19,6 +19,18 @@ Phoenix Down extends the base feature set with premium-style features that are c
 *   **Google Drive save synchronization:** available only in the `play` flavor.
 *   **GitHub / free builds:** Google Drive sync is intentionally unavailable (no Play Services/Drive integration in `lemuroid-app-ext-free`).
 
+## Current Setup Limitation
+
+For now, the very first library setup flow only lets you choose a **local folder**.
+
+This means:
+
+*   **Mobile:** on first launch, you cannot select an SMB/NAS/network ROM source from the initial picker.
+*   **TV:** same limitation, the initial onboarding flow is local-folder-only as well.
+*   **Network ROM sources:** they can currently be added only after first launch, from **Settings > Roms**.
+
+If you plan to keep large systems such as **PSX** or **PSP** locally and smaller systems on a NAS, you must first complete the initial local setup, then add your network sources afterward from settings.
+
 ## Important Notice: PSX Games Over Network
 
 Some PSX games can be problematic when played directly from network shares.
