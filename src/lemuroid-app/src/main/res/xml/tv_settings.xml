@@ -19,12 +19,6 @@
             android:summary="@string/none"
             app:iconSpaceReserved="false"/>
 
-        <Preference
-            android:key="@string/pref_key_redownload_covers"
-            android:title="@string/settings_title_redownload_covers"
-            android:summary="@string/settings_description_redownload_covers"
-            app:iconSpaceReserved="false"/>
-
     </PreferenceCategory>
 
     <PreferenceCategory

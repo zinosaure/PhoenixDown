@@ -1,7 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,7 +35,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
 import kotlinx.coroutines.launch
-import java.io.File
 
 @Composable
 fun SettingsScreen(
@@ -381,27 +379,6 @@ private fun RomsSettings(
             enabled = false,
             onClick = {},
         )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_redownload_covers)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_redownload_covers)) },
-            onClick = {
-                scope.launch {
-                    com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager.cleanBucket(
-                        context,
-                        com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager.BucketType.COVER_IMAGES,
-                    )
-
-                    // Remove local SMB cover mirrors so they are fetched again from SMB when needed.
-                    val smbCoverCache = File(context.cacheDir, "gamecovers")
-                    smbCoverCache.deleteRecursively()
-                    smbCoverCache.mkdirs()
-
-                    LibraryIndexScheduler.scheduleLibrarySync(context)
-                    Toast.makeText(context, context.getString(R.string.settings_covers_redownload_started), Toast.LENGTH_SHORT).show()
-                }
-            },
-            enabled = !indexingInProgress,
-        )
         if (scanInProgress) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.stop)) },
@@ -432,9 +409,9 @@ private fun buildCoverStorageSummary(
         val smbBase = listOfNotNull(server?.takeIf { it.isNotBlank() }, share?.takeIf { it.isNotBlank() }, path?.trim('/')?.takeIf { it.isNotBlank() })
             .joinToString("/")
         return if (smbBase.isNotBlank()) {
-            "SMB: //$smbBase/.covers (network)"
+            "SMB RW: //$smbBase/.covers, sinon cache local"
         } else {
-            "SMB: .covers (network)"
+            "SMB RW: .covers, sinon cache local"
         }
     }
 

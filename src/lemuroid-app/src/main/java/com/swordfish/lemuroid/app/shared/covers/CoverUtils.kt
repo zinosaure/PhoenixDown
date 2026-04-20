@@ -170,17 +170,7 @@ object CoverUtils {
             }
 
             is CoverLocation.SmbRemote -> {
-                // Only upload if the SMB share is writable
-                val isRw = runCatching {
-                    SmbClient().isShareWritable(
-                        server = location.server,
-                        share = location.share,
-                        credentials = location.credentials,
-                    )
-                }.getOrDefault(false)
-                if (!isRw) return
-
-                runCatching {
+                val uploaded = runCatching {
                     val smbClient = SmbClient()
                     val coverBytes = bitmapToJpegBytes(bitmap)
                     ByteArrayInputStream(coverBytes).use { stream ->
@@ -191,6 +181,17 @@ object CoverUtils {
                             inputStream = stream,
                             credentials = location.credentials,
                         )
+                    }
+                }.isSuccess
+
+                // If SMB write is unavailable (RO share, ACLs, etc.), keep a local mirror cache.
+                if (!uploaded) {
+                    val localMirror = File(File(appContext.cacheDir, COVERS_CACHE_SUBFOLDER), "smb_${game.id}.jpg")
+                    runCatching {
+                        localMirror.parentFile?.mkdirs()
+                        localMirror.outputStream().use { stream ->
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                        }
                     }
                 }
             }
