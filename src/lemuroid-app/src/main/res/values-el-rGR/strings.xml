@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Ανιχνεύθηκαν</string>
     <string name="settings_bios_category_not_detected">Υποστηριζόμενο</string>
     <string name="settings_title_reset_settings">Επαναφορά εργοστασιακών ρυθμίσεων</string>
-    <string name="settings_description_reset_settings">Επαναφορά του Lemuroid στις εργοστασιακές του ρυθμίσεις</string>
+    <string name="settings_description_reset_settings">Επαναφορά του Phoenix Down στις εργοστασιακές του ρυθμίσεις</string>
     <string name="settings_title_advanced_settings">Σύνθετες ρυθμίσεις</string>
     <string name="settings_description_advanced_settings">Εμφάνιση σύνθετων ρυθμίσεων</string>
     <string name="settings_title_low_latency_audio">Προτιμήστε low-latency ήχο</string>

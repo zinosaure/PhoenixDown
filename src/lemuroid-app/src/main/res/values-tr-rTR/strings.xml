@@ -48,7 +48,7 @@
     <string name="settings_bios_category_detected">Algılanan</string>
     <string name="settings_bios_category_not_detected">Desteklenen</string>
     <string name="settings_title_reset_settings">Fabrika ayarlarına sıfırla</string>
-    <string name="settings_description_reset_settings">Lemuroid\'i fabrika ayarlarına sıfırla</string>
+    <string name="settings_description_reset_settings">Phoenix Down\'i fabrika ayarlarına sıfırla</string>
     <string name="settings_title_advanced_settings">Gelişmiş Ayarlar</string>
     <string name="settings_description_advanced_settings">Gelişmiş ayarları göster</string>
     <string name="settings_title_low_latency_audio">Düşük gecikmeli sesi tercih et</string>

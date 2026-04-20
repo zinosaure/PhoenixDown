@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Upptäckta</string>
     <string name="settings_bios_category_not_detected">Supporterade</string>
     <string name="settings_title_reset_settings">Fabriksåterställning</string>
-    <string name="settings_description_reset_settings">Återställ Lemuroid till fabriksinställningarna</string>
+    <string name="settings_description_reset_settings">Återställ Phoenix Down till fabriksinställningarna</string>
     <string name="settings_title_advanced_settings">Avancerade inställningar</string>
     <string name="settings_description_advanced_settings">Visa avancerade inställningar</string>
     <string name="settings_title_low_latency_audio">Föredra ljud med låg fördröjning</string>

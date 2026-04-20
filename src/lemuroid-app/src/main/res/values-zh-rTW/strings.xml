@@ -48,7 +48,7 @@
     <string name="settings_bios_category_detected">已偵測到</string>
     <string name="settings_bios_category_not_detected">支援</string>
     <string name="settings_title_reset_settings">重設所有資料</string>
-    <string name="settings_description_reset_settings">將 Lemuroid 重置為出廠設置</string>
+    <string name="settings_description_reset_settings">將 Phoenix Down 重置為出廠設置</string>
     <string name="settings_title_advanced_settings">進階設定</string>
     <string name="settings_description_advanced_settings">顯示進階設定</string>
     <string name="settings_title_low_latency_audio">偏好低延遲音頻</string>

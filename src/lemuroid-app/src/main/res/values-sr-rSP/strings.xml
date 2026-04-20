@@ -48,7 +48,7 @@
     <string name="settings_bios_category_detected">Детектовано</string>
     <string name="settings_bios_category_not_detected">Подржано</string>
     <string name="settings_title_reset_settings">Фабричко ресетовање</string>
-    <string name="settings_description_reset_settings">Ресетуј Lemuroid на фабричка подешавања</string>
+    <string name="settings_description_reset_settings">Ресетуј Phoenix Down на фабричка подешавања</string>
     <string name="settings_title_advanced_settings">Напредна подешавања</string>
     <string name="settings_description_advanced_settings">Прикажи напредна подешавања</string>
     <string name="settings_title_low_latency_audio">Преферирај звук ниске латенције</string>

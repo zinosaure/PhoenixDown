@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Detectat</string>
     <string name="settings_bios_category_not_detected">Suportat</string>
     <string name="settings_title_reset_settings">Resetare la valorile din fabrică</string>
-    <string name="settings_description_reset_settings">Resetați Lemuroid la setările sale din fabrică</string>
+    <string name="settings_description_reset_settings">Resetați Phoenix Down la setările sale din fabrică</string>
     <string name="settings_title_advanced_settings">Setări avansate</string>
     <string name="settings_description_advanced_settings">Afișează setările avansate</string>
     <string name="settings_title_low_latency_audio">Preferă audio cu latență mică</string>

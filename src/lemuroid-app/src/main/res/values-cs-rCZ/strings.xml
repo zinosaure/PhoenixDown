@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Detekováno</string>
     <string name="settings_bios_category_not_detected">Podporováno</string>
     <string name="settings_title_reset_settings">Obnovení továrního nastavení</string>
-    <string name="settings_description_reset_settings">Resetovat Lemuroid do továrního nastavení</string>
+    <string name="settings_description_reset_settings">Resetovat Phoenix Down do továrního nastavení</string>
     <string name="settings_title_advanced_settings">Pokročilé nastavení</string>
     <string name="settings_description_advanced_settings">Zobrazit pokročilé nastavení</string>
     <string name="settings_title_low_latency_audio">Preferovat zvuk s nízkou latencí</string>

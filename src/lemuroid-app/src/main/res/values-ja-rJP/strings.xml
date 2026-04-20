@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">検出済み</string>
     <string name="settings_bios_category_not_detected">サポート</string>
     <string name="settings_title_reset_settings">初期化</string>
-    <string name="settings_description_reset_settings">Lemuroidを初期状態にリセットします</string>
+    <string name="settings_description_reset_settings">Phoenix Downを初期状態にリセットします</string>
     <string name="settings_title_advanced_settings">詳細設定</string>
     <string name="settings_description_advanced_settings">詳細設定を表示します</string>
     <string name="settings_title_low_latency_audio">低遅延音声を優先</string>

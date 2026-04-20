@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Знайдено</string>
     <string name="settings_bios_category_not_detected">Підтримується</string>
     <string name="settings_title_reset_settings">Відновлення заводських налаштувань</string>
-    <string name="settings_description_reset_settings">Скинути Лемуроїд до заводських налаштувань</string>
+    <string name="settings_description_reset_settings">Скинути Phoenix Down до заводських налаштувань</string>
     <string name="settings_title_advanced_settings">Додаткові параметри</string>
     <string name="settings_description_advanced_settings">Показати додаткові налаштування</string>
     <string name="settings_title_low_latency_audio">Надавати перевагу звуку з низькою затримкою</string>
@@ -63,7 +63,7 @@
     <string name="settings_title_enable_device_rumble">Вібрація пристрою</string>
     <string name="settings_description_enable_device_rumble">Якщо контролер не під\'єднаний, замість нього вібрує пристрій</string>
     <string name="reset_settings_warning_message_title">Ви впевнені?</string>
-    <string name="reset_settings_warning_message_description">Це скине Лемуроїд до заводських налаштувань. Збереження та Стани будуть збережені.</string>
+    <string name="reset_settings_warning_message_description">Це скине Phoenix Down до заводських налаштувань. Збереження та Стани будуть збережені.</string>
     <string name="settings_title_save_sync">Зберігати в хмарі</string>
     <string name="settings_description_save_sync">Резервне копіювання і синхронізація збереження в хмарі</string>
     <string name="settings_save_sync_refresh">Ручна синхронізація</string>

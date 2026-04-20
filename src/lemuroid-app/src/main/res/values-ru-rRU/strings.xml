@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Обнаружено</string>
     <string name="settings_bios_category_not_detected">Поддерживаемые</string>
     <string name="settings_title_reset_settings">Сбросить настройки</string>
-    <string name="settings_description_reset_settings">Сброс настроек Lemuroid к начальным значениям</string>
+    <string name="settings_description_reset_settings">Сброс настроек Phoenix Down к начальным значениям</string>
     <string name="settings_title_advanced_settings">Дополнительные настройки</string>
     <string name="settings_description_advanced_settings">Показать дополнительные параметры</string>
     <string name="settings_title_low_latency_audio">Звук с низкой задержкой</string>

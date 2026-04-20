@@ -78,7 +78,7 @@
     <string name="settings_bios_category_detected">Détecté</string>
     <string name="settings_bios_category_not_detected">Pris en charge</string>
     <string name="settings_title_reset_settings">Réinitialisation d\'usine</string>
-    <string name="settings_description_reset_settings">Réinitialiser Lemuroid à ses paramètres d\'origine</string>
+    <string name="settings_description_reset_settings">Réinitialiser Phoenix Down à ses paramètres d\'origine</string>
     <string name="settings_title_advanced_settings">Paramètres avancés</string>
     <string name="settings_description_advanced_settings">Afficher les paramètres avancés</string>
     <string name="settings_title_low_latency_audio">Préférer l\'audio à faible latence</string>

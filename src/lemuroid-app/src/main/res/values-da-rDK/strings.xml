@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Registreret</string>
     <string name="settings_bios_category_not_detected">Understøttet</string>
     <string name="settings_title_reset_settings">Gendan fabriksindstillinger</string>
-    <string name="settings_description_reset_settings">Nulstil Lemuroid til fabriksindstillinger</string>
+    <string name="settings_description_reset_settings">Nulstil Phoenix Down til fabriksindstillinger</string>
     <string name="settings_title_advanced_settings">Avancerede Indstillinger</string>
     <string name="settings_description_advanced_settings">Vis avancerede indstillinger</string>
     <string name="settings_title_low_latency_audio">Foretræk low-latency lyd</string>

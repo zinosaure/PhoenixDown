@@ -41,7 +41,7 @@
     <string name="settings_bios_category_detected">זוהה</string>
     <string name="settings_bios_category_not_detected">נתמך</string>
     <string name="settings_title_reset_settings">איפוס להגדרות היצרן</string>
-    <string name="settings_description_reset_settings">אפס את Lemuroid להגדרות היצרן</string>
+    <string name="settings_description_reset_settings">אפס את Phoenix Down להגדרות היצרן</string>
     <string name="settings_title_advanced_settings">הגדרות מתקדמות</string>
     <string name="settings_description_advanced_settings">הצג הגדרות מתקדמות</string>
     <string name="settings_title_low_latency_audio">תעדף שמע מופחת השהייה (Low-latency)</string>

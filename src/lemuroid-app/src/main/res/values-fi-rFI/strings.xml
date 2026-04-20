@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Havaittu</string>
     <string name="settings_bios_category_not_detected">Tuettu</string>
     <string name="settings_title_reset_settings">Tehdasasetusten palautus</string>
-    <string name="settings_description_reset_settings">Nollaa Lemuroid tehdasasetuksiinsa</string>
+    <string name="settings_description_reset_settings">Nollaa Phoenix Down tehdasasetuksiinsa</string>
     <string name="settings_title_advanced_settings">Edistyneet asetukset</string>
     <string name="settings_description_advanced_settings">Näytä lisäasetukset</string>
     <string name="settings_title_low_latency_audio">Suosi alhaisen latenssin ääntä</string>

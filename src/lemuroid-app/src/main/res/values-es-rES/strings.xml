@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Detectados</string>
     <string name="settings_bios_category_not_detected">Admitidos</string>
     <string name="settings_title_reset_settings">Restablecimiento de fábrica</string>
-    <string name="settings_description_reset_settings">Restablecer Lemuroid a su configuración de fábrica</string>
+    <string name="settings_description_reset_settings">Restablecer Phoenix Down a su configuración de fábrica</string>
     <string name="settings_title_advanced_settings">Configuración avanzada</string>
     <string name="settings_description_advanced_settings">Mostrar la configuración avanzada</string>
     <string name="settings_title_low_latency_audio">Preferir audio de baja latencia</string>

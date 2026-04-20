@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">Gedetecteerd</string>
     <string name="settings_bios_category_not_detected">Ondersteund</string>
     <string name="settings_title_reset_settings">Fabrieksinstellingen herstellen</string>
-    <string name="settings_description_reset_settings">Lemuroid terugzetten naar fabrieksinstellingen</string>
+    <string name="settings_description_reset_settings">Phoenix Down terugzetten naar fabrieksinstellingen</string>
     <string name="settings_title_advanced_settings">Geavanceerde instellingen</string>
     <string name="settings_description_advanced_settings">Geavanceerde en experimentele instellingen</string>
     <string name="settings_title_low_latency_audio">Audio met lage latentie</string>

@@ -51,7 +51,7 @@
     <string name="settings_bios_category_detected">감지됨</string>
     <string name="settings_bios_category_not_detected">지원됨</string>
     <string name="settings_title_reset_settings">설정 초기화</string>
-    <string name="settings_description_reset_settings">Lemuroid를 초기 설정으로 되돌립니다</string>
+    <string name="settings_description_reset_settings">Phoenix Down를 초기 설정으로 되돌립니다</string>
     <string name="settings_title_advanced_settings">고급 설정</string>
     <string name="settings_description_advanced_settings">고급 설정 표시</string>
     <string name="settings_title_low_latency_audio">저지연 오디오 선호</string>
