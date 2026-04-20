@@ -1,20 +1,23 @@
-package com.swordfish.lemuroid.app.mobile.feature.catalog
+package com.swordfish.lemuroid.app.mobile.feature.catalog.scanner
 
 import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
+import com.swordfish.lemuroid.app.mobile.feature.catalog.LocalFile
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomFile
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomMetadataExtractor
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
- * Scanner for local folders (using SAF - Storage Access Framework)
+ * Scanner implementation for local folders (SAF - Storage Access Framework)
  */
-class LocalFolderScanner(private val context: Context) {
+class LocalFolderRomScanner(private val context: Context) : RomSourceScanner {
     
     companion object {
-        private const val TAG = "LocalFolderScanner"
+        private const val TAG = "LocalFolderRomScanner"
         private const val MAX_DEPTH = 10 // Recursive search up to 10 levels deep
         
         // ROM file extensions to look for
@@ -39,28 +42,36 @@ class LocalFolderScanner(private val context: Context) {
         )
     }
     
-    /**
-     * Scan a local folder for ROM files recursively
-     */
-    suspend fun scanFolder(uri: Uri): Result<List<LocalFile>> = withContext(Dispatchers.IO) {
+    override suspend fun scan(source: RomSource): Result<List<RomFile>> = withContext(Dispatchers.IO) {
         try {
+            val uri = Uri.parse(source.path)
             val documentFile = DocumentFile.fromTreeUri(context, uri)
-                ?: return@withContext Result.failure(Exception("Cannot access folder"))
+                ?: return@withContext Result.failure(Exception("Cannot access folder: ${source.path}"))
             
-            val files = mutableListOf<LocalFile>()
+            val files = mutableListOf<RomFile>()
             scanDirectory(documentFile, files, "", 0)
             
-            Log.d(TAG, "Found ${files.size} ROM files in ${documentFile.name}")
+            Log.d(TAG, "Scanned source '${source.name}': found ${files.size} ROM files")
             Result.success(files)
         } catch (e: Exception) {
-            Log.e(TAG, "Error scanning local folder: ${e.message}", e)
+            Log.e(TAG, "Error scanning local folder '${source.name}': ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun testConnection(source: RomSource): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val uri = Uri.parse(source.path)
+            val documentFile = DocumentFile.fromTreeUri(context, uri)
+            Result.success(documentFile != null && documentFile.exists())
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
     
     private fun scanDirectory(
         directory: DocumentFile,
-        files: MutableList<LocalFile>,
+        files: MutableList<RomFile>,
         parentPath: String,
         depth: Int
     ) {
@@ -100,60 +111,4 @@ class LocalFolderScanner(private val context: Context) {
             }
         }
     }
-    
-    /**
-     * Copy a local file to the ROMs directory
-     */
-    suspend fun copyToRomsDir(
-        sourceUri: Uri,
-        romsDir: File,
-        onProgress: (Long, Long) -> Unit = { _, _ -> }
-    ): Result<File> = withContext(Dispatchers.IO) {
-        try {
-            val documentFile = DocumentFile.fromSingleUri(context, sourceUri)
-                ?: return@withContext Result.failure(Exception("Cannot access file"))
-            
-            val fileName = documentFile.name ?: "unknown"
-            val destFile = File(romsDir, fileName)
-            
-            romsDir.mkdirs()
-            
-            val totalSize = documentFile.length()
-            
-            context.contentResolver.openInputStream(sourceUri)?.use { input ->
-                destFile.outputStream().use { output ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var totalBytesRead = 0L
-                    
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        totalBytesRead += bytesRead
-                        onProgress(totalBytesRead, totalSize)
-                    }
-                }
-            }
-            
-            Result.success(destFile)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error copying file: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
 }
-
-/**
- * Represents a file in a local folder with extracted metadata
- */
-data class LocalFile(
-    override val name: String,
-    override val cleanName: String,
-    val uri: Uri,
-    override val size: Long,
-    override val extension: String,
-    val fullPath: String,
-    override val system: String?,
-    override val region: String?,
-    override val flag: String
-) : RomFile
-

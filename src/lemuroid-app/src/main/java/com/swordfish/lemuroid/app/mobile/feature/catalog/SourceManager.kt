@@ -112,6 +112,28 @@ data class RomSource(
                 credentials = credentials
             )
         }
+        
+        fun webdav(name: String, url: String, credentials: SmbCredentials? = null): RomSource {
+            val normalizedUrl = if (url.startsWith("http")) url else "http://$url"
+            return RomSource(
+                id = "webdav_${System.currentTimeMillis()}",
+                type = SourceType.WEBDAV,
+                name = name,
+                path = normalizedUrl,
+                credentials = credentials
+            )
+        }
+        
+        fun sftp(name: String, server: String, path: String, credentials: SmbCredentials? = null): RomSource {
+            val normalizedPath = "/" + path.trimStart('/')
+            return RomSource(
+                id = "sftp_${System.currentTimeMillis()}",
+                type = SourceType.SFTP,
+                name = name,
+                path = "sftp://$server$normalizedPath",
+                credentials = credentials
+            )
+        }
     }
 }
 
@@ -129,7 +151,9 @@ data class SmbCredentials(
 enum class SourceType {
     ARCHIVE_ORG,  // ☁️ Cloud
     LOCAL,        // 📁 Local folder
-    SMB           // 🖥️ Network share
+    SMB,          // 🖥️ SMB/NAS share
+    WEBDAV,       // 🌐 WebDAV share
+    SFTP          // 🔐 SFTP share
 }
 
 /**

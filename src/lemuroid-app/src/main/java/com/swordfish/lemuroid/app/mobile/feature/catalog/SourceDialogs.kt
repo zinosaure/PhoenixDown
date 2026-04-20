@@ -519,6 +519,8 @@ private fun SourceItem(
                     SourceType.LOCAL -> Icons.Default.Folder
                     SourceType.SMB -> Icons.Default.Dns
                     SourceType.ARCHIVE_ORG -> Icons.Default.Cloud
+                    SourceType.WEBDAV -> Icons.Default.Cloud
+                    SourceType.SFTP -> Icons.Default.Dns
                 },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary

@@ -354,24 +354,14 @@ class SmbClient {
  * Represents a file on an SMB share with extracted metadata
  */
 data class SmbFile(
-    val name: String,
-    val cleanName: String,
+    override val name: String,
+    override val cleanName: String,
     val path: String,
     val relativePath: String,
-    val size: Long,
-    val extension: String,
-    val system: String?,
-    val region: String?,
-    val flag: String
-) {
-    val sizeFormatted: String
-        get() = when {
-            size >= 1_000_000_000 -> String.format("%.2f GB", size / 1_000_000_000.0)
-            size >= 1_000_000 -> String.format("%.2f MB", size / 1_000_000.0)
-            size >= 1_000 -> String.format("%.2f KB", size / 1_000.0)
-            else -> "$size B"
-        }
-    
-    val systemDisplay: String
-        get() = RomMetadataExtractor.getSystemDisplayName(system)
-}
+    override val size: Long,
+    override val extension: String,
+    override val system: String?,
+    override val region: String?,
+    override val flag: String
+) : RomFile
+
