@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -16,6 +18,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
+import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
@@ -27,6 +30,7 @@ import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import android.text.format.Formatter
 import android.widget.Toast
+import kotlinx.coroutines.launch
 
 @Composable
 fun AdvancedSettingsScreen(
@@ -89,7 +93,17 @@ private fun GeneralSettings(
     navController: NavController,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val factoryResetDialogState = remember { mutableStateOf(false) }
+    val cleanupDialogState = remember { mutableStateOf<StorageCleanupManager.Bucket?>(null) }
+    val cleanupRefreshToken = remember { mutableStateOf(0) }
+    val cleanupBuckets =
+        produceState(
+            initialValue = emptyList<StorageCleanupManager.Bucket>(),
+            key1 = cleanupRefreshToken.value,
+        ) {
+            value = StorageCleanupManager.getBuckets(context)
+        }
 
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_general)) },
@@ -109,20 +123,18 @@ private fun GeneralSettings(
                     cacheState.values,
                 ),
         )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_clear_cache)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_description_clear_cache)) },
-            onClick = {
-                viewModel.clearCache { freedBytes ->
-                    val sizeLabel = Formatter.formatShortFileSize(context, freedBytes)
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.settings_cache_cleared) + " (" + sizeLabel + ")",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            },
-        )
+
+        cleanupBuckets.value.forEach { bucket ->
+            val label = Formatter.formatShortFileSize(context, bucket.sizeBytes)
+            LemuroidSettingsMenuLink(
+                title = { Text(text = stringResource(StorageCleanupManager.getBucketLabelRes(bucket.type))) },
+                subtitle = { Text(text = stringResource(R.string.settings_clear_entry_summary, label)) },
+                onClick = {
+                    cleanupDialogState.value = bucket
+                },
+            )
+        }
+
         LemuroidSettingsSwitch(
             state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
             title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
@@ -137,6 +149,44 @@ private fun GeneralSettings(
 
     if (factoryResetDialogState.value) {
         FactoryResetDialog(factoryResetDialogState, viewModel, navController)
+    }
+
+    cleanupDialogState.value?.let { bucket ->
+        val bucketTitle = stringResource(StorageCleanupManager.getBucketLabelRes(bucket.type))
+        val bucketSize = Formatter.formatShortFileSize(context, bucket.sizeBytes)
+        AlertDialog(
+            title = { Text(text = stringResource(R.string.settings_clear_confirm_title)) },
+            text = {
+                Text(
+                    text = stringResource(R.string.settings_clear_confirm_message, bucketTitle, bucketSize),
+                )
+            },
+            onDismissRequest = { cleanupDialogState.value = null },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        cleanupDialogState.value = null
+                        scope.launch {
+                            val freed = StorageCleanupManager.cleanBucket(context, bucket.type)
+                            val freedLabel = Formatter.formatShortFileSize(context, freed)
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.settings_clear_done, bucketTitle, freedLabel),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                            cleanupRefreshToken.value += 1
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(R.string.delete_games_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { cleanupDialogState.value = null }) {
+                    Text(text = stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 

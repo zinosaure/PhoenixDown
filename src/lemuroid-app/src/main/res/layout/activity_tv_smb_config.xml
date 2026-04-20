@@ -38,28 +38,71 @@
             android:background="#2d2d2d"
             android:padding="20dp">
 
-            <!-- Server -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/smb_library_server"
-                android:textColor="@android:color/white"
-                android:textSize="13sp" />
-
-            <EditText
-                android:id="@+id/smb_server_input"
+            <!-- Server + Port -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:hint="@string/sources_smb_server_placeholder"
-                android:textColor="@android:color/white"
-                android:textColorHint="#666666"
-                android:background="#3d3d3d"
-                android:padding="10dp"
-                android:inputType="text"
-                android:imeOptions="actionNext"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:layout_marginBottom="12dp" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="3"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/smb_library_server"
+                        android:textColor="@android:color/white"
+                        android:textSize="13sp" />
+
+                    <EditText
+                        android:id="@+id/smb_server_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:hint="@string/sources_smb_server_placeholder"
+                        android:textColor="@android:color/white"
+                        android:textColorHint="#666666"
+                        android:background="#3d3d3d"
+                        android:padding="10dp"
+                        android:inputType="text"
+                        android:imeOptions="actionNext"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/smb_library_port"
+                        android:textColor="@android:color/white"
+                        android:textSize="13sp" />
+
+                    <EditText
+                        android:id="@+id/smb_port_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:hint="@string/sources_smb_port_placeholder"
+                        android:textColor="@android:color/white"
+                        android:textColorHint="#666666"
+                        android:background="#3d3d3d"
+                        android:padding="10dp"
+                        android:inputType="number"
+                        android:imeOptions="actionNext"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true" />
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- Path -->
             <TextView

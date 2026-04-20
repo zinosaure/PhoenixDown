@@ -146,11 +146,27 @@ private fun SmbLibraryConfigForm(
     connectionTestResult: ConnectionTestState
 ) {
     var server by remember { mutableStateOf("") }
+    var port by remember { mutableStateOf("") }
     var path by remember { mutableStateOf("") }
     var useAuth by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+
+    fun buildServerAddress(): String {
+        val host = server.trim()
+        val portValue = port.trim()
+        if (host.isBlank() || portValue.isBlank()) {
+            return host
+        }
+
+        val parsedPort = portValue.toIntOrNull()
+        return if (parsedPort != null && parsedPort in 1..65535) {
+            "$host:$parsedPort"
+        } else {
+            host
+        }
+    }
     
     Column(
         modifier = Modifier
@@ -170,15 +186,29 @@ private fun SmbLibraryConfigForm(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        OutlinedTextField(
-            value = server,
-            onValueChange = { server = it },
-            label = { Text(stringResource(R.string.smb_library_server)) },
-            placeholder = { Text("192.168.1.100") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = server,
+                onValueChange = { server = it },
+                label = { Text(stringResource(R.string.smb_library_server)) },
+                placeholder = { Text("192.168.1.100") },
+                modifier = Modifier.weight(3f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            OutlinedTextField(
+                value = port,
+                onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                label = { Text(stringResource(R.string.smb_library_port)) },
+                placeholder = { Text(stringResource(R.string.smb_library_port_placeholder)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
         
         Spacer(modifier = Modifier.height(12.dp))
         
@@ -290,8 +320,9 @@ private fun SmbLibraryConfigForm(
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedButton(
                 onClick = {
+                    val serverAddress = buildServerAddress()
                     onTestConnection(
-                        server,
+                        serverAddress,
                         path,
                         username.takeIf { useAuth && it.isNotBlank() },
                         password.takeIf { useAuth && it.isNotBlank() }
@@ -304,8 +335,9 @@ private fun SmbLibraryConfigForm(
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {
+                    val serverAddress = buildServerAddress()
                     onSave(
-                        server,
+                        serverAddress,
                         path,
                         username.takeIf { useAuth && it.isNotBlank() },
                         password.takeIf { useAuth && it.isNotBlank() }

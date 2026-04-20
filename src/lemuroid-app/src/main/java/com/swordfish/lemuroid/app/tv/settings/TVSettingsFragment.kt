@@ -14,11 +14,10 @@ import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
+import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
-import com.swordfish.lemuroid.common.displayToast
 import android.text.format.Formatter
-import com.swordfish.lemuroid.lib.storage.cache.CacheCleaner
 import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -121,11 +120,18 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             }
             it.isVisible = saveSyncManager.isSupported()
         }
+
+        lifecycleScope.launch {
+            refreshCleanupPreferenceSummaries()
+        }
     }
 
     override fun onResume() {
         super.onResume()
         refreshSaveSyncScreen()
+        lifecycleScope.launch {
+            refreshCleanupPreferenceSummaries()
+        }
     }
 
     private fun getGamePadPreferenceScreen(): PreferenceScreen? {
@@ -184,6 +190,14 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             return true
         }
 
+        val cleanupType = resolveCleanupTypeFromPreferenceKey(preference.key)
+        if (cleanupType != null) {
+            lifecycleScope.launch {
+                confirmAndCleanBucket(cleanupType)
+            }
+            return true
+        }
+
         when (preference.key) {
             getString(R.string.pref_key_reset_gamepad_bindings) ->
                 lifecycleScope.launch {
@@ -191,10 +205,6 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 }
             getString(R.string.pref_key_reset_settings) -> handleResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
-            getString(R.string.pref_key_clear_cache) ->
-                lifecycleScope.launch {
-                    handleClearCache()
-                }
         }
         return super.onPreferenceTreeClick(preference)
     }
@@ -242,15 +252,48 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         activity?.finish()
     }
 
-    private suspend fun handleClearCache() {
+    private suspend fun refreshCleanupPreferenceSummaries() {
+        val context = requireContext()
+        val buckets = StorageCleanupManager.getBuckets(context)
+
+        buckets.forEach { bucket ->
+            val key = getString(StorageCleanupManager.getBucketPreferenceKeyRes(bucket.type))
+            val summary = getString(
+                R.string.settings_clear_entry_summary,
+                Formatter.formatShortFileSize(context, bucket.sizeBytes),
+            )
+            findPreference<Preference>(key)?.summary = summary
+        }
+    }
+
+    private suspend fun confirmAndCleanBucket(type: StorageCleanupManager.BucketType) {
         val ctx = requireContext()
-        val freed = CacheCleaner.getCurrentCacheSize(ctx)
-        CacheCleaner.cleanAll(ctx)
-        val label = Formatter.formatShortFileSize(ctx, freed)
-        requireActivity().displayToast("${getString(R.string.settings_cache_cleared)} ($label)")
-        AdvancedSettingsPreferences.updateCachePreferences(
-            getAdvancedSettingsPreferenceScreen() ?: return
-        )
+        val currentBuckets = StorageCleanupManager.getBuckets(ctx)
+        val bucket = currentBuckets.firstOrNull { it.type == type } ?: return
+        val label = Formatter.formatShortFileSize(ctx, bucket.sizeBytes)
+        val bucketName = getString(StorageCleanupManager.getBucketLabelRes(type))
+
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.settings_clear_confirm_title)
+            .setMessage(getString(R.string.settings_clear_confirm_message, bucketName, label))
+            .setPositiveButton(R.string.delete_games_confirm) { _, _ ->
+                lifecycleScope.launch {
+                    val freed = StorageCleanupManager.cleanBucket(ctx, type)
+                    val freedLabel = Formatter.formatShortFileSize(ctx, freed)
+                    requireActivity().displayToast(
+                        getString(R.string.settings_clear_done, bucketName, freedLabel),
+                    )
+                    refreshCleanupPreferenceSummaries()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun resolveCleanupTypeFromPreferenceKey(key: String): StorageCleanupManager.BucketType? {
+        return StorageCleanupManager.BucketType.entries.firstOrNull {
+            key == getString(StorageCleanupManager.getBucketPreferenceKeyRes(it))
+        }
     }
 
     @dagger.Module

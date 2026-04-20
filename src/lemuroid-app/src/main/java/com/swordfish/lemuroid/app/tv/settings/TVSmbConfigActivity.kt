@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 class TVSmbConfigActivity : FragmentActivity() {
     
     private lateinit var serverInput: EditText
+    private lateinit var portInput: EditText
     private lateinit var pathInput: EditText
     private lateinit var usernameInput: EditText
     private lateinit var passwordInput: EditText
@@ -35,6 +36,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         
         // Find views
         serverInput = findViewById(R.id.smb_server_input)
+        portInput = findViewById(R.id.smb_port_input)
         pathInput = findViewById(R.id.smb_path_input)
         usernameInput = findViewById(R.id.smb_username_input)
         passwordInput = findViewById(R.id.smb_password_input)
@@ -56,7 +58,10 @@ class TVSmbConfigActivity : FragmentActivity() {
 
     private fun loadExistingConfig() {
         val prefs = SharedPreferencesHelper.getSharedPreferences(this)
-        serverInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, ""))
+        val savedServer = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
+        val (host, port) = splitHostAndPort(savedServer)
+        serverInput.setText(host)
+        portInput.setText(port)
         
         // V2 Strategy: Try to load the RAW path specifically saved for UI to prevent degradation
         val rawPath = prefs.getString(KEY_RAW_PATH, null)
@@ -78,7 +83,7 @@ class TVSmbConfigActivity : FragmentActivity() {
     }
 
     private fun testConnection() {
-        val server = serverInput.text.toString().trim()
+        val server = buildServerAddress()
         val path = pathInput.text.toString().trim()
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
@@ -119,7 +124,7 @@ class TVSmbConfigActivity : FragmentActivity() {
     }
 
     private fun saveAndFinish() {
-        val server = serverInput.text.toString().trim()
+        val server = buildServerAddress()
         val fullPath = pathInput.text.toString().trim()
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
@@ -172,5 +177,40 @@ class TVSmbConfigActivity : FragmentActivity() {
         
         Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun buildServerAddress(): String {
+        val host = serverInput.text.toString().trim()
+        val port = portInput.text.toString().trim()
+
+        if (host.isBlank() || port.isBlank()) {
+            return host
+        }
+
+        val parsedPort = port.toIntOrNull()
+        if (parsedPort == null || parsedPort !in 1..65535) {
+            return host
+        }
+
+        return "$host:$parsedPort"
+    }
+
+    private fun splitHostAndPort(server: String): Pair<String, String> {
+        val raw = server.trim()
+        if (raw.isBlank()) return "" to ""
+
+        val separatorIndex = raw.lastIndexOf(':')
+        if (separatorIndex <= 0 || separatorIndex == raw.lastIndex) {
+            return raw to ""
+        }
+
+        val hostPart = raw.substring(0, separatorIndex)
+        val portPart = raw.substring(separatorIndex + 1)
+
+        return if (portPart.toIntOrNull() in 1..65535) {
+            hostPart to portPart
+        } else {
+            raw to ""
+        }
     }
 }

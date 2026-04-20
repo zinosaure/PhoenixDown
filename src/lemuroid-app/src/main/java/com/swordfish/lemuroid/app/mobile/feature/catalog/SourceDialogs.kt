@@ -141,6 +141,7 @@ fun SmbConfigForm(
 ) {
     var name by remember { mutableStateOf(editSource?.name ?: "") }
     var server by remember { mutableStateOf("") }
+    var port by remember { mutableStateOf("") }
     var path by remember { mutableStateOf("") }
     var useAuth by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf(editSource?.credentials?.username ?: "") }
@@ -151,6 +152,21 @@ fun SmbConfigForm(
     var connectionTestState by remember { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
     val scope = rememberCoroutineScope()
     val smbClient = remember { SmbClient() }
+
+    fun buildServerAddress(): String {
+        val host = server.trim()
+        val portValue = port.trim()
+        if (host.isBlank() || portValue.isBlank()) {
+            return host
+        }
+
+        val parsedPort = portValue.toIntOrNull()
+        return if (parsedPort != null && parsedPort in 1..65535) {
+            "$host:$parsedPort"
+        } else {
+            host
+        }
+    }
     
     // Parse existing SMB path if editing
     LaunchedEffect(editSource) {
@@ -159,10 +175,25 @@ fun SmbConfigForm(
             val withoutScheme = smbPath.removePrefix("smb://")
             val slashIndex = withoutScheme.indexOf('/')
             if (slashIndex > 0) {
-                server = withoutScheme.substring(0, slashIndex)
+                val serverPart = withoutScheme.substring(0, slashIndex)
+                val separator = serverPart.lastIndexOf(':')
+                if (separator > 0 && separator < serverPart.lastIndex) {
+                    val maybePort = serverPart.substring(separator + 1)
+                    if (maybePort.toIntOrNull() in 1..65535) {
+                        server = serverPart.substring(0, separator)
+                        port = maybePort
+                    } else {
+                        server = serverPart
+                        port = ""
+                    }
+                } else {
+                    server = serverPart
+                    port = ""
+                }
                 path = withoutScheme.substring(slashIndex)
             } else {
                 server = withoutScheme
+                port = ""
                 path = ""
             }
             useAuth = editSource.credentials != null
@@ -200,15 +231,29 @@ fun SmbConfigForm(
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        OutlinedTextField(
-            value = server,
-            onValueChange = { server = it },
-            label = { Text(stringResource(R.string.sources_smb_server)) },
-            placeholder = { Text(stringResource(R.string.sources_smb_server_placeholder)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = server,
+                onValueChange = { server = it },
+                label = { Text(stringResource(R.string.sources_smb_server)) },
+                placeholder = { Text(stringResource(R.string.sources_smb_server_placeholder)) },
+                modifier = Modifier.weight(3f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            OutlinedTextField(
+                value = port,
+                onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                label = { Text(stringResource(R.string.sources_smb_port)) },
+                placeholder = { Text(stringResource(R.string.sources_smb_port_placeholder)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+        }
         
         Spacer(modifier = Modifier.height(12.dp))
         
@@ -323,7 +368,8 @@ fun SmbConfigForm(
                         
                         // Parse share name from path
                         val shareName = path.removePrefix("/").split("/").firstOrNull() ?: ""
-                        val result = smbClient.testConnection(server, shareName, credentials)
+                        val serverAddress = buildServerAddress()
+                        val result = smbClient.testConnection(serverAddress, shareName, credentials)
                         connectionTestState = if (result.isSuccess) {
                             ConnectionTestState.Success
                         } else {
@@ -351,11 +397,12 @@ fun SmbConfigForm(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        val displayName = name.ifBlank { server + path }
+                        val serverAddress = buildServerAddress()
+                        val displayName = name.ifBlank { serverAddress + path }
                         val credentials = if (useAuth && username.isNotBlank()) {
                             SmbCredentials(username, password)
                         } else null
-                        onSave(displayName, server, path, credentials)
+                        onSave(displayName, serverAddress, path, credentials)
                     },
                     enabled = server.isNotBlank() && path.isNotBlank()
                 ) {

@@ -15,6 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 
 object CoverUtils {
+    const val IMAGE_CACHE_SUBFOLDER = "image_cache"
+
     fun loadCover(
         game: Game,
         imageView: ImageView?,
@@ -32,7 +34,7 @@ object CoverUtils {
         return ImageLoader.Builder(applicationContext)
             .diskCache(
                 DiskCache.Builder()
-                    .directory(applicationContext.cacheDir.resolve("image_cache"))
+                    .directory(applicationContext.cacheDir.resolve(IMAGE_CACHE_SUBFOLDER))
                     .maxSizePercent(0.20)
                     .build(),
             )

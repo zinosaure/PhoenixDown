@@ -7,6 +7,8 @@
     <string name="smb_library_title">Network Library (SMB)</string>
     <string name="smb_library_description">Configure your SMB/NAS network share to scan ROMs</string>
     <string name="smb_library_server">Server address</string>
+    <string name="smb_library_port">Port</string>
+    <string name="smb_library_port_placeholder">445</string>
     <string name="smb_library_share">Share name</string>
     <string name="smb_library_path">Path (optional)</string>
     <string name="smb_library_username">Username (optional)</string>
