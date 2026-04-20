@@ -32,11 +32,13 @@
     <string name="settings_category_system_interaction">System Interaction</string>
     <string name="settings_category_input">Input</string>
     <string name="settings_category_misc">Miscellaneous</string>
+    <string name="settings_category_consoles">Consoles</string>
     <string name="settings_category_factory_reset">Factory Reset</string>
     <string name="pref_key_export_save_games">pref_key_export_save_games</string>
     <string name="pref_key_import_save_games">pref_key_import_save_games</string>
     <string name="pref_key_open_manual">pref_key_open_manual</string>
     <string name="pref_key_open_about">pref_key_open_about</string>
+    <string name="pref_key_edit_thegamesdb_apikey">pref_key_edit_thegamesdb_apikey</string>
     <string name="settings_title_enable_autosave">Autosave state</string>
     <string name="settings_description_enable_autosave">Save state when exiting via game menu</string>
     <string name="settings_title_enable_touch_feedback">Vibrate on touch</string>
@@ -413,7 +415,7 @@
     <string name="delete_selected">Delete selected (%1$d)</string>
 
     <!-- Metadata Settings -->
-    <string name="settings_category_metadata">Metadata / Scraper</string>
+    <string name="settings_category_metadata">Metadata/API</string>
     <string name="settings_title_thegamesdb_apikey">TheGamesDB API Key</string>
     <string name="settings_description_thegamesdb_apikey">Get a free key at thegamesdb.net</string>
     <string name="settings_thegamesdb_help">Enter your TheGamesDB API Key to fetch game covers, descriptions, and genres.</string>

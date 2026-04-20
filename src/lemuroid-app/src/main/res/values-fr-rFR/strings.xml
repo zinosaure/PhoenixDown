@@ -25,8 +25,10 @@
     <string name="settings_category_general">Général</string>
     <string name="settings_category_system_interaction">Interaction Système</string>
     <string name="settings_category_factory_reset">Réinitialisation</string>
+    <string name="settings_category_consoles">Consoles</string>
     <string name="settings_category_input">Systèmes d\'interaction</string>
     <string name="settings_category_misc">Autre</string>
+    <string name="pref_key_edit_thegamesdb_apikey">pref_key_edit_thegamesdb_apikey</string>
     <string name="settings_title_enable_autosave">Sauvegarde automatique</string>
     <string name="settings_description_enable_autosave">Enregistrer l\'état lors de la sortie via le menu de jeu</string>
     <string name="settings_title_enable_touch_feedback">Vibrer au toucher</string>

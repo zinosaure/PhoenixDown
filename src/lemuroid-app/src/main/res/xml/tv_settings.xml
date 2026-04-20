@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
-        android:title="@string/settings_category_general"
+        android:title="@string/roms"
         app:iconSpaceReserved="false">
 
         <Preference
@@ -24,6 +24,12 @@
             android:title="@string/settings_title_redownload_covers"
             android:summary="@string/settings_description_redownload_covers"
             app:iconSpaceReserved="false"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/settings_category_general"
+        app:iconSpaceReserved="false">
 
         <SwitchPreference
             android:key="@string/pref_key_autosave"
@@ -71,7 +77,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="@string/settings_category_input"
+        android:title="@string/settings_category_system_interaction"
         app:iconSpaceReserved="false">
 
         <PreferenceScreen
@@ -83,7 +89,19 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="@string/settings_category_misc"
+        android:title="@string/settings_category_metadata"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            android:key="@string/pref_key_edit_thegamesdb_apikey"
+            android:title="@string/settings_title_thegamesdb_apikey"
+            android:summary="@string/settings_thegamesdb_not_configured"
+            app:iconSpaceReserved="false"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/settings_category_consoles"
         app:iconSpaceReserved="false">
 
         <PreferenceScreen

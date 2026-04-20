@@ -68,13 +68,13 @@ fun SettingsScreen(
         )
         GeneralSettings()
         InputSettings(navController = navController)
-        MiscSettings(
+        MetadataSettings(
+            viewModel = viewModel
+        )
+        ConsolesSettings(
             indexingInProgress = indexingInProgress,
             isSaveSyncSupported = state.isSaveSyncSupported,
             navController = navController,
-        )
-        MetadataSettings(
-            viewModel = viewModel
         )
     }
 }
@@ -141,13 +141,13 @@ private fun MetadataSettings(
 
 
 @Composable
-private fun MiscSettings(
+private fun ConsolesSettings(
     indexingInProgress: Boolean,
     isSaveSyncSupported: Boolean,
     navController: NavController,
 ) {
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_misc)) },
+        title = { Text(text = stringResource(id = R.string.settings_category_consoles)) },
     ) {
         if (isSaveSyncSupported) {
             LemuroidSettingsMenuLink(
@@ -194,7 +194,7 @@ private fun MiscSettings(
 @Composable
 private fun InputSettings(navController: NavController) {
     LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_category_input)) },
+        title = { Text(text = stringResource(id = R.string.settings_category_system_interaction)) },
     ) {
         LemuroidSettingsList(
             state =

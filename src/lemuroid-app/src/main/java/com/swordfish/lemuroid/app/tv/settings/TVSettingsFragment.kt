@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.text.format.Formatter
 import android.view.InputDevice
 import android.view.View
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
@@ -153,6 +154,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
             refreshCoverStorageSummary()
+            refreshMetadataSummary()
         }
     }
 
@@ -162,6 +164,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
             refreshCoverStorageSummary()
+            refreshMetadataSummary()
         }
     }
 
@@ -240,6 +243,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 lifecycleScope.launch {
                     handleRedownloadCovers()
                 }
+            getString(R.string.pref_key_edit_thegamesdb_apikey) -> showApiKeyDialog()
             getString(R.string.pref_key_export_save_games) ->
                 exportSavesLauncher.launch("retromul-savegames-backup.zip")
             getString(R.string.pref_key_import_save_games) ->
@@ -337,6 +341,38 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         val libraryType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
         val summary = buildCoverStorageSummary(directoryUri, libraryType)
         findPreference<Preference>(getString(R.string.pref_key_cover_storage_info))?.summary = summary
+    }
+
+    private fun refreshMetadataSummary() {
+        val prefs = SharedPreferencesHelper.getSharedPreferences(requireContext())
+        val key = getString(R.string.settings_title_thegamesdb_apikey)
+        val value = prefs.getString(key, "").orEmpty()
+        val summary = if (value.isNotBlank()) {
+            getString(R.string.settings_thegamesdb_configured)
+        } else {
+            getString(R.string.settings_thegamesdb_not_configured)
+        }
+        findPreference<Preference>(getString(R.string.pref_key_edit_thegamesdb_apikey))?.summary = summary
+    }
+
+    private fun showApiKeyDialog() {
+        val ctx = requireContext()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+        val key = getString(R.string.settings_title_thegamesdb_apikey)
+        val editText = EditText(ctx).apply {
+            setSingleLine(true)
+            setText(prefs.getString(key, "").orEmpty())
+        }
+
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.metadata_dialog_apikey_title)
+            .setView(editText)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                prefs.edit().putString(key, editText.text?.toString().orEmpty()).apply()
+                refreshMetadataSummary()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun buildCoverStorageSummary(
