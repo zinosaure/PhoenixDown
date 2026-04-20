@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.util.UUID
 
 /**
  * Manages ROM sources: Archive.org (cloud), Local folders, and SMB/NAS shares
@@ -87,6 +88,8 @@ data class RomSource(
     val credentials: SmbCredentials? = null
 ) {
     companion object {
+        private fun newId(prefix: String): String = "${prefix}_${UUID.randomUUID()}"
+
         fun archiveOrg() = RomSource(
             id = "archive_org",
             type = SourceType.ARCHIVE_ORG,
@@ -95,7 +98,7 @@ data class RomSource(
         )
         
         fun local(name: String, uri: String) = RomSource(
-            id = "local_${System.currentTimeMillis()}",
+            id = newId("local"),
             type = SourceType.LOCAL,
             name = name,
             path = uri
@@ -105,7 +108,7 @@ data class RomSource(
             // Normalizar path: asegurar que empiece con / pero sin duplicados
             val normalizedPath = "/" + path.trimStart('/')
             return RomSource(
-                id = "smb_${System.currentTimeMillis()}",
+                id = newId("smb"),
                 type = SourceType.SMB,
                 name = name,
                 path = "smb://$server$normalizedPath",
@@ -116,7 +119,7 @@ data class RomSource(
         fun webdav(name: String, url: String, credentials: SmbCredentials? = null): RomSource {
             val normalizedUrl = if (url.startsWith("http")) url else "http://$url"
             return RomSource(
-                id = "webdav_${System.currentTimeMillis()}",
+                id = newId("webdav"),
                 type = SourceType.WEBDAV,
                 name = name,
                 path = normalizedUrl,
@@ -127,7 +130,7 @@ data class RomSource(
         fun sftp(name: String, server: String, path: String, credentials: SmbCredentials? = null): RomSource {
             val normalizedPath = "/" + path.trimStart('/')
             return RomSource(
-                id = "sftp_${System.currentTimeMillis()}",
+                id = newId("sftp"),
                 type = SourceType.SFTP,
                 name = name,
                 path = "sftp://$server$normalizedPath",

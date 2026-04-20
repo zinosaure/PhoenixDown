@@ -52,13 +52,13 @@ class MultiSourceRomScanner(
     }
     
     /**
-     * Scan all sources in parallel and deduplicate results
+     * Scan all sources in parallel.
      */
     suspend fun scanAllSources(sources: List<RomSource>): Result<List<RomFile>> =
         scanAllSourcesWithOrigin(sources).map { files -> files.map { it.second } }
 
     /**
-     * Scan all sources in parallel, keep source origin, and deduplicate results.
+     * Scan all sources in parallel and keep source origin.
      */
     suspend fun scanAllSourcesWithOrigin(sources: List<RomSource>): Result<List<Pair<RomSource, RomFile>>> =
         withContext(Dispatchers.IO) {
@@ -84,10 +84,8 @@ class MultiSourceRomScanner(
                         result.filesFound.map { file -> source to file }
                     }
 
-                val deduplicatedFiles = deduplicateRomsWithOrigin(allFilesWithOrigin)
-
-                Log.d(TAG, "Scan complete: ${deduplicatedFiles.size} unique ROMs after deduplication")
-                Result.success(deduplicatedFiles)
+                Log.d(TAG, "Scan complete: ${allFilesWithOrigin.size} ROM entries across all sources")
+                Result.success(allFilesWithOrigin)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error during parallel scan: ${e.message}", e)
@@ -159,24 +157,4 @@ class MultiSourceRomScanner(
         }
     }
     
-    /**
-     * Deduplicate ROMs by clean name and system.
-     * Keep the first occurrence and mark alternatives (useful for display).
-     */
-    private fun deduplicateRomsWithOrigin(files: List<Pair<RomSource, RomFile>>): List<Pair<RomSource, RomFile>> {
-        val seen = mutableSetOf<String>()
-        val deduplicated = mutableListOf<Pair<RomSource, RomFile>>()
-        
-        files.forEach { sourceAndFile ->
-            val file = sourceAndFile.second
-            val key = "${file.system}::${file.cleanName}".lowercase()
-            if (key !in seen) {
-                seen.add(key)
-                deduplicated.add(sourceAndFile)
-            }
-        }
-        
-        Log.d(TAG, "Deduplication: ${files.size} files -> ${deduplicated.size} unique")
-        return deduplicated
-    }
 }
