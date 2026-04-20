@@ -49,6 +49,7 @@ The following updates were recently implemented in this fork:
 *   **UX fixes:**
     * Mobile home list items now use clearer card contrast so game entries remain visible against the page background.
     * Cover settings label updated to **"Cover locations"** / **"Emplacements des jaquettes"**.
+    * Cover folder naming was normalized to `GameCovers` (to avoid NAS configurations that block leading `.` folders).
 
 ---
 
@@ -61,13 +62,18 @@ The following updates were recently implemented in this fork:
 *   Add optional diagnostics for cover persistence:
     * Debug log toggle for SMB cover upload path, write result, and fallback reason.
 
-*   Improve cover location status precision in settings:
-    * Replace static wording with runtime `SMB RO` / `SMB RW` detection done asynchronously (without UI blocking).
+*   Validate SMB status wording in settings on real devices:
+    * Confirm `SMB RO` / `SMB RW` detection is accurate across NAS vendors and permission setups.
+    * Confirm wording remains understandable when credentials/server are missing or temporarily unavailable.
 
 *   Add automated regression tests for:
     * cover persistence fallback logic (SMB -> local),
+    * `GameCovers` folder write path for SMB/SAF/local,
     * settings block ordering (mobile + TV),
     * non-blocking cover model resolution.
+
+*   Add/verify basic documentation for contributors:
+    * maintain an up-to-date handoff file for next contributors/agents.
 
 ---
 
