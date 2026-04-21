@@ -53,28 +53,38 @@ class CatalogViewModel(
 
         Log.e("ANTIGRAVITY", ">>> INIT CATALOG VIEW MODEL <<<")
 
-        // Priority 1: New per-source download destination
-        val downloadSourceId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
-        val libraryDestination: RomSource? = if (downloadSourceId.isNotBlank()) {
-            val resolved = SourceRepository(context).getCustomSources().firstOrNull { it.id == downloadSourceId }
-            Log.e("ANTIGRAVITY", "Download destination (new pref): ${resolved?.path}")
-            resolved
-        } else {
-            // Fallback: legacy KEY_LIBRARY_TYPE logic
-            val libType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, null)
-            Log.e("ANTIGRAVITY", "Library Type (legacy): '$libType'")
-            if (libType == "smb") {
-                val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
-                val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "") ?: ""
-                val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
-                val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, "") ?: ""
-                val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, "") ?: ""
-                if (server.isNotBlank() && share.isNotBlank()) {
-                    val creds = if (username.isNotBlank()) SmbCredentials(username, password) else null
-                    val sharePath = "/$share$path"
-                    RomSource.smb(name = "Library Destination", server = server, path = sharePath, credentials = creds)
-                } else null
-            } else null
+        // Download destination stored as raw URI ("content://..." or "smb://...") or legacy RomSource.id
+        val downloadLoc = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+        val libraryDestination: RomSource? = when {
+            downloadLoc.isBlank() -> null
+            downloadLoc.startsWith("content://") -> {
+                Log.e("ANTIGRAVITY", "Download destination (SAF): $downloadLoc")
+                RomSource(type = com.swordfish.lemuroid.lib.storage.source.SourceType.LOCAL, name = "Download", path = downloadLoc, id = "_dl")
+            }
+            downloadLoc.startsWith("smb://") -> {
+                Log.e("ANTIGRAVITY", "Download destination (SMB): $downloadLoc")
+                RomSource(type = com.swordfish.lemuroid.lib.storage.source.SourceType.SMB, name = "Download", path = downloadLoc, id = "_dl")
+            }
+            else -> {
+                // Legacy: try to find by RomSource.id, then fall back to legacy SMB prefs
+                SourceRepository(context).getCustomSources().firstOrNull { it.id == downloadLoc }
+                    ?: run {
+                        val libType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, null)
+                        Log.e("ANTIGRAVITY", "Library Type (legacy): '$libType'")
+                        if (libType == "smb") {
+                            val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
+                            val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "") ?: ""
+                            val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
+                            val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, "") ?: ""
+                            val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, "") ?: ""
+                            if (server.isNotBlank() && share.isNotBlank()) {
+                                val creds = if (username.isNotBlank()) SmbCredentials(username, password) else null
+                                val sharePath = "/$share$path"
+                                RomSource.smb(name = "Library Destination", server = server, path = sharePath, credentials = creds)
+                            } else null
+                        } else null
+                    }
+            }
         }
 
         Log.e("ANTIGRAVITY", "Final Library Destination: ${libraryDestination?.path}")

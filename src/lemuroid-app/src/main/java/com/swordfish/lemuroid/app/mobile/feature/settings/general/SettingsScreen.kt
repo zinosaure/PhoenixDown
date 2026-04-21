@@ -326,8 +326,6 @@ private fun RomsSettings(
     var showAddSmbDialog by remember { mutableStateOf(false) }
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddMenu by remember { mutableStateOf(false) }
-    var showDownloadDialog by remember { mutableStateOf(false) }
-    var showSaveDialog by remember { mutableStateOf(false) }
 
     // State machine: hold a source waiting for platform hint selection
     var pendingSourceForPlatform by remember { mutableStateOf<RomSource?>(null) }
@@ -364,6 +362,32 @@ private fun RomsSettings(
             pendingSourceIsEdit = existingSource != null
         }
         editingLocalSourceId = null
+    }
+
+    // SAF picker — emplacement des sauvegardes (indépendant de la ROM library)
+    val saveLocationPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
+            viewModel.setSaveLocation(uri.toString())
+        }
+    }
+
+    // SAF picker — emplacement des téléchargements (indépendant de la ROM library)
+    val downloadLocationPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
+            viewModel.setDownloadSourceId(uri.toString())
+        }
     }
 
     // Platform picker dialog — shown after adding/editing a source
@@ -440,13 +464,12 @@ private fun RomsSettings(
     }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
-        // En-tête bibliothèque virtuelle
+        // ── En-tête bibliothèque virtuelle ──────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.FolderOpen,
@@ -457,7 +480,9 @@ private fun RomsSettings(
             Text(
                 text = "Bibliothèque de jeux",
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp),
             )
             // Bouton + avec menu déroulant
             Box {
@@ -492,7 +517,7 @@ private fun RomsSettings(
 
         HorizontalDivider()
 
-        // Liste des chemins dans la bibliothèque
+        // ── Liste des chemins ──────────────────────────────────────────
         if (customSources.isEmpty()) {
             Text(
                 text = "Aucun dossier configuré. Appuyez sur + pour en ajouter un.",
@@ -518,47 +543,7 @@ private fun RomsSettings(
             }
         }
 
-        HorizontalDivider()
-
-        // Dossier des sauvegardes
-        val saveLocationDisplay = if (saveLocationUri.isBlank()) {
-            stringResource(R.string.settings_save_location_default)
-        } else {
-            customSources.firstOrNull { it.id == saveLocationUri }?.name ?: stringResource(R.string.settings_save_location_default)
-        }
-        LemuroidSettingsMenuLink(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(stringResource(R.string.settings_title_save_location))
-                }
-            },
-            subtitle = { Text(saveLocationDisplay) },
-            onClick = { showSaveDialog = true },
-        )
-
-        HorizontalDivider()
-
-        // Dossier de téléchargement
-        val downloadDisplay = if (downloadSourceId.isBlank()) {
-            stringResource(R.string.settings_download_location_default)
-        } else {
-            customSources.firstOrNull { it.id == downloadSourceId }?.name ?: stringResource(R.string.settings_download_location_default)
-        }
-        LemuroidSettingsMenuLink(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(stringResource(R.string.settings_title_download_location))
-                }
-            },
-            subtitle = { Text(downloadDisplay) },
-            onClick = { showDownloadDialog = true },
-        )
-
-        HorizontalDivider()
-
-        // Bouton Rescan pleine largeur
+        // ── Bouton Rescan (sous la liste) ──────────────────────────────
         if (scanInProgress) {
             Button(
                 onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
@@ -579,27 +564,87 @@ private fun RomsSettings(
                 Text(stringResource(R.string.rescan))
             }
         }
+
+        HorizontalDivider()
+
+        // ── Dossier des sauvegardes ────────────────────────────────────
+        val savePathDisplay = when {
+            saveLocationUri.isBlank() -> stringResource(R.string.settings_save_location_default)
+            saveLocationUri.startsWith("content://") ->
+                DocumentFile.fromTreeUri(context, Uri.parse(saveLocationUri))?.name
+                    ?: Uri.decode(saveLocationUri)
+            else -> saveLocationUri
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.settings_title_save_location),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = savePathDisplay,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (saveLocationUri.isNotBlank()) {
+                IconButton(onClick = { viewModel.setSaveLocation("") }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Réinitialiser", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            IconButton(onClick = { saveLocationPickerLauncher.launch(null) }) {
+                Icon(Icons.Default.FolderOpen, contentDescription = "Choisir un dossier")
+            }
+        }
+
+        HorizontalDivider()
+
+        // ── Dossier de téléchargement ────────────────────────────────
+        val downloadPathDisplay = when {
+            downloadSourceId.isBlank() -> stringResource(R.string.settings_download_location_default)
+            downloadSourceId.startsWith("content://") ->
+                DocumentFile.fromTreeUri(context, Uri.parse(downloadSourceId))?.name
+                    ?: Uri.decode(downloadSourceId)
+            else -> downloadSourceId
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.settings_title_download_location),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = downloadPathDisplay,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (downloadSourceId.isNotBlank()) {
+                IconButton(onClick = { viewModel.setDownloadSourceId("") }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Réinitialiser", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            IconButton(onClick = { downloadLocationPickerLauncher.launch(null) }) {
+                Icon(Icons.Default.FolderOpen, contentDescription = "Choisir un dossier")
+            }
+        }
     }
 
-    // Download location dialog (shown separately to avoid state inside LemuroidCardSettingsGroup)
-    if (showDownloadDialog) {
-        DownloadLocationDialog(
-            customSources = customSources,
-            currentSourceId = downloadSourceId,
-            onDismiss = { showDownloadDialog = false },
-            onConfirm = { id -> viewModel.setDownloadSourceId(id); showDownloadDialog = false },
-        )
-    }
-
-    // Save location dialog
-    if (showSaveDialog) {
-        DownloadLocationDialog(
-            customSources = customSources,
-            currentSourceId = saveLocationUri,
-            onDismiss = { showSaveDialog = false },
-            onConfirm = { id -> viewModel.setSaveLocation(id); showSaveDialog = false },
-        )
-    }
+    // (No more dialogs needed for save/download – handled by SAF pickers registered above)
 }
 
 @Composable

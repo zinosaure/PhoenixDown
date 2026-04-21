@@ -27,6 +27,9 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import kotlin.math.absoluteValue
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalRomSources
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.SourceBadge
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveSourceName
 
 /**
  * 3D Carousel for games with perspective effect
@@ -148,15 +151,27 @@ private fun GameCarouselCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(game.coverFrontUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = game.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        Box {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(game.coverFrontUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = game.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            val sources = LocalRomSources.current
+            val badge = remember(game.fileUri, sources) { resolveSourceName(game.fileUri, sources) }
+            if (badge != null) {
+                SourceBadge(
+                    text = badge,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(4.dp),
+                )
+            }
+        }
     }
 }
 

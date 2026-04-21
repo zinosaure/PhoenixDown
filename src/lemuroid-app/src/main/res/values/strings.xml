@@ -261,9 +261,9 @@
     <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
     <!-- Platform hint dialog -->
     <string name="settings_platform_dialog_title">Plateforme du dossier</string>
-    <string name="settings_platform_dialog_desc">Pour les fichiers .zip, quelle console contient ce dossier ?</string>
+    <string name="settings_platform_dialog_desc">Choisissez la console associée à ce dossier. Recommandé si les jeux sont en .zip ou dans un dossier mixte.</string>
     <string name="settings_platform_auto">Auto (détection automatique)</string>
-    <string name="settings_platform_auto_warning">⚠ Les .zip ne seront pas détectés automatiquement</string>
+    <string name="settings_platform_auto_warning">Fonctionne si les extensions sont connues (.sfc, .gba…) ou si les jeux sont dans des sous-dossiers dédiés. ⚠ Les .zip hors sous-dossiers risquent d\'être mal classés.</string>
     <string name="settings_title_covers_storage_location">Cover locations</string>
     <string name="settings_title_redownload_covers">Re-download covers</string>
     <string name="settings_description_redownload_covers">Clear cached cover images and request fresh downloads during the next scan.</string>

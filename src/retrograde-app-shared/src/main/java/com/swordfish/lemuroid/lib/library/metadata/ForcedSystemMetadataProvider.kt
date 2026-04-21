@@ -6,11 +6,10 @@ import com.swordfish.lemuroid.lib.storage.StorageFile
 import timber.log.Timber
 
 /**
- * Wraps another [GameMetadataProvider] and overrides the detected system with [forcedSystemId]
- * when the file is a compressed archive (.zip, .7z, .rar, .gz).
+ * Wraps another [GameMetadataProvider] and forces ALL discovered files to [forcedSystemId].
  *
  * Used when a source has a [platformHint]: the user explicitly declared the target platform,
- * so we skip the ambiguous folder/extension heuristics for archives.
+ * so every file found in that source is assigned to that system regardless of extension or path.
  */
 class ForcedSystemMetadataProvider(
     private val delegate: GameMetadataProvider,
@@ -19,8 +18,7 @@ class ForcedSystemMetadataProvider(
 
     override suspend fun retrieveMetadata(storageFile: StorageFile): GameMetadata? {
         val metadata = delegate.retrieveMetadata(storageFile) ?: return null
-        val ext = storageFile.extension.lowercase()
-        return if (ext in StorageFile.ARCHIVE_EXTENSIONS && metadata.system != forcedSystemId) {
+        return if (metadata.system != forcedSystemId) {
             Timber.d("ForcedSystem: overriding '${metadata.system}' → '$forcedSystemId' for ${storageFile.name}")
             metadata.copy(system = forcedSystemId)
         } else {

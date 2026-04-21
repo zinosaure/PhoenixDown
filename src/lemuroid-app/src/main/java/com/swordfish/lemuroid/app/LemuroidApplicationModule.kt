@@ -267,8 +267,7 @@ abstract class LemuroidApplicationModule {
         fun savesStorageResolver(
             context: Context,
             directoriesManager: DirectoriesManager,
-            sourceRepository: SourceRepository,
-        ) = SavesStorageResolver(context, directoriesManager, sourceRepository)
+        ) = SavesStorageResolver(context, directoriesManager)
 
         @Provides
         @PerApp

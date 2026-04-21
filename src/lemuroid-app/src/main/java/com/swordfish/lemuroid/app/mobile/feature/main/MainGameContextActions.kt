@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AppShortcut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.SwitchAccount
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
@@ -62,6 +63,7 @@ fun MainGameContextActions(
     onCreateShortcut: (Game) -> Unit,
     onEdit: (Game) -> Unit = {},
     onDelete: (Game) -> Unit = {},
+    onChangeSystem: (Game) -> Unit = {},
 ) {
     val modalSheetState = rememberModalBottomSheetState(true)
     val selectedGame = selectedGameState.value
@@ -89,6 +91,7 @@ fun MainGameContextActions(
                 onCreateShortcut = onCreateShortcut,
                 onEdit = onEdit,
                 onDelete = onDelete,
+                onChangeSystem = onChangeSystem,
             )
         }
     }
@@ -105,6 +108,7 @@ private fun ContextActionContent(
     onCreateShortcut: (Game) -> Unit,
     onEdit: (Game) -> Unit,
     onDelete: (Game) -> Unit,
+    onChangeSystem: (Game) -> Unit = {},
 ) {
     Column(
         modifier =
@@ -168,6 +172,16 @@ private fun ContextActionContent(
             icon = Icons.Default.Edit,
             onClick = {
                 onEdit(selectedGame)
+                selectedGameState.value = null
+            },
+        )
+        
+        // Change platform
+        ContextActionEntry(
+            label = stringResource(id = com.swordfish.lemuroid.lib.R.string.game_context_menu_change_system),
+            icon = Icons.Default.SwitchAccount,
+            onClick = {
+                onChangeSystem(selectedGame)
                 selectedGameState.value = null
             },
         )

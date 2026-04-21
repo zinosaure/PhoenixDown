@@ -543,6 +543,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                 onCreateShortcut = { gameInteractor.onCreateShortcut(it) },
                 onEdit = { game -> gameToEdit = game },
                 onDelete = { game -> gameToDelete = game },
+                onChangeSystem = { game -> gameToEdit = game },
             )
             
             // Game edit dialog
