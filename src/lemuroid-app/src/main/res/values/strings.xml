@@ -253,12 +253,17 @@
 
     <!-- Storage locations section -->
     <string name="settings_category_storage_locations">Emplacements de stockage</string>
-    <string name="settings_title_save_location">Dossier des sauvegardes</string>
+    <string name="settings_category_library">Bibliothèque de jeux</string>
+    <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
+    <string name="settings_title_save_location">Emplacement des sauvegardes</string>
     <string name="settings_desc_save_location">Où stocker les fichiers de sauvegardes (états et SRAM)</string>
     <string name="settings_save_location_default">Stockage interne (défaut)</string>
-    <string name="settings_title_download_location">Dossier de téléchargement</string>
+    <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
     <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
+    <string name="settings_picker_local_folder">Dossier local</string>
+    <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
+    <string name="settings_picker_reset">Réinitialiser (défaut)</string>
     <!-- Platform hint dialog -->
     <string name="settings_platform_dialog_title">Plateforme du dossier</string>
     <string name="settings_platform_dialog_desc">Choisissez la console associée à ce dossier. Recommandé si les jeux sont en .zip ou dans un dossier mixte.</string>

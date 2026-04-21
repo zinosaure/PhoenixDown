@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ok">OK</string>
+    <!-- Storage locations -->
+    <string name="settings_category_storage_locations">Storage locations</string>
+    <string name="settings_category_library">Game library</string>
+    <string name="settings_library_empty">No folder configured. Tap + to add one.</string>
+    <string name="settings_title_save_location">Save files location</string>
+    <string name="settings_desc_save_location">Where to store save files (states and SRAM)</string>
+    <string name="settings_save_location_default">Internal storage (default)</string>
+    <string name="settings_title_download_location">Downloads location</string>
+    <string name="settings_desc_download_location">Where to store downloaded ROMs</string>
+    <string name="settings_download_location_default">Android /Downloads (default)</string>
+    <string name="settings_picker_local_folder">Local folder</string>
+    <string name="settings_picker_smb_server">SMB server (network)</string>
+    <string name="settings_picker_reset">Reset (default)</string>
+    <!-- Platform hint dialog -->
+    <string name="settings_platform_dialog_title">Folder platform</string>
+    <string name="settings_platform_dialog_desc">Choose the console associated with this folder. Recommended when games are .zip files or in a mixed folder.</string>
+    <string name="settings_platform_auto">Auto (automatic detection)</string>
+    <string name="settings_platform_auto_warning">Works when file extensions are known (.sfc, .gba…) or when games are in dedicated subfolders. ⚠ .zip files outside subfolders may be misclassified.</string>
+    <!-- Library sources -->
+    <string name="settings_title_add_source">Add source…</string>
+    <string name="settings_description_add_source">Add a local folder or SMB share</string>
+    <string name="settings_source_tap_to_remove">Tap to remove</string>
+    <string name="settings_source_remove_confirm_title">Remove source?</string>
+    <string name="settings_source_remove_confirm_message">Remove \"%s\" from your library sources?</string>
 </resources>

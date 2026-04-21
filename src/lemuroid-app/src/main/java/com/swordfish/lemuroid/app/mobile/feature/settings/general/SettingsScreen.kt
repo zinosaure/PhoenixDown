@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,9 +26,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -327,25 +325,29 @@ private fun RomsSettings(
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddMenu by remember { mutableStateOf(false) }
 
-    // State machine: hold a source waiting for platform hint selection
+    // Dialogs to choose save/download location type (local vs SMB)
+    var showSavePickerDialog by remember { mutableStateOf(false) }
+    var showDownloadPickerDialog by remember { mutableStateOf(false) }
+    var showSaveSmbDialog by remember { mutableStateOf(false) }
+    var showDownloadSmbDialog by remember { mutableStateOf(false) }
+
+    // State machine for platform hint
     var pendingSourceForPlatform by remember { mutableStateOf<RomSource?>(null) }
-    // true = it's an update (edit), false = it's a new source
     var pendingSourceIsEdit by remember { mutableStateOf(false) }
 
-    // SAF picker — ajouter dossier local
+    // SAF picker — ajouter dossier local (bibliothèque)
     val addLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
-            // Show platform picker before adding
             pendingSourceForPlatform = RomSource.local(name, uri.toString())
             pendingSourceIsEdit = false
         }
     }
 
-    // SAF picker — modifier dossier local existant
+    // SAF picker — modifier dossier local (bibliothèque)
     val editLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         val sourceId = editingLocalSourceId
         if (uri != null && sourceId != null) {
@@ -354,60 +356,54 @@ private fun RomsSettings(
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
             val existingSource = customSources.firstOrNull { it.id == sourceId }
-            if (existingSource != null) {
-                pendingSourceForPlatform = existingSource.copy(name = name, path = uri.toString())
+            pendingSourceForPlatform = if (existingSource != null) {
+                existingSource.copy(name = name, path = uri.toString())
             } else {
-                pendingSourceForPlatform = RomSource.local(name, uri.toString())
+                RomSource.local(name, uri.toString())
             }
             pendingSourceIsEdit = existingSource != null
         }
         editingLocalSourceId = null
     }
 
-    // SAF picker — emplacement des sauvegardes (indépendant de la ROM library)
+    // SAF picker — emplacement des sauvegardes
     val saveLocationPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             viewModel.setSaveLocation(uri.toString())
         }
     }
 
-    // SAF picker — emplacement des téléchargements (indépendant de la ROM library)
+    // SAF picker — emplacement des téléchargements
     val downloadLocationPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                 )
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             viewModel.setDownloadSourceId(uri.toString())
         }
     }
 
-    // Platform picker dialog — shown after adding/editing a source
+    // Platform picker dialog
     if (pendingSourceForPlatform != null) {
         PlatformPickerDialog(
             currentHint = pendingSourceForPlatform!!.platformHint,
             onDismiss = { pendingSourceForPlatform = null },
             onConfirm = { selectedHint ->
                 val source = pendingSourceForPlatform!!.copy(platformHint = selectedHint)
-                if (pendingSourceIsEdit) {
-                    viewModel.updateSource(source)
-                } else {
-                    viewModel.addSource(source)
-                }
+                if (pendingSourceIsEdit) viewModel.updateSource(source) else viewModel.addSource(source)
                 pendingSourceForPlatform = null
             },
         )
     }
 
-    // Dialog ajout SMB
+    // Dialog ajout SMB (bibliothèque)
     if (showAddSmbDialog) {
         Dialog(onDismissRequest = { showAddSmbDialog = false }) {
             Card {
@@ -416,8 +412,7 @@ private fun RomsSettings(
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
                     onSave = { name, server, path, credentials ->
-                        val source = RomSource.smb(name, server, path, credentials)
-                        pendingSourceForPlatform = source
+                        pendingSourceForPlatform = RomSource.smb(name, server, path, credentials)
                         pendingSourceIsEdit = false
                         showAddSmbDialog = false
                     },
@@ -426,7 +421,7 @@ private fun RomsSettings(
         }
     }
 
-    // Dialog édition SMB
+    // Dialog édition SMB (bibliothèque)
     if (editingSmbSource != null) {
         Dialog(onDismissRequest = { editingSmbSource = null }) {
             Card {
@@ -446,12 +441,120 @@ private fun RomsSettings(
         }
     }
 
+    // Dialog type de dossier — sauvegardes
+    if (showSavePickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showSavePickerDialog = false },
+            title = { Text(stringResource(R.string.settings_title_save_location)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            showSavePickerDialog = false
+                            saveLocationPickerLauncher.launch(
+                                if (saveLocationUri.startsWith("content://")) Uri.parse(saveLocationUri) else null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Folder, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.settings_picker_local_folder), modifier = Modifier.weight(1f))
+                    }
+                    TextButton(
+                        onClick = { showSavePickerDialog = false; showSaveSmbDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Dns, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.settings_picker_smb_server), modifier = Modifier.weight(1f))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showSavePickerDialog = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+
+    // Dialog type de dossier — téléchargements
+    if (showDownloadPickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showDownloadPickerDialog = false },
+            title = { Text(stringResource(R.string.settings_title_download_location)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            showDownloadPickerDialog = false
+                            downloadLocationPickerLauncher.launch(
+                                if (downloadSourceId.startsWith("content://")) Uri.parse(downloadSourceId) else null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Folder, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.settings_picker_local_folder), modifier = Modifier.weight(1f))
+                    }
+                    TextButton(
+                        onClick = { showDownloadPickerDialog = false; showDownloadSmbDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Dns, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.settings_picker_smb_server), modifier = Modifier.weight(1f))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showDownloadPickerDialog = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+
+    // SMB form — emplacement des sauvegardes
+    if (showSaveSmbDialog) {
+        Dialog(onDismissRequest = { showSaveSmbDialog = false }) {
+            Card {
+                SmbConfigForm(
+                    onDismiss = { showSaveSmbDialog = false },
+                    onBack = { showSaveSmbDialog = false },
+                    editSource = if (saveLocationUri.startsWith("smb://")) {
+                        RomSource(type = SourceType.SMB, name = "Sauvegardes", path = saveLocationUri, id = "_save")
+                    } else null,
+                    onSave = { _, server, path, _ ->
+                        viewModel.setSaveLocation("smb://$server$path")
+                        showSaveSmbDialog = false
+                    },
+                )
+            }
+        }
+    }
+
+    // SMB form — emplacement des téléchargements
+    if (showDownloadSmbDialog) {
+        Dialog(onDismissRequest = { showDownloadSmbDialog = false }) {
+            Card {
+                SmbConfigForm(
+                    onDismiss = { showDownloadSmbDialog = false },
+                    onBack = { showDownloadSmbDialog = false },
+                    editSource = if (downloadSourceId.startsWith("smb://")) {
+                        RomSource(type = SourceType.SMB, name = "Téléchargements", path = downloadSourceId, id = "_dl")
+                    } else null,
+                    onSave = { _, server, path, _ ->
+                        viewModel.setDownloadSourceId("smb://$server$path")
+                        showDownloadSmbDialog = false
+                    },
+                )
+            }
+        }
+    }
+
     // Confirmation suppression
     if (pendingDeleteSource != null) {
         AlertDialog(
             onDismissRequest = { pendingDeleteSource = null },
-            title = { Text("Supprimer le dossier") },
-            text = { Text("Retirer « ${pendingDeleteSource?.name} » de la bibliothèque ?") },
+            title = { Text(stringResource(R.string.settings_source_remove_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_source_remove_confirm_message, pendingDeleteSource?.name ?: "")) },
             confirmButton = {
                 TextButton(onClick = { pendingDeleteSource?.let { viewModel.removeSource(it.id) }; pendingDeleteSource = null }) {
                     Text(stringResource(R.string.game_context_menu_delete))
@@ -464,40 +567,31 @@ private fun RomsSettings(
     }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
-        // ── En-tête bibliothèque virtuelle ──────────────────────────────
+        // ── En-tête bibliothèque (sans icône) ────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Default.FolderOpen,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
-            )
             Text(
-                text = "Bibliothèque de jeux",
+                text = stringResource(R.string.settings_category_library),
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 10.dp),
+                modifier = Modifier.weight(1f),
             )
-            // Bouton + avec menu déroulant
             Box {
                 FilledTonalIconButton(
                     onClick = { showAddMenu = true },
                     enabled = !indexingInProgress,
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Ajouter un dossier")
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_title_add_source))
                 }
                 DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Dossier local")
+                                Text(stringResource(R.string.settings_picker_local_folder))
                             }
                         },
                         onClick = { showAddMenu = false; addLocalLauncher.launch(null) },
@@ -506,7 +600,7 @@ private fun RomsSettings(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Partage SMB (réseau)")
+                                Text(stringResource(R.string.settings_picker_smb_server))
                             }
                         },
                         onClick = { showAddMenu = false; showAddSmbDialog = true },
@@ -515,12 +609,10 @@ private fun RomsSettings(
             }
         }
 
-        HorizontalDivider()
-
         // ── Liste des chemins ──────────────────────────────────────────
         if (customSources.isEmpty()) {
             Text(
-                text = "Aucun dossier configuré. Appuyez sur + pour en ajouter un.",
+                text = stringResource(R.string.settings_library_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
@@ -532,7 +624,12 @@ private fun RomsSettings(
                     source = source,
                     onEdit = {
                         when (source.type) {
-                            SourceType.LOCAL -> { editingLocalSourceId = source.id; editLocalLauncher.launch(null) }
+                            SourceType.LOCAL -> {
+                                editingLocalSourceId = source.id
+                                editLocalLauncher.launch(
+                                    if (source.path.startsWith("content://")) Uri.parse(source.path) else null,
+                                )
+                            }
                             SourceType.SMB -> editingSmbSource = source
                             else -> Unit
                         }
@@ -543,42 +640,27 @@ private fun RomsSettings(
             }
         }
 
-        // ── Bouton Rescan (sous la liste) ──────────────────────────────
+        // ── Bouton Rescan ──────────────────────────────────────────────
         if (scanInProgress) {
             Button(
                 onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Text(stringResource(R.string.stop))
-            }
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            ) { Text(stringResource(R.string.stop)) }
         } else {
             Button(
                 onClick = { LibraryIndexScheduler.scheduleLibrarySync(context) },
                 enabled = !indexingInProgress,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Text(stringResource(R.string.rescan))
-            }
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            ) { Text(stringResource(R.string.rescan)) }
         }
-
-        HorizontalDivider()
 
         // ── Dossier des sauvegardes ────────────────────────────────────
-        val savePathDisplay = when {
-            saveLocationUri.isBlank() -> stringResource(R.string.settings_save_location_default)
-            saveLocationUri.startsWith("content://") ->
-                DocumentFile.fromTreeUri(context, Uri.parse(saveLocationUri))?.name
-                    ?: Uri.decode(saveLocationUri)
-            else -> saveLocationUri
-        }
+        val saveDisplayPath = uriToReadablePath(context, saveLocationUri)
+            .ifEmpty { stringResource(R.string.settings_save_location_default) }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -587,37 +669,30 @@ private fun RomsSettings(
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    text = savePathDisplay,
+                    text = saveDisplayPath,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             if (saveLocationUri.isNotBlank()) {
-                IconButton(onClick = { viewModel.setSaveLocation("") }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Réinitialiser", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = { viewModel.setSaveLocation("") }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            IconButton(onClick = { saveLocationPickerLauncher.launch(null) }) {
-                Icon(Icons.Default.FolderOpen, contentDescription = "Choisir un dossier")
+            IconButton(onClick = { showSavePickerDialog = true }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
 
-        HorizontalDivider()
-
-        // ── Dossier de téléchargement ────────────────────────────────
-        val downloadPathDisplay = when {
-            downloadSourceId.isBlank() -> stringResource(R.string.settings_download_location_default)
-            downloadSourceId.startsWith("content://") ->
-                DocumentFile.fromTreeUri(context, Uri.parse(downloadSourceId))?.name
-                    ?: Uri.decode(downloadSourceId)
-            else -> downloadSourceId
-        }
+        // ── Dossier de téléchargement ──────────────────────────────────
+        val downloadDisplayPath = uriToReadablePath(context, downloadSourceId)
+            .ifEmpty { stringResource(R.string.settings_download_location_default) }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -626,25 +701,39 @@ private fun RomsSettings(
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    text = downloadPathDisplay,
+                    text = downloadDisplayPath,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             if (downloadSourceId.isNotBlank()) {
-                IconButton(onClick = { viewModel.setDownloadSourceId("") }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Réinitialiser", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = { viewModel.setDownloadSourceId("") }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            IconButton(onClick = { downloadLocationPickerLauncher.launch(null) }) {
-                Icon(Icons.Default.FolderOpen, contentDescription = "Choisir un dossier")
+            IconButton(onClick = { showDownloadPickerDialog = true }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
     }
+}
 
-    // (No more dialogs needed for save/download – handled by SAF pickers registered above)
+/** Converts a raw URI string to a human-readable path for display. */
+private fun uriToReadablePath(context: android.content.Context, uri: String): String {
+    if (uri.isBlank()) return ""
+    if (uri.startsWith("smb://")) return uri
+    if (uri.startsWith("content://")) {
+        return runCatching {
+            val docId = DocumentsContract.getTreeDocumentId(Uri.parse(uri))
+            if (docId.contains(":")) {
+                val (vol, path) = docId.split(":", limit = 2)
+                if (vol == "primary") "/storage/emulated/0/$path" else "/storage/$vol/$path"
+            } else docId
+        }.getOrElse { Uri.decode(uri) }
+    }
+    return uri
 }
 
 @Composable
@@ -661,7 +750,6 @@ private fun LibraryPathRow(
             .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Badge priorité
         Box(
             modifier = Modifier
                 .size(20.dp)
@@ -675,7 +763,7 @@ private fun LibraryPathRow(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Icon(
             imageVector = if (source.type == SourceType.LOCAL) Icons.Default.Folder else Icons.Default.Dns,
             contentDescription = null,
@@ -698,13 +786,12 @@ private fun LibraryPathRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // Icônes ✎ et 🗑 serrées ensemble
         Row {
             IconButton(onClick = onEdit, enabled = enabled, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Modifier", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onDelete, enabled = enabled, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer", modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -773,70 +860,6 @@ private fun PlatformPickerDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(start = 4.dp),
                             )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(selected) }) {
-                Text(stringResource(R.string.ok))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-    )
-}
-
-/** Dialog to choose the download destination among configured sources. */
-@Composable
-private fun DownloadLocationDialog(
-    customSources: List<RomSource>,
-    currentSourceId: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var selected by remember(currentSourceId) { mutableStateOf(currentSourceId) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_title_download_location)) },
-        text = {
-            LazyColumn(modifier = Modifier.height(280.dp)) {
-                // Default: /Downloads
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selected = "" }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected.isBlank(), onClick = { selected = "" })
-                        Text(
-                            text = stringResource(R.string.settings_download_location_default),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                    HorizontalDivider()
-                }
-                // One row per configured source
-                items(customSources) { source ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selected = source.id }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = selected == source.id, onClick = { selected = source.id })
-                        Column(modifier = Modifier.padding(start = 4.dp)) {
-                            Text(source.name, style = MaterialTheme.typography.bodyMedium)
-                            Text(source.path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

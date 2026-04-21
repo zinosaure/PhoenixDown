@@ -49,6 +49,7 @@ import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameImage
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalRomSources
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.SourceBadge
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveSourceName
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.sourceBadgeFor
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import androidx.compose.runtime.CompositionLocalProvider
@@ -448,7 +449,8 @@ private fun GameCardWithSelection(
             ) {
                 Box {
                     LemuroidGameImage(game = game)
-                    val badge = remember(game.fileUri) { sourceBadgeFor(game.fileUri) }
+                    val sources = LocalRomSources.current
+                    val badge = remember(game.fileUri, sources) { resolveSourceName(game.fileUri, sources) }
                     if (badge != null) {
                         SourceBadge(
                             text = badge,
@@ -587,6 +589,16 @@ private fun ThumbnailListItem(
                     modifier = Modifier.fillMaxSize(),
                     game = game,
                 )
+                val sources = LocalRomSources.current
+                val badge = remember(game.fileUri, sources) { resolveSourceName(game.fileUri, sources) }
+                if (badge != null) {
+                    SourceBadge(
+                        text = badge,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(2.dp),
+                    )
+                }
             }
 
             // Game info

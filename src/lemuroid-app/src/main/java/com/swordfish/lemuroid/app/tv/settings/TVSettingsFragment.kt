@@ -68,7 +68,23 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         SharedPreferencesHelper.getSharedPreferences(requireContext())
             .edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, uri.toString()).apply()
         findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary =
-            androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), uri)?.name ?: uri.toString()
+            uriToReadablePathTv(requireContext(), uri.toString())
+    }
+
+    private val downloadFolderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        runCatching {
+            requireContext().contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+        SharedPreferencesHelper.getSharedPreferences(requireContext())
+            .edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, uri.toString()).apply()
+        findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary =
+            uriToReadablePathTv(requireContext(), uri.toString())
     }
 
     private val exportSavesLauncher = registerForActivityResult(
@@ -194,23 +210,19 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         val ctx = requireContext()
         val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
 
-        val saveUri = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "")
-        val saveSummary = if (saveUri.isNullOrBlank()) {
+        val saveUri = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
+        val saveSummary = if (saveUri.isBlank()) {
             getString(R.string.settings_save_location_default)
         } else {
-            android.net.Uri.parse(saveUri).let { uri ->
-                androidx.documentfile.provider.DocumentFile.fromTreeUri(ctx, uri)?.name ?: saveUri
-            }
+            uriToReadablePathTv(ctx, saveUri)
         }
         findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary = saveSummary
 
-        val downloadId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "")
-        val downloadSummary = if (downloadId.isNullOrBlank()) {
+        val downloadId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+        val downloadSummary = if (downloadId.isBlank()) {
             getString(R.string.settings_download_location_default)
         } else {
-            com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx)
-                .getCustomSources().firstOrNull { it.id == downloadId }?.name
-                ?: getString(R.string.settings_download_location_default)
+            uriToReadablePathTv(ctx, downloadId)
         }
         findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = downloadSummary
     }
@@ -338,7 +350,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             getString(R.string.pref_key_reset_settings) -> confirmResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
             getString(R.string.pref_key_edit_thegamesdb_apikey) -> showApiKeyDialog()
-            "pref_key_tv_save_location" -> saveFolderPickerLauncher.launch(null)
+            "pref_key_tv_save_location" -> showSaveLocationDialog()
             "pref_key_tv_download_location" -> showDownloadLocationDialog()
             getString(R.string.pref_key_export_save_games) ->
                 exportSavesLauncher.launch("phoenix-down-savegames-backup.zip")
@@ -354,21 +366,113 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun showDownloadLocationDialog() {
         val ctx = requireContext()
-        val sources = com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
-        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
-        val currentId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
-
-        val items = mutableListOf(getString(R.string.settings_download_location_default))
-        sources.forEach { items.add(it.name) }
-        val ids = mutableListOf("") + sources.map { it.id }
-        val currentIndex = ids.indexOfFirst { it == currentId }.coerceAtLeast(0)
-
         android.app.AlertDialog.Builder(ctx)
             .setTitle(R.string.settings_title_download_location)
-            .setSingleChoiceItems(items.toTypedArray(), currentIndex) { dialog, which ->
-                prefs.edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, ids[which]).apply()
-                findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = items[which]
-                dialog.dismiss()
+            .setItems(arrayOf(
+                getString(R.string.settings_picker_local_folder),
+                getString(R.string.settings_picker_smb_server),
+                getString(R.string.settings_picker_reset)
+            )) { _, which ->
+                when (which) {
+                    0 -> {
+                        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+                        val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+                        val initialUri = if (current.startsWith("content://")) android.net.Uri.parse(current) else null
+                        downloadFolderPickerLauncher.launch(initialUri)
+                    }
+                    1 -> showDownloadSmbInputDialog()
+                    2 -> {
+                        SharedPreferencesHelper.getSharedPreferences(ctx)
+                            .edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "").apply()
+                        findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary =
+                            getString(R.string.settings_download_location_default)
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showDownloadSmbInputDialog() {
+        val ctx = requireContext()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+        val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+        val editText = android.widget.EditText(ctx).apply {
+            hint = "smb://serveur/partage/chemin"
+            setText(if (current.startsWith("smb://")) current else "")
+            setSingleLine()
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = android.widget.FrameLayout(ctx).apply {
+            setPadding(padding, 0, padding, 0)
+            addView(editText)
+        }
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.settings_picker_smb_server)
+            .setView(container)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val smbUri = editText.text.toString().trim()
+                if (smbUri.startsWith("smb://")) {
+                    prefs.edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, smbUri).apply()
+                    findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = smbUri
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showSaveLocationDialog() {
+        val ctx = requireContext()
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.settings_title_save_location)
+            .setItems(arrayOf(
+                getString(R.string.settings_picker_local_folder),
+                getString(R.string.settings_picker_smb_server),
+                getString(R.string.settings_picker_reset)
+            )) { _, which ->
+                when (which) {
+                    0 -> {
+                        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+                        val current = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
+                        val initialUri = if (current.startsWith("content://")) android.net.Uri.parse(current) else null
+                        saveFolderPickerLauncher.launch(initialUri)
+                    }
+                    1 -> showSaveSmbInputDialog()
+                    2 -> {
+                        SharedPreferencesHelper.getSharedPreferences(ctx)
+                            .edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "").apply()
+                        findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary =
+                            getString(R.string.settings_save_location_default)
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showSaveSmbInputDialog() {
+        val ctx = requireContext()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+        val current = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
+        val editText = android.widget.EditText(ctx).apply {
+            hint = "smb://serveur/partage/chemin"
+            setText(if (current.startsWith("smb://")) current else "")
+            setSingleLine()
+        }
+        val padding = (16 * resources.displayMetrics.density).toInt()
+        val container = android.widget.FrameLayout(ctx).apply {
+            setPadding(padding, 0, padding, 0)
+            addView(editText)
+        }
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.settings_picker_smb_server)
+            .setView(container)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val smbUri = editText.text.toString().trim()
+                if (smbUri.startsWith("smb://")) {
+                    prefs.edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, smbUri).apply()
+                    findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary = smbUri
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
@@ -499,6 +603,23 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     private fun resolveCleanupTypeFromPreferenceKey(key: String): StorageCleanupManager.BucketType? {
         return StorageCleanupManager.BucketType.entries.firstOrNull {
             key == getString(StorageCleanupManager.getBucketPreferenceKeyRes(it))
+        }
+    }
+
+    companion object {
+        fun uriToReadablePathTv(context: Context, uri: String): String {
+            if (uri.isBlank()) return ""
+            if (uri.startsWith("smb://")) return uri
+            if (uri.startsWith("content://")) {
+                return runCatching {
+                    val docId = android.provider.DocumentsContract.getTreeDocumentId(android.net.Uri.parse(uri))
+                    if (docId.contains(":")) {
+                        val (vol, path) = docId.split(":", limit = 2)
+                        if (vol == "primary") "/storage/emulated/0/$path" else "/storage/$vol/$path"
+                    } else docId
+                }.getOrElse { uri }
+            }
+            return uri
         }
     }
 
