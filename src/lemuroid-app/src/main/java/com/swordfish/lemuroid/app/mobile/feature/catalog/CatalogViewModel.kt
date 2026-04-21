@@ -16,6 +16,8 @@ import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
+
 class CatalogViewModel(
     private val context: Context,
     private val gameMetadataProvider: com.swordfish.lemuroid.lib.library.metadata.GameMetadataProvider,
@@ -48,44 +50,33 @@ class CatalogViewModel(
         
         // Configure RomDownloader with Library Destination (from Prefs)
         val prefs = SharedPreferencesHelper.getSharedPreferences(context)
-        val libType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, null)
-        
+
         Log.e("ANTIGRAVITY", ">>> INIT CATALOG VIEW MODEL <<<")
-        Log.e("ANTIGRAVITY", "Library Type: '$libType'")
-        
-        val libraryDestination = if (libType == "smb") {
-            val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
-            val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "") ?: ""
-            val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
-            val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, "") ?: ""
-            val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, "") ?: ""
-            
-            Log.e("ANTIGRAVITY", "SMB Config Read -> Server: '$server', Share: '$share', Path: '$path'")
-            
-            if (server.isNotBlank() && share.isNotBlank()) {
-                val creds = if (username.isNotBlank()) SmbCredentials(username, password) else null
-                
-                // CRITICAL FIX: RomDownloader expects a full SMB URI in the 'path' field to parse server/share correctly.
-                // Format: smb://server/share/subpath
-                // CRITICAL FIX: RomDownloader expects the path to be clean because RomSource.smb adds the protocol.
-                // We just pass the share and path.
-                val sharePath = "/$share$path"
-                
-                RomSource.smb(
-                    name = "Library Destination",
-                    server = server,
-                    path = sharePath, 
-                    credentials = creds
-                )
-            } else {
-                Log.e("ANTIGRAVITY", "SMB Config INVALID (Server or Share blank)")
-                null
-            }
+
+        // Priority 1: New per-source download destination
+        val downloadSourceId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+        val libraryDestination: RomSource? = if (downloadSourceId.isNotBlank()) {
+            val resolved = SourceRepository(context).getCustomSources().firstOrNull { it.id == downloadSourceId }
+            Log.e("ANTIGRAVITY", "Download destination (new pref): ${resolved?.path}")
+            resolved
         } else {
-            Log.e("ANTIGRAVITY", "Library Type NOT SMB. Skipping.")
-            null
+            // Fallback: legacy KEY_LIBRARY_TYPE logic
+            val libType = prefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, null)
+            Log.e("ANTIGRAVITY", "Library Type (legacy): '$libType'")
+            if (libType == "smb") {
+                val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
+                val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "") ?: ""
+                val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
+                val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, "") ?: ""
+                val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, "") ?: ""
+                if (server.isNotBlank() && share.isNotBlank()) {
+                    val creds = if (username.isNotBlank()) SmbCredentials(username, password) else null
+                    val sharePath = "/$share$path"
+                    RomSource.smb(name = "Library Destination", server = server, path = sharePath, credentials = creds)
+                } else null
+            } else null
         }
-        
+
         Log.e("ANTIGRAVITY", "Final Library Destination: ${libraryDestination?.path}")
         
         // V8.4: SmbClient is now internal to RomDownloader

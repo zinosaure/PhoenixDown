@@ -7,9 +7,11 @@ import com.swordfish.lemuroid.lib.saves.migrators.getSavesMigrator
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
-class SavesManager(private val directoriesManager: DirectoriesManager) {
+class SavesManager(
+    private val storageResolver: SavesStorageResolver,
+    private val directoriesManager: DirectoriesManager,
+) {
     suspend fun getSaveRAM(
         game: Game,
         systemCoreConfig: SystemCoreConfig,
@@ -17,9 +19,11 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
         return withContext(Dispatchers.IO) {
             val result =
                 runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-                    val saveFile = getSaveFile(getSaveRAMFileName(game))
-                    if (saveFile.exists() && saveFile.length() > 0) {
-                        saveFile.readBytes()
+                    val storage = storageResolver.resolve()
+                    val path = "saves/${getSaveRAMFileName(game)}"
+                    val bytes = storage.readBytes(path)
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        bytes
                     } else {
                         val savesMigrator = systemCoreConfig.getSavesMigrator()
                         savesMigrator?.loadPreviousSaveForGame(game, directoriesManager)
@@ -39,9 +43,8 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
                     if (data.isEmpty()) {
                         return@runCatchingWithRetry
                     }
-
-                    val saveFile = getSaveFile(getSaveRAMFileName(game))
-                    saveFile.writeBytes(data)
+                    val storage = storageResolver.resolve()
+                    storage.writeBytes("saves/${getSaveRAMFileName(game)}", data)
                 }
             result.getOrNull()
         }
@@ -49,16 +52,8 @@ class SavesManager(private val directoriesManager: DirectoriesManager) {
 
     suspend fun getSaveRAMInfo(game: Game): SaveInfo {
         return withContext(Dispatchers.IO) {
-            val saveFile = getSaveFile(getSaveRAMFileName(game))
-            val fileExists = saveFile.exists() && saveFile.length() > 0
-            SaveInfo(fileExists, saveFile.lastModified())
-        }
-    }
-
-    private suspend fun getSaveFile(fileName: String): File {
-        return withContext(Dispatchers.IO) {
-            val savesDirectory = directoriesManager.getSavesDirectory()
-            File(savesDirectory, fileName)
+            val storage = storageResolver.resolve()
+            storage.info("saves/${getSaveRAMFileName(game)}")
         }
     }
 

@@ -1,8 +1,8 @@
 package com.swordfish.lemuroid.lib.saves
 
+import com.swordfish.lemuroid.common.kotlin.compressBytesGzip
 import com.swordfish.lemuroid.common.kotlin.readBytesUncompressed
 import com.swordfish.lemuroid.common.kotlin.runCatchingWithRetry
-import com.swordfish.lemuroid.common.kotlin.writeBytesCompressed
 import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
@@ -14,7 +14,10 @@ import java.io.File
 // TODO Since states are core related we should not put them in the same folder. This break previous versions states
 // so I decided to manage a transition phase reading also the old directory. We should safely remove it in a few weeks.
 
-class StatesManager(private val directoriesManager: DirectoriesManager) {
+class StatesManager(
+    private val storageResolver: SavesStorageResolver,
+    private val directoriesManager: DirectoriesManager,
+) {
     suspend fun getSlotSave(
         game: Game,
         coreID: CoreID,
@@ -40,9 +43,8 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         coreID: CoreID,
     ): SaveInfo =
         withContext(Dispatchers.IO) {
-            val autoSaveFile = getStateFile(getAutoSaveFileName(game), coreID.coreName)
-            val autoSaveHasData = autoSaveFile.length() > 0
-            SaveInfo(autoSaveFile.exists() && autoSaveHasData, autoSaveFile.lastModified())
+            val storage = storageResolver.resolve()
+            storage.info("states/${coreID.coreName}/${getAutoSaveFileName(game)}")
         }
 
     suspend fun getAutoSave(
@@ -65,9 +67,12 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         coreID: CoreID,
     ): List<SaveInfo> =
         withContext(Dispatchers.IO) {
+            val storage = storageResolver.resolve()
             (0 until MAX_STATES)
-                .map { getStateFileOrDeprecated(getSlotSaveFileName(game, it), coreID.coreName) }
-                .map { SaveInfo(it.exists(), it.lastModified()) }
+                .map { index ->
+                    val path = "states/${coreID.coreName}/${getSlotSaveFileName(game, index)}"
+                    storage.info(path)
+                }
                 .toList()
         }
 
@@ -76,22 +81,31 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         coreName: String,
     ): SaveState? {
         return runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-            val saveFile = getStateFileOrDeprecated(fileName, coreName)
-            val metadataFile = getMetadataStateFile(fileName, coreName)
-            if (saveFile.exists()) {
-                val byteArray = saveFile.readBytesUncompressed()
-                val stateMetadata =
-                    runCatching {
-                        Json.Default.decodeFromString(
-                            SaveState.Metadata.serializer(),
-                            metadataFile.readText(),
-                        )
-                    }
-                SaveState(byteArray, stateMetadata.getOrNull() ?: SaveState.Metadata())
-            } else {
-                null
+            val storage = storageResolver.resolve()
+            val statePath = "states/$coreName/$fileName"
+            val metadataPath = "states/$coreName/$fileName.metadata"
+
+            // Try reading from configured storage first, fall back to deprecated local path
+            val stateBytes = storage.readBytes(statePath)
+                ?: readDeprecatedLocalBytes(fileName)
+                ?: return@runCatchingWithRetry null
+
+            if (stateBytes.isEmpty()) return@runCatchingWithRetry null
+
+            val decompressed = stateBytes.readBytesUncompressed()
+            val metadataBytes = storage.readBytes(metadataPath)
+            val stateMetadata = runCatching {
+                metadataBytes?.let {
+                    Json.Default.decodeFromString(SaveState.Metadata.serializer(), it.decodeToString())
+                }
             }
+            SaveState(decompressed, stateMetadata.getOrNull() ?: SaveState.Metadata())
         }.getOrNull()
+    }
+
+    private fun readDeprecatedLocalBytes(fileName: String): ByteArray? {
+        val deprecatedFile = File(directoriesManager.getInternalStatesDirectory(), fileName)
+        return if (deprecatedFile.exists()) deprecatedFile.readBytes() else null
     }
 
     private suspend fun setSaveState(
@@ -100,65 +114,14 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         saveState: SaveState,
     ) {
         runCatchingWithRetry(FILE_ACCESS_RETRIES) {
-            writeStateToDisk(fileName, coreName, saveState.state)
-            writeMetadataToDisk(fileName, coreName, saveState.metadata)
+            val storage = storageResolver.resolve()
+            val statePath = "states/$coreName/$fileName"
+            val metadataPath = "states/$coreName/$fileName.metadata"
+            val compressed = compressBytesGzip(saveState.state)
+            storage.writeBytes(statePath, compressed)
+            val metadataJson = Json.encodeToString(SaveState.Metadata.serializer(), saveState.metadata)
+            storage.writeBytes(metadataPath, metadataJson.encodeToByteArray())
         }
-    }
-
-    private fun writeMetadataToDisk(
-        fileName: String,
-        coreName: String,
-        metadata: SaveState.Metadata,
-    ) {
-        val metadataFile = getMetadataStateFile(fileName, coreName)
-        metadataFile.writeText(Json.encodeToString(SaveState.Metadata.serializer(), metadata))
-    }
-
-    private fun writeStateToDisk(
-        fileName: String,
-        coreName: String,
-        stateArray: ByteArray,
-    ) {
-        val saveFile = getStateFile(fileName, coreName)
-        saveFile.writeBytesCompressed(stateArray)
-    }
-
-    @Deprecated("Using this folder collisions might happen across different systems.")
-    private fun getStateFileOrDeprecated(
-        fileName: String,
-        coreName: String,
-    ): File {
-        val stateFile = getStateFile(fileName, coreName)
-        val deprecatedStateFile = getDeprecatedStateFile(fileName)
-        return if (stateFile.exists() || !deprecatedStateFile.exists()) {
-            stateFile
-        } else {
-            deprecatedStateFile
-        }
-    }
-
-    private fun getStateFile(
-        fileName: String,
-        coreName: String,
-    ): File {
-        val statesDirectories = File(directoriesManager.getStatesDirectory(), coreName)
-        statesDirectories.mkdirs()
-        return File(statesDirectories, fileName)
-    }
-
-    private fun getMetadataStateFile(
-        stateFileName: String,
-        coreName: String,
-    ): File {
-        val statesDirectories = File(directoriesManager.getStatesDirectory(), coreName)
-        statesDirectories.mkdirs()
-        return File(statesDirectories, "$stateFileName.metadata")
-    }
-
-    @Deprecated("Using this folder collisions might happen across different systems.")
-    private fun getDeprecatedStateFile(fileName: String): File {
-        val statesDirectories = directoriesManager.getInternalStatesDirectory()
-        return File(statesDirectories, fileName)
     }
 
     private fun getAutoSaveFileName(game: Game) = "${game.fileName}.state"

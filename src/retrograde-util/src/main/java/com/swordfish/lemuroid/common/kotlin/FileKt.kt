@@ -103,6 +103,19 @@ fun File.writeBytesCompressed(array: ByteArray) {
     }
 }
 
+/** Compress a ByteArray using GZIP and return the compressed bytes. */
+fun compressBytesGzip(array: ByteArray): ByteArray {
+    val inputStream = ByteArrayInputStream(array)
+    val byteOut = ByteArrayOutputStream()
+    val outputStream = GZIPOutputStream(byteOut)
+    inputStream.use { usedInputStream ->
+        outputStream.use { usedOutputStream ->
+            usedInputStream.copyTo(usedOutputStream)
+        }
+    }
+    return byteOut.toByteArray()
+}
+
 /** Read bytes from file. If the file is compressed with GZIP the uncompressed data is returned.*/
 fun File.readBytesUncompressed(): ByteArray =
     uncompressedInputStream().use { input ->
@@ -116,3 +129,17 @@ fun File.readBytesUncompressed(): ByteArray =
         }
         return os.toByteArray()
     }
+
+/** Decompress a ByteArray. If compressed with GZIP, decompresses; otherwise returns the array as-is. */
+fun ByteArray.readBytesUncompressed(): ByteArray {
+    val pb = PushbackInputStream(ByteArrayInputStream(this), 2)
+    val signature = ByteArray(2)
+    val len = pb.read(signature)
+    pb.unread(signature, 0, len)
+    val inputStream = if (signature[0] == 0x1f.toByte() && signature[1] == 0x8b.toByte()) {
+        GZIPInputStream(pb, GZIP_INPUT_STREAM_BUFFER_SIZE)
+    } else {
+        pb
+    }
+    return inputStream.use { it.readBytes() }
+}

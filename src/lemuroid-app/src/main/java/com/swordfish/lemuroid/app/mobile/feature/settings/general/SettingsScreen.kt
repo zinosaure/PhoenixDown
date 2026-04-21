@@ -327,21 +327,12 @@ private fun RomsSettings(
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddMenu by remember { mutableStateOf(false) }
     var showDownloadDialog by remember { mutableStateOf(false) }
+    var showSaveDialog by remember { mutableStateOf(false) }
 
     // State machine: hold a source waiting for platform hint selection
     var pendingSourceForPlatform by remember { mutableStateOf<RomSource?>(null) }
     // true = it's an update (edit), false = it's a new source
     var pendingSourceIsEdit by remember { mutableStateOf(false) }
-
-    // SAF picker — save location
-    val saveLocationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
-            viewModel.setSaveLocation(uri.toString())
-        }
-    }
 
     // SAF picker — ajouter dossier local
     val addLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -533,7 +524,7 @@ private fun RomsSettings(
         val saveLocationDisplay = if (saveLocationUri.isBlank()) {
             stringResource(R.string.settings_save_location_default)
         } else {
-            DocumentFile.fromTreeUri(context, Uri.parse(saveLocationUri))?.name ?: saveLocationUri
+            customSources.firstOrNull { it.id == saveLocationUri }?.name ?: stringResource(R.string.settings_save_location_default)
         }
         LemuroidSettingsMenuLink(
             title = {
@@ -543,7 +534,7 @@ private fun RomsSettings(
                 }
             },
             subtitle = { Text(saveLocationDisplay) },
-            onClick = { saveLocationLauncher.launch(null) },
+            onClick = { showSaveDialog = true },
         )
 
         HorizontalDivider()
@@ -597,6 +588,16 @@ private fun RomsSettings(
             currentSourceId = downloadSourceId,
             onDismiss = { showDownloadDialog = false },
             onConfirm = { id -> viewModel.setDownloadSourceId(id); showDownloadDialog = false },
+        )
+    }
+
+    // Save location dialog
+    if (showSaveDialog) {
+        DownloadLocationDialog(
+            customSources = customSources,
+            currentSourceId = saveLocationUri,
+            onDismiss = { showSaveDialog = false },
+            onConfirm = { id -> viewModel.setSaveLocation(id); showSaveDialog = false },
         )
     }
 }

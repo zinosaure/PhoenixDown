@@ -58,6 +58,7 @@ import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.saves.SavesCoherencyEngine
 import com.swordfish.lemuroid.lib.saves.SavesManager
+import com.swordfish.lemuroid.lib.saves.SavesStorageResolver
 import com.swordfish.lemuroid.lib.saves.StatesManager
 import com.swordfish.lemuroid.lib.saves.StatesPreviewManager
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
@@ -263,12 +264,27 @@ abstract class LemuroidApplicationModule {
         @Provides
         @PerApp
         @JvmStatic
-        fun statesManager(directoriesManager: DirectoriesManager) = StatesManager(directoriesManager)
+        fun savesStorageResolver(
+            context: Context,
+            directoriesManager: DirectoriesManager,
+            sourceRepository: SourceRepository,
+        ) = SavesStorageResolver(context, directoriesManager, sourceRepository)
 
         @Provides
         @PerApp
         @JvmStatic
-        fun savesManager(directoriesManager: DirectoriesManager) = SavesManager(directoriesManager)
+        fun statesManager(
+            storageResolver: SavesStorageResolver,
+            directoriesManager: DirectoriesManager,
+        ) = StatesManager(storageResolver, directoriesManager)
+
+        @Provides
+        @PerApp
+        @JvmStatic
+        fun savesManager(
+            storageResolver: SavesStorageResolver,
+            directoriesManager: DirectoriesManager,
+        ) = SavesManager(storageResolver, directoriesManager)
 
         @Provides
         @PerApp

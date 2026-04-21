@@ -782,8 +782,27 @@ class RomDownloader(
         // V7 FIX (STRUCTURAL): PRIORITIZE SMB
         val currentSmbSource = libraryDestination // Local copy for thread safety check
 
-        if (currentSmbSource != null) {
-                // --- SMB BRANCH (HIGHEST PRIORITY) ---
+        if (currentSmbSource != null && currentSmbSource.type == com.swordfish.lemuroid.lib.storage.source.SourceType.LOCAL) {
+            // --- LOCAL SAF SOURCE (user chose a RomSource of type LOCAL as download destination) ---
+            modeLabel = "SAF"
+            val treeUri = android.net.Uri.parse(currentSmbSource.path)
+            val treeDoc = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, treeUri)
+                ?: throw IOException("Cannot access SAF tree: ${currentSmbSource.path}")
+            // Create system subfolder if needed
+            val parentDoc = if (!systemId.isNullOrBlank()) {
+                treeDoc.findFile(systemId) ?: treeDoc.createDirectory(systemId)
+                    ?: throw IOException("Cannot create dir $systemId in SAF")
+            } else treeDoc
+            // Delete if exists
+            parentDoc.findFile(fileName)?.delete()
+            val destDoc = parentDoc.createFile("application/octet-stream", fileName)
+                ?: throw IOException("Cannot create file $fileName in SAF")
+            context.contentResolver.openOutputStream(destDoc.uri)?.use { output ->
+                tempFile.inputStream().use { input -> input.copyTo(output) }
+            } ?: throw IOException("Cannot open output stream for $fileName")
+            destPath = destDoc.uri.toString()
+
+        } else if (currentSmbSource != null) {
                 val currentSmbClient = smbClient // V8.4: Always available (internal)
                 Log.e("ANTIGRAVITY", "Mode: SMB (Priority). Dest: ${currentSmbSource.path}. Client Ready: true")
 
