@@ -52,6 +52,9 @@ interface GameDao {
     @Query("SELECT * FROM games WHERE isFavorite = 1 ORDER BY lastPlayedAt DESC LIMIT :limit")
     fun selectFirstFavoritesRecents(limit: Int): Flow<List<Game>>
 
+    @Query("SELECT * FROM games WHERE title = :title AND systemId = :systemId LIMIT 1")
+    fun selectByTitleAndSystem(title: String, systemId: String): Game?
+
     @Query("SELECT * FROM games WHERE lastPlayedAt IS NOT NULL ORDER BY lastPlayedAt DESC LIMIT :limit")
     suspend fun asyncSelectFirstRecents(limit: Int): List<Game>
 

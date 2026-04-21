@@ -5,7 +5,9 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +27,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -410,11 +414,13 @@ private fun RomsSettings(
                 modifier = Modifier.weight(1f),
             )
             // Bouton + avec menu déroulant
-            IconButton(
-                onClick = { showAddMenu = true },
-                enabled = !indexingInProgress,
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Ajouter un dossier")
+            Box {
+                FilledTonalIconButton(
+                    onClick = { showAddMenu = true },
+                    enabled = !indexingInProgress,
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Ajouter un dossier")
+                }
                 DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
                     DropdownMenuItem(
                         text = {
@@ -449,8 +455,9 @@ private fun RomsSettings(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
             )
         } else {
-            customSources.forEach { source ->
+            customSources.forEachIndexed { index, source ->
                 LibraryPathRow(
+                    priority = index + 1,
                     source = source,
                     onEdit = {
                         when (source.type) {
@@ -484,6 +491,7 @@ private fun RomsSettings(
 
 @Composable
 private fun LibraryPathRow(
+    priority: Int,
     source: RomSource,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -492,9 +500,24 @@ private fun LibraryPathRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Badge priorité
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "$priority",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
         Icon(
             imageVector = if (source.type == SourceType.LOCAL) Icons.Default.Folder else Icons.Default.Dns,
             contentDescription = null,

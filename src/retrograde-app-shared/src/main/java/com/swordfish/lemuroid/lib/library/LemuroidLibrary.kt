@@ -282,6 +282,16 @@ class LemuroidLibrary(
                 }
                 .firstOrNull()
 
+        // Deduplication: if a game with the same title+system was already indexed
+        // from a higher-priority source (LOCAL before SMB), skip this duplicate.
+        if (game != null) {
+            val existing = retrogradedb.gameDao().selectByTitleAndSystem(game.title, game.systemId)
+            if (existing != null) {
+                Timber.d("Dedup: skipping '${game.title}' (${game.systemId}) — already indexed from ${existing.fileUri}")
+                return ScanEntry.File(groupedStorageFile)
+            }
+        }
+
         return buildScanEntry(groupedStorageFile, game)
     }
 

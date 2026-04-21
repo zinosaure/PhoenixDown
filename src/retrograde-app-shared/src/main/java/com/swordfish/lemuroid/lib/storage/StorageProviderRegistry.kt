@@ -41,9 +41,13 @@ class StorageProviderRegistry(private val context: Context, val providers: Set<S
     /**
      * All providers are always enabled. Each provider returns an empty flow
      * when no sources of its type are configured.
+     * Order: LOCAL/SAF (priority 0) before SMB (priority 2), ensuring LOCAL sources
+     * take priority over network sources during deduplication.
      */
     val enabledProviders: Iterable<StorageProvider>
-        get() = providers.filter { prefs.getBoolean(it.id, it.enabledByDefault) }
+        get() = providers
+            .filter { prefs.getBoolean(it.id, it.enabledByDefault) }
+            .sortedBy { when (it.id) { "access_framework" -> 0; "local" -> 1; "smb" -> 2; else -> 3 } }
 
     fun getProvider(game: Game): StorageProvider {
         val uri = Uri.parse(game.fileUri)

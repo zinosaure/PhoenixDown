@@ -47,6 +47,11 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.GameCarousel
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameImage
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameTexts
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalRomSources
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.SourceBadge
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.sourceBadgeFor
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
+import androidx.compose.runtime.CompositionLocalProvider
 import com.swordfish.lemuroid.app.utils.android.ComposableLifecycle
 import com.swordfish.lemuroid.common.displayDetailsSettingsScreen
 import com.swordfish.lemuroid.lib.library.db.entity.Game
@@ -84,11 +89,13 @@ fun HomeScreen(
         }
 
     val state = viewModel.getViewStates().collectAsState(HomeViewModel.UIState())
+    val sources by remember { SourceRepository(context).sourcesFlow() }.collectAsState(emptyList())
     
     // Selection mode state
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedGames by remember { mutableStateOf(setOf<Game>()) }
     
+    CompositionLocalProvider(LocalRomSources provides sources) {
     HomeScreenContent(
         modifier = modifier,
         state = state.value,
@@ -132,6 +139,7 @@ fun HomeScreen(
             isSelectionMode = false
         },
     )
+    } // end CompositionLocalProvider
 }
 
 @Composable
@@ -438,7 +446,16 @@ private fun GameCardWithSelection(
                         onLongClick = if (!isSelectionMode) onLongClick else null,
                     ),
             ) {
-                LemuroidGameImage(game = game)
+                Box {
+                    LemuroidGameImage(game = game)
+                    val badge = remember(game.fileUri) { sourceBadgeFor(game.fileUri) }
+                    if (badge != null) {
+                        SourceBadge(
+                            text = badge,
+                            modifier = Modifier.align(Alignment.BottomStart).padding(4.dp),
+                        )
+                    }
+                }
                 LemuroidGameTexts(game = game)
             }
         }

@@ -10,9 +10,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.paging.compose.LazyPagingItems
@@ -20,7 +24,9 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidEmptyView
 import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LemuroidGameListRow
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.LocalRomSources
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 
 @Composable
 fun SearchScreen(
@@ -83,6 +89,9 @@ private fun SearchResultsView(
     onGameLongClick: (Game) -> Unit,
     onGameFavoriteToggle: (Game, Boolean) -> Unit,
 ) {
+    val context = LocalContext.current
+    val sources by remember { SourceRepository(context).sourcesFlow() }.collectAsState(emptyList())
+    CompositionLocalProvider(LocalRomSources provides sources) {
     LazyColumn(modifier = modifier) {
         items(games.itemCount, key = { games[it]?.id ?: it }) { index ->
             val game = games[index] ?: return@items
@@ -98,6 +107,7 @@ private fun SearchResultsView(
             )
         }
     }
+    } // end CompositionLocalProvider
 }
 
 @Composable

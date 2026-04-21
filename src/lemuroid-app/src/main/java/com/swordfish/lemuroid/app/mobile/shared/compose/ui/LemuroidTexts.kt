@@ -20,9 +20,12 @@ fun LemuroidGameTexts(
     game: Game,
 ) {
     val context = LocalContext.current
+    val sources = LocalRomSources.current
     val subtitle =
-        remember(game.id) {
-            GameUtils.getGameSubtitle(context, game)
+        remember(game.id, sources) {
+            val sourceName = resolveSourceName(game.fileUri, sources)
+            val system = GameUtils.getGameSubtitle(context, game)
+            if (sourceName != null) "$sourceName • $system" else system
         }
 
     LemuroidTexts(modifier, game.title, subtitle)

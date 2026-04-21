@@ -43,7 +43,7 @@ class SmbStorageProvider(
 
     override val prefsFragmentClass: Class<LeanbackPreferenceFragment>? = null
 
-    override val enabledByDefault = false
+    override val enabledByDefault = true
 
     /**
      * List all ROM files from the configured SMB share.

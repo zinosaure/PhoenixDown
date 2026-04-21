@@ -9,6 +9,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
+import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +67,10 @@ class SettingsViewModel(
     }
 
     fun removeSource(id: String) {
-        viewModelScope.launch(Dispatchers.IO) { sourceRepository.removeSource(id) }
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceRepository.removeSource(id)
+            LibraryIndexScheduler.scheduleLibrarySync(context)
+        }
     }
 
     val uiState =
