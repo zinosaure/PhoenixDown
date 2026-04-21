@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
-import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
-import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 
 class CatalogViewModel(
     private val context: Context,

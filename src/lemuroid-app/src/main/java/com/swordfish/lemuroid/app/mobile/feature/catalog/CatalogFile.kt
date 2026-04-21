@@ -1,6 +1,8 @@
 package com.swordfish.lemuroid.app.mobile.feature.catalog
 
 import android.net.Uri
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceType
 
 /**
  * Unified file representation for displaying files from any source in the catalog

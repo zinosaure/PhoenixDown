@@ -23,7 +23,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 
 class StorageProviderRegistry(private val context: Context, val providers: Set<StorageProvider>) {
     companion object {
@@ -40,20 +39,11 @@ class StorageProviderRegistry(private val context: Context, val providers: Set<S
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     /**
-     * Returns enabled providers based on library_type preference.
-     * - If library_type = "smb", only SMB provider is enabled
-     * - If library_type = "local" (default), local providers are enabled
+     * All providers are always enabled. Each provider returns an empty flow
+     * when no sources of its type are configured.
      */
     val enabledProviders: Iterable<StorageProvider>
-        get() {
-            val harmonyPrefs = SharedPreferencesHelper.getSharedPreferences(context)
-            val libraryType = harmonyPrefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
-            
-            return when (libraryType) {
-                "smb" -> providers.filter { it.id == "smb" }
-                else -> providers.filter { it.id != "smb" && prefs.getBoolean(it.id, it.enabledByDefault) }
-            }
-        }
+        get() = providers.filter { prefs.getBoolean(it.id, it.enabledByDefault) }
 
     fun getProvider(game: Game): StorageProvider {
         val uri = Uri.parse(game.fileUri)

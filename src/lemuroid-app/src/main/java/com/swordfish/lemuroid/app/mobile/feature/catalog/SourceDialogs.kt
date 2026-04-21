@@ -18,6 +18,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceType
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.swordfish.lemuroid.R

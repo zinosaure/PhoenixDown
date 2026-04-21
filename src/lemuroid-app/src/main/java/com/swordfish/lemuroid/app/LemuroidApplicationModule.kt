@@ -67,6 +67,7 @@ import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
 import com.swordfish.lemuroid.lib.storage.local.LocalStorageProvider
 import com.swordfish.lemuroid.lib.storage.local.StorageAccessFrameworkProvider
 import com.swordfish.lemuroid.lib.storage.smb.SmbStorageProvider
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import com.swordfish.lemuroid.app.mobile.feature.metadata.CompositeMetadataProvider
 import com.swordfish.lemuroid.app.mobile.feature.metadata.TheGamesDBMetadataProvider
 import com.swordfish.lemuroid.metadata.libretrodb.LibretroDBMetadataProvider
@@ -164,9 +165,19 @@ abstract class LemuroidApplicationModule {
 
         @Provides
         @PerApp
+        @JvmStatic
+        fun sourceRepository(context: Context): SourceRepository {
+            val repo = SourceRepository(context)
+            repo.migrateOldPrefsIfNeeded()
+            return repo
+        }
+
+        @Provides
+        @PerApp
         @IntoSet
         @JvmStatic
-        fun localSAFStorageProvider(context: Context): StorageProvider = StorageAccessFrameworkProvider(context)
+        fun localSAFStorageProvider(context: Context, sourceRepository: SourceRepository): StorageProvider =
+            StorageAccessFrameworkProvider(context, sourceRepository)
 
         @Provides
         @PerApp
@@ -175,7 +186,8 @@ abstract class LemuroidApplicationModule {
         fun localGameStorageProvider(
             context: Context,
             directoriesManager: DirectoriesManager,
-        ): StorageProvider = LocalStorageProvider(context, directoriesManager)
+            sourceRepository: SourceRepository,
+        ): StorageProvider = LocalStorageProvider(context, directoriesManager, sourceRepository)
 
         @Provides
         @PerApp
@@ -183,7 +195,8 @@ abstract class LemuroidApplicationModule {
         @JvmStatic
         fun smbStorageProvider(
             context: Context,
-        ): StorageProvider = SmbStorageProvider(context)
+            sourceRepository: SourceRepository,
+        ): StorageProvider = SmbStorageProvider(context, sourceRepository)
 
         @Provides
         @PerApp

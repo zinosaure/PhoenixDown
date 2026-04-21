@@ -9,11 +9,15 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val context: Context,
@@ -45,6 +49,25 @@ class SettingsViewModel(
     val indexingInProgress = PendingOperationsMonitor(context).anyLibraryOperationInProgress()
 
     val directoryScanInProgress = PendingOperationsMonitor(context).isDirectoryScanInProgress()
+
+    private val sourceRepository = SourceRepository(context)
+
+    /** Live list of user-configured ROM sources, auto-updated via in-process SharedFlow. */
+    val sources: StateFlow<List<RomSource>> = sourceRepository.sourcesFlow()
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), sourceRepository.getSources())
+
+    fun addSource(source: RomSource) {
+        viewModelScope.launch(Dispatchers.IO) { sourceRepository.addSource(source) }
+    }
+
+    fun updateSource(source: RomSource) {
+        viewModelScope.launch(Dispatchers.IO) { sourceRepository.updateSource(source) }
+    }
+
+    fun removeSource(id: String) {
+        viewModelScope.launch(Dispatchers.IO) { sourceRepository.removeSource(id) }
+    }
 
     val uiState =
         sharedPreferences.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI)

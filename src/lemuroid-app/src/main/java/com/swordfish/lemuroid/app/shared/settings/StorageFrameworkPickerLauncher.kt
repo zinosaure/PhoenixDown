@@ -18,6 +18,7 @@ import com.swordfish.lemuroid.lib.android.RetrogradeActivity
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,17 +68,10 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
         super.onActivityResult(requestCode, resultCode, resultData)
 
         if (requestCode == REQUEST_CODE_PICK_FOLDER && resultCode == Activity.RESULT_OK) {
-            val sharedPreferences = SharedPreferencesHelper.getSharedPreferences(this)
-            val preferenceKey = SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI
-
-            val currentValue: String? = sharedPreferences.getString(preferenceKey, null)
             val newValue = resultData?.data
-
-            if (newValue != null && newValue.toString() != currentValue) {
-                pendingNewUri = newValue
-                checkAndMigrateRoms(newValue)
+            if (newValue != null) {
+                proceedWithFolderChange(newValue)
             } else {
-                startLibraryIndexWork()
                 finish()
             }
         } else {
@@ -195,46 +189,25 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
     }
 
     private fun proceedWithFolderChange(newUri: Uri) {
-        val sharedPreferences = SharedPreferencesHelper.getSharedPreferences(this)
-        val preferenceKey = SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI
-
         updatePersistableUris(newUri)
-        
-        // Save the new URI
-        sharedPreferences.edit().apply {
-            this.putString(preferenceKey, newUri.toString())
-            this.apply()
-        }
-
-        // Clear legacy key
-        try {
-            val legacyKey = "legacy_external_folder"
-            SharedPreferencesHelper.getLegacySharedPreferences(this).edit()
-                .remove(legacyKey)
-                .apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
+        val folderName = runCatching {
+            DocumentFile.fromTreeUri(this, newUri)?.name
+        }.getOrNull() ?: "ROMs"
+        SourceRepository(this).upsertByPath(
+            com.swordfish.lemuroid.lib.storage.source.RomSource.local(folderName, newUri.toString())
+        )
         startLibraryIndexWork()
         finish()
     }
 
-    private fun updatePersistableUris(uri: Uri) {
-        contentResolver.persistedUriPermissions
-            .filter { it.isReadPermission }
-            .filter { it.uri != uri }
-            .forEach {
-                contentResolver.releasePersistableUriPermission(
-                    it.uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            }
-
-        contentResolver.takePersistableUriPermission(
-            uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        )
+    private fun updatePersistableUris(newUri: Uri) {
+        // Only take permission for the new URI; do NOT revoke others (multi-source)
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                newUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
     }
 
     private fun startLibraryIndexWork() {

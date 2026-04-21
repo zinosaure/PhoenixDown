@@ -1,26 +1,58 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.general
 
+import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.window.Dialog
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceType
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
@@ -34,7 +66,6 @@ import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
-import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -59,8 +90,7 @@ fun SettingsScreen(
 
     LemuroidSettingsPage(modifier = modifier) {
         RomsSettings(
-            state = state,
-            onChangeFolder = { viewModel.changeLocalStorageFolder() },
+            viewModel = viewModel,
             indexingInProgress = indexingInProgress,
             scanInProgress = scanInProgress,
         )
@@ -267,103 +297,176 @@ private fun GeneralSettings() {
 
 @Composable
 private fun RomsSettings(
-    state: SettingsViewModel.State,
-    onChangeFolder: () -> Unit,
+    viewModel: SettingsViewModel,
     indexingInProgress: Boolean,
     scanInProgress: Boolean,
 ) {
     val context = LocalContext.current
-    var showLibrarySourceDialog by remember { mutableStateOf(false) }
-    var connectionTestState by remember { mutableStateOf<com.swordfish.lemuroid.app.shared.library.ConnectionTestState>(
-        com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Idle
-    ) }
-    val scope = rememberCoroutineScope()
-    val smbClient = remember { com.swordfish.lemuroid.lib.storage.smb.SmbClient() }
+    val allSources by viewModel.sources.collectAsState()
+    val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
-    val currentDirectory = state.currentDirectory
-    val emptyDirectory = stringResource(R.string.none)
-    
-    // Check if SMB is configured
-    val prefs = remember { com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.getSharedPreferences(context) }
-    val libraryType = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
-    val smbServer = prefs.getString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, null)
+    var pendingDeleteSource by remember { mutableStateOf<RomSource?>(null) }
+    var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
+    var showAddSmbDialog by remember { mutableStateOf(false) }
+    var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
+    var showAddMenu by remember { mutableStateOf(false) }
 
-    val currentDirectoryName =
-        remember(state.currentDirectory, libraryType, smbServer) {
-            if (libraryType == "smb" && !smbServer.isNullOrBlank()) {
-                "SMB: $smbServer"
-            } else {
-                runCatching {
-                    DocumentFile.fromTreeUri(context, Uri.parse(currentDirectory))?.name
-                }.getOrNull() ?: emptyDirectory
+    // SAF picker — ajouter dossier local
+    val addLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
+            val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
+            viewModel.addSource(RomSource.local(name, uri.toString()))
+        }
+    }
+
+    // SAF picker — modifier dossier local existant
+    val editLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        val sourceId = editingLocalSourceId
+        if (uri != null && sourceId != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
+            val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
+            customSources.firstOrNull { it.id == sourceId }?.let { viewModel.updateSource(it.copy(name = name, path = uri.toString())) }
+                ?: viewModel.addSource(RomSource.local(name, uri.toString()))
+        }
+        editingLocalSourceId = null
+    }
+
+    // Dialog ajout SMB
+    if (showAddSmbDialog) {
+        Dialog(onDismissRequest = { showAddSmbDialog = false }) {
+            Card {
+                SmbConfigForm(
+                    onDismiss = { showAddSmbDialog = false },
+                    onBack = { showAddSmbDialog = false },
+                    editSource = null,
+                    onSave = { name, server, path, credentials ->
+                        viewModel.addSource(RomSource.smb(name, server, path, credentials))
+                        showAddSmbDialog = false
+                    },
+                )
             }
         }
+    }
 
-    // Show LibrarySourceDialog
-    if (showLibrarySourceDialog) {
-        com.swordfish.lemuroid.app.shared.library.LibrarySourceDialog(
-            onDismiss = { showLibrarySourceDialog = false },
-            onLocalSelected = {
-                // Save library type as local
-                prefs.edit().putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local").apply()
-                // Launch folder picker
-                onChangeFolder()
-            },
-            onSmbSelected = { server, path, username, password ->
-                // Parse path to extract share name and subpath
-                // Path format: /ShareName/Folder/SubFolder
-                val pathSegments = path.removePrefix("/").split("/")
-                val shareName = pathSegments.firstOrNull() ?: ""
-                val subPath = if (pathSegments.size > 1) {
-                    "/" + pathSegments.drop(1).joinToString("/")
-                } else {
-                    ""
-                }
-                
-                // Save SMB configuration
-                prefs.edit().apply {
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_LIBRARY_TYPE, "smb")
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, server)
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, shareName)
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, subPath)
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, username)
-                    putString(com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, password)
-                    apply()
-                }
-                showLibrarySourceDialog = false
-                // Trigger library rescan
-                LibraryIndexScheduler.scheduleLibrarySync(context)
-            },
-            onTestConnection = { server, path, username, password ->
-                connectionTestState = com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Testing
-                scope.launch {
-                    val credentials = if (username != null) {
-                        com.swordfish.lemuroid.lib.storage.smb.SmbCredentials(username, password ?: "")
-                    } else null
-                    
-                    // Parse path to get share name
-                    val shareName = path.removePrefix("/").split("/").firstOrNull() ?: ""
-                    val result = smbClient.testConnection(server, shareName, credentials)
-                    connectionTestState = if (result.isSuccess) {
-                        com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Success
-                    } else {
-                        com.swordfish.lemuroid.app.shared.library.ConnectionTestState.Error(
-                            result.exceptionOrNull()?.message ?: "Unknown error"
-                        )
-                    }
+    // Dialog édition SMB
+    if (editingSmbSource != null) {
+        Dialog(onDismissRequest = { editingSmbSource = null }) {
+            Card {
+                SmbConfigForm(
+                    onDismiss = { editingSmbSource = null },
+                    onBack = { editingSmbSource = null },
+                    editSource = editingSmbSource,
+                    onSave = { name, server, path, credentials ->
+                        editingSmbSource?.let { src ->
+                            viewModel.updateSource(src.copy(name = name, path = "smb://$server$path", credentials = credentials))
+                        }
+                        editingSmbSource = null
+                    },
+                )
+            }
+        }
+    }
+
+    // Confirmation suppression
+    if (pendingDeleteSource != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteSource = null },
+            title = { Text("Supprimer le dossier") },
+            text = { Text("Retirer « ${pendingDeleteSource?.name} » de la bibliothèque ?") },
+            confirmButton = {
+                TextButton(onClick = { pendingDeleteSource?.let { viewModel.removeSource(it.id) }; pendingDeleteSource = null }) {
+                    Text(stringResource(R.string.game_context_menu_delete))
                 }
             },
-            connectionTestResult = connectionTestState
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteSource = null }) { Text(stringResource(R.string.cancel)) }
+            },
         )
     }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.directory)) },
-            subtitle = { Text(text = currentDirectoryName) },
-            onClick = { showLibrarySourceDialog = true },
-            enabled = !indexingInProgress,
-        )
+        // En-tête bibliothèque virtuelle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.FolderOpen,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Text(
+                text = "Bibliothèque de jeux",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f),
+            )
+            // Bouton + avec menu déroulant
+            IconButton(
+                onClick = { showAddMenu = true },
+                enabled = !indexingInProgress,
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Ajouter un dossier")
+                DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text("Dossier local")
+                            }
+                        },
+                        onClick = { showAddMenu = false; addLocalLauncher.launch(null) },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text("Partage SMB (réseau)")
+                            }
+                        },
+                        onClick = { showAddMenu = false; showAddSmbDialog = true },
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        // Liste des chemins dans la bibliothèque
+        if (customSources.isEmpty()) {
+            Text(
+                text = "Aucun dossier configuré. Appuyez sur + pour en ajouter un.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+            )
+        } else {
+            customSources.forEach { source ->
+                LibraryPathRow(
+                    source = source,
+                    onEdit = {
+                        when (source.type) {
+                            SourceType.LOCAL -> { editingLocalSourceId = source.id; editLocalLauncher.launch(null) }
+                            SourceType.SMB -> editingSmbSource = source
+                            else -> Unit
+                        }
+                    },
+                    onDelete = { pendingDeleteSource = source },
+                    enabled = !indexingInProgress,
+                )
+            }
+        }
+
+        HorizontalDivider()
+
         if (scanInProgress) {
             LemuroidSettingsMenuLink(
                 title = { Text(text = stringResource(id = R.string.stop)) },
@@ -377,6 +480,54 @@ private fun RomsSettings(
             )
         }
     }
+}
+
+@Composable
+private fun LibraryPathRow(
+    source: RomSource,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    enabled: Boolean,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 24.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = if (source.type == SourceType.LOCAL) Icons.Default.Folder else Icons.Default.Dns,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = source.name,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = source.path,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Icônes ✎ et 🗑 serrées ensemble
+        Row {
+            IconButton(onClick = onEdit, enabled = enabled, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Modifier", modifier = Modifier.size(18.dp))
+            }
+            IconButton(onClick = onDelete, enabled = enabled, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.Delete, contentDescription = "Supprimer", modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+    HorizontalDivider(modifier = Modifier.padding(start = 24.dp))
 }
 
 

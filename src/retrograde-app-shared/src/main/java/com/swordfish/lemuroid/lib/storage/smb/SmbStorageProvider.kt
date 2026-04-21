@@ -10,6 +10,8 @@ import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
+import com.swordfish.lemuroid.lib.storage.source.SmbSourceConfig
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
@@ -28,6 +30,7 @@ import java.util.zip.ZipInputStream
  */
 class SmbStorageProvider(
     private val context: Context,
+    private val sourceRepository: SourceRepository,
 ) : StorageProvider {
     
     private val smbClient = SmbClient()
@@ -47,39 +50,32 @@ class SmbStorageProvider(
      * Returns an error state if connection fails (no silent fallback).
      */
     override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> = flow {
-        val config = getSmbConfig()
-        if (config == null) {
-            Timber.w("SMB not configured, returning empty list")
-            emit(emptyList())
+        val configs = sourceRepository.getSmbSourceConfigs()
+        if (configs.isEmpty()) {
+            Timber.w("SMB: no sources configured")
             return@flow
         }
-        
-        Timber.d("Scanning SMB: ${config.server}/${config.share}/${config.path}")
-        
-        val result = smbClient.listFilesRaw(
-            server = config.server,
-            share = config.share,
-            path = config.path,
-            credentials = config.credentials
-        )
-        
-        result.onSuccess { files ->
-            val baseFiles = files.map { smbFile ->
-                BaseStorageFile(
-                    name = smbFile.name,
-                    size = smbFile.size,
-                    uri = buildSmbUri(config, smbFile.path),
-                    path = smbFile.relativePath
-                )
-            }
-            emit(baseFiles)
-        }.onFailure { error ->
-            Timber.e(error, "Failed to list SMB files")
-            // Emit empty with error flag - UI layer will detect and show error
-            throw SmbConnectionException(
-                "Could not connect to ${config.server}: ${error.message}",
-                error
+        configs.forEach { config ->
+            Timber.d("Scanning SMB: ${config.server}/${config.share}/${config.path}")
+            val creds = config.credentials?.let { SmbCredentials(it.username, it.password) }
+            val result = smbClient.listFilesRaw(
+                server = config.server,
+                share = config.share,
+                path = config.path,
+                credentials = creds
             )
+            result.onSuccess { files ->
+                emit(files.map { f ->
+                    BaseStorageFile(
+                        name = f.name,
+                        size = f.size,
+                        uri = buildSmbUri(config.server, config.share, f.path),
+                        path = f.relativePath
+                    )
+                })
+            }.onFailure { error ->
+                Timber.e(error, "SMB scan failed for ${config.server}")
+            }
         }
     }
 
@@ -111,17 +107,17 @@ class SmbStorageProvider(
      * @return ArchiveInfo with internal filename and optionally CRC32
      */
     fun getArchiveInfo(baseStorageFile: BaseStorageFile): ArchiveInfo? {
-        val config = getSmbConfig() ?: return null
+        val config = getConfigForUri(baseStorageFile.uri) ?: getSmbConfig() ?: return null
         val uri = baseStorageFile.uri
         val smbPath = uri.path?.removePrefix("/") ?: return null
-        
+        val creds = config.credentials?.let { SmbCredentials(it.username, it.password) }
         return try {
             runBlocking {
                 val result = smbClient.getInputStream(
                     server = config.server,
                     share = config.share,
                     remotePath = smbPath,
-                    credentials = config.credentials
+                    credentials = creds
                 )
                 
                 result.getOrNull()?.inputStream?.use { inputStream ->
@@ -184,17 +180,15 @@ class SmbStorageProvider(
     }
 
     override fun getInputStream(uri: Uri): InputStream? {
-        val config = getSmbConfig() ?: return null
-        
-        // Extract path from smb:// URI
+        val config = getConfigForUri(uri) ?: return null
         val smbPath = uri.path?.removePrefix("/") ?: return null
-        
+        val creds = config.credentials?.let { SmbCredentials(it.username, it.password) }
         return runBlocking {
             smbClient.getInputStream(
                 server = config.server,
                 share = config.share,
                 remotePath = smbPath,
-                credentials = config.credentials
+                credentials = creds
             ).getOrNull()?.inputStream
         }
     }
@@ -205,9 +199,10 @@ class SmbStorageProvider(
         allowVirtualFiles: Boolean,
     ): RomFiles {
         val config = getSmbConfig() ?: run {
-            Timber.e("SMB_ROM: getSmbConfig() returned null!")
+            Timber.e("SMB_ROM: no SMB source configured!")
             return RomFiles.Standard(emptyList())
         }
+        val creds = config.credentials?.let { SmbCredentials(it.username, it.password) }
         
         // For SMB, we need to download the file to cache first
         val cacheFile = getCacheFileForGame(game)
@@ -242,7 +237,7 @@ class SmbStorageProvider(
                             share = config.share,
                             remotePath = remotePath,
                             outputStream = output,
-                            credentials = config.credentials
+                            credentials = creds
                         )
                     }
                     Timber.d("SMB_ROM: Download complete, file size=${cacheFile.length()}")
@@ -332,19 +327,18 @@ class SmbStorageProvider(
             }
     }
     
-    private fun buildSmbUri(config: SmbLibraryConfig, smbPath: String): Uri {
+    private fun buildSmbUri(server: String, share: String, smbPath: String): Uri {
         return Uri.Builder()
             .scheme("smb")
-            .authority(config.server)
-            .path("/${config.share}/$smbPath")
+            .authority(server)
+            .path("/$share/$smbPath")
             .build()
     }
-    
+
     override suspend fun delete(game: Game): Boolean {
-        val config = getSmbConfig() ?: return false
-        
-        // 1. Delete from SMB
         val uri = Uri.parse(game.fileUri)
+        val config = getConfigForUri(uri) ?: getSmbConfig() ?: return false
+        val creds = config.credentials?.let { SmbCredentials(it.username, it.password) }
         val fullPath = uri.path?.removePrefix("/")?.replace("\\", "/") ?: return false
         
         val remotePath = if (fullPath.startsWith(config.share + "/")) {
@@ -358,7 +352,7 @@ class SmbStorageProvider(
             server = config.server,
             share = config.share,
             remotePath = remotePath,
-            credentials = config.credentials
+            credentials = creds
         )
         
         if (result.isFailure) {
@@ -379,40 +373,19 @@ class SmbStorageProvider(
     }
 
     /**
-     * Get SMB configuration from SharedPreferences
+     * Get SMB configuration from SourceRepository, finding by server from URI.
      */
-    private fun getSmbConfig(): SmbLibraryConfig? {
-        val prefs = SharedPreferencesHelper.getSharedPreferences(context)
-        
-        val server = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, null)
-        val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, null)
-        val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
-        val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, null)
-        val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, null)
-        
-        if (server.isNullOrBlank() || share.isNullOrBlank()) {
-            return null
-        }
-        
-        val credentials = if (!username.isNullOrBlank()) {
-            SmbCredentials(username, password ?: "")
-        } else {
-            null
-        }
-        
-        return SmbLibraryConfig(server, share, path, credentials)
+    private fun getConfigForUri(uri: Uri): SmbSourceConfig? {
+        val server = uri.host ?: return null
+        return sourceRepository.getSmbSourceConfigs().firstOrNull { it.server == server }
     }
-}
 
-/**
- * SMB Library configuration
- */
-data class SmbLibraryConfig(
-    val server: String,
-    val share: String,
-    val path: String,
-    val credentials: SmbCredentials?
-)
+    /**
+     * Get first available SMB config (for backward-compat methods that don't have a URI).
+     */
+    private fun getSmbConfig(): SmbSourceConfig? = sourceRepository.getSmbSourceConfigs().firstOrNull()
+
+}
 
 /**
  * Exception thrown when SMB connection fails.

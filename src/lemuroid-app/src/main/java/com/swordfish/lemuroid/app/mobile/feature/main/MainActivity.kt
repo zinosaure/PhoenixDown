@@ -186,19 +186,13 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     }
     
     private fun ensureDefaultFolderConfigured() {
-        val prefs = SharedPreferencesHelper.getSharedPreferences(applicationContext)
-        val currentUri = prefs.getString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, null)
-        
-        if (currentUri == null) {
-            // Create default folder "EmulAI_Roms"
+        val repo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(applicationContext)
+        // Only add the default path if there are no LOCAL sources at all
+        if (repo.getCustomSources().none { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.LOCAL }) {
             val defaultFile = java.io.File(android.os.Environment.getExternalStorageDirectory(), "EmulAI_Roms")
             if (!defaultFile.exists()) defaultFile.mkdirs()
-            
-            // Save as URI
             val uri = android.net.Uri.fromFile(defaultFile).toString()
-            prefs.edit().putString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, uri).apply()
-            
-            // Trigger sync
+            repo.upsertByPath(com.swordfish.lemuroid.lib.storage.source.RomSource.local("EmulAI Roms", uri))
             com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
         }
     }

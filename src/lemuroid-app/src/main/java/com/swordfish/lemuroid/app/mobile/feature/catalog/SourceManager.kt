@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceType
 
 /**
  * Manages ROM sources: Archive.org (cloud), Local folders, and SMB/NAS shares
@@ -74,62 +77,6 @@ class SourceManager(private val context: Context) {
         val json = gson.toJson(sources)
         prefs.edit().putString(KEY_SOURCES, json).apply()
     }
-}
-
-/**
- * Represents a ROM source (Archive.org, Local folder, or SMB share)
- */
-data class RomSource(
-    val id: String,
-    val type: SourceType,
-    val name: String,
-    val path: String,
-    val credentials: SmbCredentials? = null
-) {
-    companion object {
-        fun archiveOrg() = RomSource(
-            id = "archive_org",
-            type = SourceType.ARCHIVE_ORG,
-            name = "Archive.org",
-            path = "https://archive.org"
-        )
-        
-        fun local(name: String, uri: String) = RomSource(
-            id = "local_${System.currentTimeMillis()}",
-            type = SourceType.LOCAL,
-            name = name,
-            path = uri
-        )
-        
-        fun smb(name: String, server: String, path: String, credentials: SmbCredentials? = null): RomSource {
-            // Normalizar path: asegurar que empiece con / pero sin duplicados
-            val normalizedPath = "/" + path.trimStart('/')
-            return RomSource(
-                id = "smb_${System.currentTimeMillis()}",
-                type = SourceType.SMB,
-                name = name,
-                path = "smb://$server$normalizedPath",
-                credentials = credentials
-            )
-        }
-    }
-}
-
-/**
- * SMB authentication credentials
- */
-data class SmbCredentials(
-    val username: String,
-    val password: String
-)
-
-/**
- * Type of ROM source
- */
-enum class SourceType {
-    ARCHIVE_ORG,  // ☁️ Cloud
-    LOCAL,        // 📁 Local folder
-    SMB           // 🖥️ Network share
 }
 
 /**
