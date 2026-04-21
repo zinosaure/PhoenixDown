@@ -21,8 +21,15 @@ trap cleanup EXIT
 
 BUILD_VARIANT="${BUILD_VARIANT:-${VARIANT:-freeBundleRelease}}"
 VARIANT_LABEL="${VARIANT_LABEL:-${VARIANT:-${BUILD_VARIANT}}}"
-TASK_SUFFIX="$(tr '[:lower:]' '[:upper:]' <<<"${BUILD_VARIANT:0:1}")${BUILD_VARIANT:1}"
-TASK=":lemuroid-app:assemble${TASK_SUFFIX}"
+# If BUILD_VARIANT looks like a full gradle task name (compile*, bundle*, etc.), use it directly.
+# Otherwise, prefix with "assemble" (default behaviour).
+case "${BUILD_VARIANT}" in
+  compile*|bundle*|lint*|test*|check*)
+    TASK=":lemuroid-app:${BUILD_VARIANT}" ;;
+  *)
+    TASK_SUFFIX="$(tr '[:lower:]' '[:upper:]' <<<"${BUILD_VARIANT:0:1}")${BUILD_VARIANT:1}"
+    TASK=":lemuroid-app:assemble${TASK_SUFFIX}" ;;
+esac
 
 if [[ ! -f "local.properties" ]] || ! grep -q "sdk.dir=/opt/android-sdk" local.properties; then
   cat > local.properties <<'EOF'

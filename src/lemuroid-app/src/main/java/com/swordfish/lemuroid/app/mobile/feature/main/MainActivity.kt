@@ -80,6 +80,9 @@ import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
+import com.swordfish.lemuroid.lib.storage.source.SourceType
 import dagger.Provides
 import de.charlex.compose.material3.HtmlText
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -186,26 +189,24 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
     }
     
     private fun ensureDefaultFolderConfigured() {
-        val prefs = SharedPreferencesHelper.getSharedPreferences(applicationContext)
-        val currentUri = prefs.getString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, null)
-        
-        if (currentUri == null) {
-            // Create default folder "EmulAI_Roms"
-            val defaultFile = java.io.File(android.os.Environment.getExternalStorageDirectory(), "EmulAI_Roms")
+        val repo = SourceRepository(applicationContext)
+        val hasLocalSources = repo.getCustomSources().any { it.type == SourceType.LOCAL }
+        if (!hasLocalSources) {
+            val defaultFile = java.io.File(
+                android.os.Environment.getExternalStorageDirectory(),
+                "EmulAI_Roms",
+            )
             if (!defaultFile.exists()) defaultFile.mkdirs()
-            
-            // Save as URI
             val uri = android.net.Uri.fromFile(defaultFile).toString()
-            prefs.edit().putString(SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI, uri).apply()
-            
-            // Trigger sync
-            com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
+            repo.upsertByPath(RomSource.local("EmulAI Roms", uri))
+            com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+                .scheduleLibrarySync(applicationContext)
         }
     }
 
     private fun ensureLegacyStoragePermissionsIfNeeded() {
-        // 1. If SAF is ALREADY configured -> Do nothing
-        if (SharedPreferencesHelper.getSAFUri(applicationContext) != null) return
+        // 1. If any LOCAL source is already configured -> Do nothing
+        if (SourceRepository(applicationContext).getCustomSources().any { it.type == SourceType.LOCAL }) return
         
         // 2. If SAF is SUPPORTED (standard device) -> Do nothing (let user use picker)
         if (com.swordfish.lemuroid.app.tv.shared.TVHelper.isSAFSupported(this)) {

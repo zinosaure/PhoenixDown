@@ -28,12 +28,12 @@ import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.lib.R
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import timber.log.Timber
@@ -44,6 +44,7 @@ import java.util.zip.ZipInputStream
 class LocalStorageProvider(
     private val context: Context,
     private val directoriesManager: DirectoriesManager,
+    private val sourceRepository: SourceRepository,
 ) : StorageProvider {
     override val id: String = "local"
 
@@ -55,24 +56,30 @@ class LocalStorageProvider(
 
     override val enabledByDefault = true
 
-    override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> =
-        walkDirectory(getExternalFolder() ?: directoriesManager.getInternalRomsDirectory())
+    override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> {
+        val paths = sourceRepository.getLocalFilePaths()
+        val foldersToScan: List<File> = if (paths.isNotEmpty()) {
+            paths.mapNotNull { path ->
+                when {
+                    path.startsWith("file://") -> File(Uri.parse(path).path ?: return@mapNotNull null)
+                    path.startsWith("/") -> File(path)
+                    else -> null
+                }
+            }
+        } else {
+            listOf(directoriesManager.getInternalRomsDirectory())
+        }
+
+        return flow {
+            foldersToScan.forEach { folder ->
+                Timber.d("LocalStorageProvider: scanning $folder")
+                walkDirectory(folder).collect { emit(it) }
+            }
+        }
+    }
 
     override fun getStorageFile(baseStorageFile: BaseStorageFile): StorageFile? {
         return DocumentFileParser.parseDocumentFile(context, baseStorageFile)
-    }
-
-    private fun getExternalFolder(): File? {
-        val harmonyPrefs = SharedPreferencesHelper.getSharedPreferences(context)
-        val harmonyPath = harmonyPrefs.getString(SharedPreferencesHelper.KEY_TV_CUSTOM_ROMS_PATH, null)
-        if (!harmonyPath.isNullOrEmpty()) {
-            Timber.d("DEBUG: Found TV custom path in Harmony: $harmonyPath")
-            return File(harmonyPath)
-        }
-
-        val prefString = context.getString(R.string.pref_key_legacy_external_folder)
-        val preferenceManager = SharedPreferencesHelper.getLegacySharedPreferences(context)
-        return preferenceManager.getString(prefString, null)?.let { File(it) }
     }
 
     private fun walkDirectory(rootDirectory: File): Flow<List<BaseStorageFile>> =

@@ -20,12 +20,15 @@
 package com.swordfish.lemuroid.lib.storage
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.net.Uri
 import com.swordfish.lemuroid.lib.library.db.entity.Game
-import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 
-class StorageProviderRegistry(private val context: Context, val providers: Set<StorageProvider>) {
+class StorageProviderRegistry(
+    private val context: Context,
+    val providers: Set<StorageProvider>,
+    private val sourceRepository: SourceRepository,
+) {
     companion object {
         const val PREF_NAME = "storage_providers"
     }
@@ -37,21 +40,19 @@ class StorageProviderRegistry(private val context: Context, val providers: Set<S
             }.flatten().toTypedArray(),
         )
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
     /**
-     * Returns enabled providers based on library_type preference.
-     * - If library_type = "smb", only SMB provider is enabled
-     * - If library_type = "local" (default), local providers are enabled
+     * Returns enabled providers.
+     * Local providers are always enabled.
+     * SMB is enabled only when at least one SMB source is configured in SourceRepository.
      */
     val enabledProviders: Iterable<StorageProvider>
         get() {
-            val harmonyPrefs = SharedPreferencesHelper.getSharedPreferences(context)
-            val libraryType = harmonyPrefs.getString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "local")
-            
-            return when (libraryType) {
-                "smb" -> providers.filter { it.id == "smb" }
-                else -> providers.filter { it.id != "smb" && prefs.getBoolean(it.id, it.enabledByDefault) }
+            val localProviders = providers.filter { it.id != "smb" }
+            val smbProvider = providers.firstOrNull { it.id == "smb" }
+            return if (smbProvider != null && sourceRepository.hasAnySmbSource()) {
+                localProviders + smbProvider
+            } else {
+                localProviders
             }
         }
 

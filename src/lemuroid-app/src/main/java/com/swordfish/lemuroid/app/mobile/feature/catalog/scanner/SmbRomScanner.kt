@@ -94,8 +94,9 @@ class SmbRomScanner : RomSourceScanner {
             val client = SMBClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
-            val authContext = if (source.credentials != null && source.credentials.username.isNotBlank()) {
-                AuthenticationContext(source.credentials.username, source.credentials.password.toCharArray(), "")
+            val creds = source.credentials
+            val authContext = if (creds != null && creds.username.isNotBlank()) {
+                AuthenticationContext(creds.username, creds.password.toCharArray(), "")
             } else {
                 AuthenticationContext.guest()
             }
@@ -138,8 +139,9 @@ class SmbRomScanner : RomSourceScanner {
             val client = SMBClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
-            val authContext = if (source.credentials != null && source.credentials.username.isNotBlank()) {
-                AuthenticationContext(source.credentials.username, source.credentials.password.toCharArray(), "")
+            val creds = source.credentials
+            val authContext = if (creds != null && creds.username.isNotBlank()) {
+                AuthenticationContext(creds.username, creds.password.toCharArray(), "")
             } else {
                 AuthenticationContext.guest()
             }

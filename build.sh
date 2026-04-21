@@ -14,6 +14,7 @@ else
         VARIANT="latest"
     fi
 fi
+
 BUILD_VARIANT="${2:-freeBundleRelease}"
 SERVICE_NAME="phoenix-down-build"
 

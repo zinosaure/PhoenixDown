@@ -9,6 +9,9 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceManager
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceType
 import com.swordfish.lemuroid.app.shared.ImmersiveActivity
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.RomMigrationHelper
@@ -177,14 +180,9 @@ class TVFolderPickerLauncher : ImmersiveActivity() {
     }
 
     private fun proceedWithFolderChange(newPath: String) {
-        val sharedPreferences = SharedPreferencesHelper.getLegacySharedPreferences(this)
-        val preferenceKey = getString(com.swordfish.lemuroid.lib.R.string.pref_key_legacy_external_folder)
-
-        sharedPreferences.edit().apply {
-            this.putString(preferenceKey, newPath)
-            this.commit()
-        }
-
+        val folderName = java.io.File(newPath).name.ifBlank { "TV ROMs" }
+        com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+            .upsertByPath(RomSource.local(folderName, newPath))
         startLibraryIndexWork()
         finish()
     }

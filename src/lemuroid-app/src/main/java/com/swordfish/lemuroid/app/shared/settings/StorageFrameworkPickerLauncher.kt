@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.RomSource
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SourceManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.RomMigrationHelper
 import com.swordfish.lemuroid.app.utils.android.displayErrorDialog
@@ -213,46 +215,25 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
     }
 
     private fun proceedWithFolderChange(newUri: Uri) {
-        val sharedPreferences = SharedPreferencesHelper.getSharedPreferences(this)
-        val preferenceKey = SharedPreferencesHelper.KEY_STORAGE_FOLDER_URI
-
         updatePersistableUris(newUri)
-        
-        // Save the new URI
-        sharedPreferences.edit().apply {
-            this.putString(preferenceKey, newUri.toString())
-            this.apply()
-        }
-
-        // Clear legacy key
-        try {
-            val legacyKey = "legacy_external_folder"
-            SharedPreferencesHelper.getLegacySharedPreferences(this).edit()
-                .remove(legacyKey)
-                .apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
+        val folderName = runCatching {
+            DocumentFile.fromTreeUri(this, newUri)?.name
+        }.getOrNull() ?: (newUri.lastPathSegment ?: "Local Folder")
+        com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+            .upsertByPath(RomSource.local(folderName, newUri.toString()))
         startLibraryIndexWork()
         finish()
     }
 
     private fun updatePersistableUris(uri: Uri) {
-        contentResolver.persistedUriPermissions
-            .filter { it.isReadPermission }
-            .filter { it.uri != uri }
-            .forEach {
-                contentResolver.releasePersistableUriPermission(
-                    it.uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            }
-
-        contentResolver.takePersistableUriPermission(
-            uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        )
+        // Take persistable permission for the new URI
+        runCatching {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
+        // Do NOT revoke other URIs — SourceRepository may reference them as additional sources
     }
 
     private fun startLibraryIndexWork() {
