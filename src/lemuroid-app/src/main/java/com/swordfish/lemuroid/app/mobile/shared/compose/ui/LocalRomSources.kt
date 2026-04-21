@@ -29,10 +29,19 @@ fun resolveSourceName(fileUri: String, sources: List<RomSource>): String? {
     return when (uri.scheme?.lowercase()) {
         "smb" -> {
             val host = uri.host ?: return "SMB"
-            sources.firstOrNull {
-                it.type == SourceType.SMB &&
-                    Uri.parse(it.path).host?.equals(host, ignoreCase = true) == true
-            }?.name ?: host
+            val gamePath = uri.path ?: ""
+            // Best match: SMB source on the same host whose path is the longest prefix of the game path.
+            // This correctly distinguishes two shares on the same NAS (e.g. /gba vs /snes).
+            sources
+                .filter { it.type == SourceType.SMB }
+                .mapNotNull { src ->
+                    val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
+                    if (!srcUri.host.equals(host, ignoreCase = true)) return@mapNotNull null
+                    val srcPath = srcUri.path ?: ""
+                    if (gamePath.startsWith(srcPath)) src to srcPath.length else null
+                }
+                .maxByOrNull { (_, matchLen) -> matchLen }
+                ?.first?.name ?: host
         }
         "content" -> {
             // SAF document URIs look like: content://authority/document/primary%3AFOLDER%2Ffile.zip

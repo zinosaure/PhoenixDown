@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +27,7 @@ fun LemuroidGameCard(
     game: Game,
     onClick: () -> Unit = { },
     onLongClick: () -> Unit = { },
+    onFavoriteToggle: ((Boolean) -> Unit)? = null,
 ) {
     val sources = LocalRomSources.current
     val badge = remember(game.fileUri, sources) { resolveSourceName(game.fileUri, sources) }
@@ -50,6 +52,18 @@ fun LemuroidGameCard(
                             .align(Alignment.BottomStart)
                             .padding(4.dp),
                     )
+                }
+                if (onFavoriteToggle != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(36.dp),
+                    ) {
+                        FavoriteToggle(
+                            isToggled = game.isFavorite,
+                            onFavoriteToggle = onFavoriteToggle,
+                        )
+                    }
                 }
             }
             LemuroidGameTexts(game = game)

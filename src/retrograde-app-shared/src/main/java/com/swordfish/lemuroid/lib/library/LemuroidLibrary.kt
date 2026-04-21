@@ -19,6 +19,7 @@
 
 package com.swordfish.lemuroid.lib.library
 
+import android.net.Uri
 import com.swordfish.lemuroid.common.coroutines.batchWithSizeAndTime
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
@@ -282,18 +283,36 @@ class LemuroidLibrary(
                 }
                 .firstOrNull()
 
-        // Deduplication: if a game with the same title+system was already indexed
-        // from a higher-priority source (LOCAL before SMB), skip this duplicate.
+        // Deduplication: compare by fileName (same ROM on two sources).
+        // Priority: LOCAL (content:// or file://) > SMB (smb://) > other.
+        // If existing entry has lower priority than this one → promote it to the new URI.
+        // Otherwise → skip, the higher-priority (or same) source already owns this game.
         if (game != null) {
-            val existing = retrogradedb.gameDao().selectByTitleAndSystem(game.title, game.systemId)
+            val existing = retrogradedb.gameDao().selectByFileNameAndSystem(game.fileName, game.systemId)
             if (existing != null) {
-                Timber.d("Dedup: skipping '${game.title}' (${game.systemId}) — already indexed from ${existing.fileUri}")
+                val existingPriority = sourceUriPriority(existing.fileUri)
+                val newPriority = sourceUriPriority(game.fileUri)
+                if (newPriority > existingPriority) {
+                    // Promote: LOCAL file found for a game previously known only via SMB.
+                    Timber.d("Dedup: promoting '${game.title}' from ${existing.fileUri} → ${game.fileUri}")
+                    retrogradedb.gameDao().updateFileUri(existing.id, game.fileUri, startedAtMs)
+                } else {
+                    Timber.d("Dedup: skipping '${game.title}' (${game.systemId}) — already indexed from ${existing.fileUri}")
+                }
                 return ScanEntry.File(groupedStorageFile)
             }
         }
 
         return buildScanEntry(groupedStorageFile, game)
     }
+
+    /** Higher value = higher priority. LOCAL beats SMB. */
+    private fun sourceUriPriority(fileUri: String): Int =
+        when (Uri.parse(fileUri).scheme?.lowercase()) {
+            "content", "file" -> 2  // local storage — fastest
+            "smb" -> 1              // network share
+            else -> 0               // archive.org / unknown
+        }
 
     private fun safeStorageFile(
         provider: StorageProvider,
