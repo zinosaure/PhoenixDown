@@ -17,12 +17,25 @@ class ForcedSystemMetadataProvider(
 ) : GameMetadataProvider {
 
     override suspend fun retrieveMetadata(storageFile: StorageFile): GameMetadata? {
-        val metadata = delegate.retrieveMetadata(storageFile) ?: return null
-        return if (metadata.system != forcedSystemId) {
-            Timber.d("ForcedSystem: overriding '${metadata.system}' → '$forcedSystemId' for ${storageFile.name}")
-            metadata.copy(system = forcedSystemId)
-        } else {
-            metadata
+        val metadata = delegate.retrieveMetadata(storageFile)
+        return when {
+            metadata == null -> {
+                // File has no recognized extension/database match, but source has platformHint.
+                // Index it anyway under the forced system so the user's choice is respected.
+                Timber.d("ForcedSystem: no delegate metadata for ${storageFile.name}, indexing as '$forcedSystemId'")
+                GameMetadata(
+                    name = storageFile.name.substringBeforeLast(".").takeIf { it.isNotBlank() } ?: storageFile.name,
+                    system = forcedSystemId,
+                    romName = null,
+                    developer = null,
+                    thumbnail = null,
+                )
+            }
+            metadata.system != forcedSystemId -> {
+                Timber.d("ForcedSystem: overriding '${metadata.system}' → '$forcedSystemId' for ${storageFile.name}")
+                metadata.copy(system = forcedSystemId)
+            }
+            else -> metadata
         }
     }
 }

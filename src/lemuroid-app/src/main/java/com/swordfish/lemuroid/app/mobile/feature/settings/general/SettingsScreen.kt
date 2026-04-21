@@ -29,9 +29,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -323,7 +320,7 @@ private fun RomsSettings(
     var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
     var showAddSmbDialog by remember { mutableStateOf(false) }
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
-    var showAddMenu by remember { mutableStateOf(false) }
+    var showAddTypeDialog by remember { mutableStateOf(false) }
 
     // Dialogs to choose save/download location type (local vs SMB)
     var showSavePickerDialog by remember { mutableStateOf(false) }
@@ -441,13 +438,45 @@ private fun RomsSettings(
         }
     }
 
+    // Dialog choix type source (local vs SMB)
+    if (showAddTypeDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddTypeDialog = false },
+            title = { Text(stringResource(R.string.settings_title_add_source)) },
+            text = {
+                Column {
+                    TextButton(
+                        onClick = { showAddTypeDialog = false; addLocalLauncher.launch(null) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Folder, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_local_folder))
+                        }
+                    }
+                    TextButton(
+                        onClick = { showAddTypeDialog = false; showAddSmbDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Dns, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_smb_server))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showAddTypeDialog = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+
     // Dialog type de dossier — sauvegardes
     if (showSavePickerDialog) {
         AlertDialog(
             onDismissRequest = { showSavePickerDialog = false },
             title = { Text(stringResource(R.string.settings_title_save_location)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column {
                     TextButton(
                         onClick = {
                             showSavePickerDialog = false
@@ -457,17 +486,19 @@ private fun RomsSettings(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Default.Folder, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.settings_picker_local_folder), modifier = Modifier.weight(1f))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Folder, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_local_folder))
+                        }
                     }
                     TextButton(
                         onClick = { showSavePickerDialog = false; showSaveSmbDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Default.Dns, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.settings_picker_smb_server), modifier = Modifier.weight(1f))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Dns, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_smb_server))
+                        }
                     }
                 }
             },
@@ -482,7 +513,7 @@ private fun RomsSettings(
             onDismissRequest = { showDownloadPickerDialog = false },
             title = { Text(stringResource(R.string.settings_title_download_location)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column {
                     TextButton(
                         onClick = {
                             showDownloadPickerDialog = false
@@ -492,17 +523,19 @@ private fun RomsSettings(
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Default.Folder, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.settings_picker_local_folder), modifier = Modifier.weight(1f))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Folder, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_local_folder))
+                        }
                     }
                     TextButton(
                         onClick = { showDownloadPickerDialog = false; showDownloadSmbDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Default.Dns, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.settings_picker_smb_server), modifier = Modifier.weight(1f))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Dns, contentDescription = null)
+                            Text(stringResource(R.string.settings_picker_smb_server))
+                        }
                     }
                 }
             },
@@ -566,49 +599,8 @@ private fun RomsSettings(
         )
     }
 
-    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
-        // ── En-tête bibliothèque (sans icône) ────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.settings_category_library),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f),
-            )
-            Box {
-                FilledTonalIconButton(
-                    onClick = { showAddMenu = true },
-                    enabled = !indexingInProgress,
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.settings_title_add_source))
-                }
-                DropdownMenu(expanded = showAddMenu, onDismissRequest = { showAddMenu = false }) {
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text(stringResource(R.string.settings_picker_local_folder))
-                            }
-                        },
-                        onClick = { showAddMenu = false; addLocalLauncher.launch(null) },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text(stringResource(R.string.settings_picker_smb_server))
-                            }
-                        },
-                        onClick = { showAddMenu = false; showAddSmbDialog = true },
-                    )
-                }
-            }
-        }
-
+    // ── Card 1 : Bibliothèque de jeux ─────────────────────────────────────
+    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_library)) }) {
         // ── Liste des chemins ──────────────────────────────────────────
         if (customSources.isEmpty()) {
             Text(
@@ -640,6 +632,14 @@ private fun RomsSettings(
             }
         }
 
+        // ── Ajouter un dossier ─────────────────────────────────────────
+        LemuroidSettingsMenuLink(
+            enabled = !indexingInProgress,
+            title = { Text(stringResource(R.string.settings_title_add_source)) },
+            action = { Icon(Icons.Default.Add, contentDescription = null) },
+            onClick = { showAddTypeDialog = true },
+        )
+
         // ── Bouton Rescan ──────────────────────────────────────────────
         if (scanInProgress) {
             Button(
@@ -653,70 +653,41 @@ private fun RomsSettings(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             ) { Text(stringResource(R.string.rescan)) }
         }
+    }
 
+    // ── Card 2 : Emplacement de stockage ──────────────────────────────────
+    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
         // ── Dossier des sauvegardes ────────────────────────────────────
         val saveDisplayPath = uriToReadablePath(context, saveLocationUri)
             .ifEmpty { stringResource(R.string.settings_save_location_default) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.settings_title_save_location),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = saveDisplayPath,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (saveLocationUri.isNotBlank()) {
-                IconButton(onClick = { viewModel.setSaveLocation("") }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        LemuroidSettingsMenuLink(
+            title = { Text(stringResource(R.string.settings_title_save_location)) },
+            subtitle = { Text(text = saveDisplayPath, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+            action = if (saveLocationUri.isNotBlank()) {
+                {
+                    IconButton(onClick = { viewModel.setSaveLocation("") }) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
-            IconButton(onClick = { showSavePickerDialog = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
+            } else null,
+            onClick = { showSavePickerDialog = true },
+        )
 
         // ── Dossier de téléchargement ──────────────────────────────────
         val downloadDisplayPath = uriToReadablePath(context, downloadSourceId)
             .ifEmpty { stringResource(R.string.settings_download_location_default) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.settings_title_download_location),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = downloadDisplayPath,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (downloadSourceId.isNotBlank()) {
-                IconButton(onClick = { viewModel.setDownloadSourceId("") }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        LemuroidSettingsMenuLink(
+            title = { Text(stringResource(R.string.settings_title_download_location)) },
+            subtitle = { Text(text = downloadDisplayPath, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+            action = if (downloadSourceId.isNotBlank()) {
+                {
+                    IconButton(onClick = { viewModel.setDownloadSourceId("") }) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
-            IconButton(onClick = { showDownloadPickerDialog = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
+            } else null,
+            onClick = { showDownloadPickerDialog = true },
+        )
     }
 }
 
