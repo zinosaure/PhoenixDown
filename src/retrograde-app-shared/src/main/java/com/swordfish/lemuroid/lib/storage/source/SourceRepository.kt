@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.lib.storage.source
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -97,6 +98,48 @@ class SourceRepository(private val context: Context) {
                     SmbSourceConfig(source.id, p.server, p.share, p.subPath, source.credentials)
                 }
             }
+
+    /**
+     * Returns the [RomSource] that owns [fileUri], using the same logic as [resolveSourceName].
+     * Used to retrieve [RomSource.platformHint] during library indexing.
+     */
+    fun findSourceForUri(fileUri: String): RomSource? {
+        val uri = try { Uri.parse(fileUri) } catch (_: Exception) { return null }
+        return when (uri.scheme?.lowercase()) {
+            "smb" -> {
+                val host = uri.host ?: return null
+                val gamePath = uri.path ?: ""
+                getCustomSources()
+                    .filter { it.type == SourceType.SMB }
+                    .mapNotNull { src ->
+                        val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
+                        if (!srcUri.host.equals(host, ignoreCase = true)) return@mapNotNull null
+                        val srcPath = srcUri.path ?: ""
+                        if (gamePath.startsWith(srcPath)) src to srcPath.length else null
+                    }
+                    .maxByOrNull { (_, len) -> len }
+                    ?.first
+            }
+            "content" -> {
+                val decoded = Uri.decode(uri.encodedPath ?: "")
+                val gameDocId = decoded.substringAfter("/document/").substringAfter("/tree/")
+                getCustomSources().firstOrNull { src ->
+                    if (src.type != SourceType.LOCAL) return@firstOrNull false
+                    val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@firstOrNull false }
+                    if (srcUri.scheme != "content") return@firstOrNull false
+                    val srcDocId = Uri.decode(srcUri.encodedPath ?: "").substringAfter("/tree/").substringAfter("/document/")
+                    gameDocId.startsWith(srcDocId)
+                }
+            }
+            "file" -> {
+                val filePath = uri.path ?: return null
+                getCustomSources().firstOrNull {
+                    it.type == SourceType.LOCAL && filePath.startsWith(it.path.removePrefix("file://"))
+                }
+            }
+            else -> null
+        }
+    }
 
     // -----------------------------------------------------------------------
     // One-time migration from legacy SharedPreferences

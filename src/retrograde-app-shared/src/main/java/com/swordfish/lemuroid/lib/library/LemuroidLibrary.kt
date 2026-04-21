@@ -21,11 +21,13 @@ package com.swordfish.lemuroid.lib.library
 
 import android.net.Uri
 import com.swordfish.lemuroid.common.coroutines.batchWithSizeAndTime
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import com.swordfish.lemuroid.lib.bios.BiosManager
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.library.metadata.GameMetadata
+import com.swordfish.lemuroid.lib.library.metadata.ForcedSystemMetadataProvider
 import com.swordfish.lemuroid.lib.library.metadata.GameMetadataProvider
 import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.GroupedStorageFiles
@@ -50,6 +52,7 @@ class LemuroidLibrary(
     private val storageProviderRegistry: Lazy<StorageProviderRegistry>,
     private val gameMetadataProvider: Lazy<GameMetadataProvider>,
     private val biosManager: BiosManager,
+    private val sourceRepository: SourceRepository,
 ) {
     suspend fun indexLibrary() {
         val startedAtMs = System.currentTimeMillis()
@@ -274,7 +277,16 @@ class LemuroidLibrary(
                 .mapNotNull { safeStorageFile(provider, it) }
                 .mapNotNull { storageFile ->
                     try {
-                        val metadata = metadataProvider.retrieveMetadata(storageFile)
+                        // Resolve platform hint for this file's source
+                        val hint = sourceRepository
+                            .findSourceForUri(storageFile.uri.toString())
+                            ?.platformHint
+                        val effectiveMetadata = if (hint != null) {
+                            ForcedSystemMetadataProvider(metadataProvider, hint)
+                        } else {
+                            metadataProvider
+                        }
+                        val metadata = effectiveMetadata.retrieveMetadata(storageFile)
                         convertGameMetadataToGame(groupedStorageFile, storageFile, metadata, startedAtMs)
                     } catch (e: Exception) {
                         Timber.e(e, "Error indexing file: ${storageFile.name}")

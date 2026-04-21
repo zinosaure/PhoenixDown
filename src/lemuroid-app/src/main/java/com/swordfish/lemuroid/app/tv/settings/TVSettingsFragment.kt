@@ -55,6 +55,22 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     lateinit var saveSyncPreferences: SaveSyncPreferences
 
+    private val saveFolderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        runCatching {
+            requireContext().contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+        SharedPreferencesHelper.getSharedPreferences(requireContext())
+            .edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, uri.toString()).apply()
+        findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary =
+            androidx.documentfile.provider.DocumentFile.fromTreeUri(requireContext(), uri)?.name ?: uri.toString()
+    }
+
     private val exportSavesLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
@@ -154,6 +170,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         refreshSourcesSection()
+        refreshStorageLocationSummaries()
     }
 
     override fun onResume() {
@@ -172,6 +189,31 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun getRomsCategoryPreference() =
         findPreference<androidx.preference.PreferenceCategory>("pref_category_roms")
+
+    private fun refreshStorageLocationSummaries() {
+        val ctx = requireContext()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+
+        val saveUri = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "")
+        val saveSummary = if (saveUri.isNullOrBlank()) {
+            getString(R.string.settings_save_location_default)
+        } else {
+            android.net.Uri.parse(saveUri).let { uri ->
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(ctx, uri)?.name ?: saveUri
+            }
+        }
+        findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary = saveSummary
+
+        val downloadId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "")
+        val downloadSummary = if (downloadId.isNullOrBlank()) {
+            getString(R.string.settings_download_location_default)
+        } else {
+            com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx)
+                .getCustomSources().firstOrNull { it.id == downloadId }?.name
+                ?: getString(R.string.settings_download_location_default)
+        }
+        findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = downloadSummary
+    }
 
     private fun refreshSourcesSection() {
         val category = getRomsCategoryPreference() ?: return
@@ -296,6 +338,8 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             getString(R.string.pref_key_reset_settings) -> confirmResetSettings()
             getString(R.string.pref_key_choose_directory) -> launchFolderPicker()
             getString(R.string.pref_key_edit_thegamesdb_apikey) -> showApiKeyDialog()
+            "pref_key_tv_save_location" -> saveFolderPickerLauncher.launch(null)
+            "pref_key_tv_download_location" -> showDownloadLocationDialog()
             getString(R.string.pref_key_export_save_games) ->
                 exportSavesLauncher.launch("phoenix-down-savegames-backup.zip")
             getString(R.string.pref_key_import_save_games) ->
@@ -306,6 +350,28 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 startActivity(Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.about.TVAboutActivity::class.java))
         }
         return super.onPreferenceTreeClick(preference)
+    }
+
+    private fun showDownloadLocationDialog() {
+        val ctx = requireContext()
+        val sources = com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+        val currentId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+
+        val items = mutableListOf(getString(R.string.settings_download_location_default))
+        sources.forEach { items.add(it.name) }
+        val ids = mutableListOf("") + sources.map { it.id }
+        val currentIndex = ids.indexOfFirst { it == currentId }.coerceAtLeast(0)
+
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.settings_title_download_location)
+            .setSingleChoiceItems(items.toTypedArray(), currentIndex) { dialog, which ->
+                prefs.edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, ids[which]).apply()
+                findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = items[which]
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun launchFolderPicker() {

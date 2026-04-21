@@ -20,6 +20,11 @@ object SharedPreferencesHelper {
     const val KEY_SMB_LIBRARY_USERNAME = "smb_library_username"
     const val KEY_SMB_LIBRARY_PASSWORD = "smb_library_password"
 
+    /** Save location: SAF URI where save states / SRAM files are stored. "" = use internal default. */
+    const val KEY_SAVE_LOCATION_URI = "save_location_uri"
+    /** Download location: RomSource.id of destination for downloads. "" = Android /Downloads. */
+    const val KEY_DOWNLOAD_SOURCE_ID = "download_source_id"
+
     fun getSharedPreferences(context: Context): SharedPreferences {
         return context.getHarmonySharedPreferences(context.getString(R.string.pref_file_harmony_options))
     }

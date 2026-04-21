@@ -17,13 +17,16 @@ data class RomSource(
     val name: String,
     val path: String,
     val credentials: SourceCredentials? = null,
+    /** If non-null, forces all .zip files from this source into this system (e.g. "gba"). */
+    val platformHint: String? = null,
 ) {
     companion object {
-        fun local(name: String, path: String) = RomSource(type = SourceType.LOCAL, name = name, path = path)
+        fun local(name: String, path: String, platformHint: String? = null) =
+            RomSource(type = SourceType.LOCAL, name = name, path = path, platformHint = platformHint)
 
-        fun smb(name: String, server: String, path: String, credentials: SourceCredentials? = null): RomSource {
+        fun smb(name: String, server: String, path: String, credentials: SourceCredentials? = null, platformHint: String? = null): RomSource {
             val normalizedPath = if (path.startsWith("/")) path else "/$path"
-            return RomSource(type = SourceType.SMB, name = name, path = "smb://$server$normalizedPath", credentials = credentials)
+            return RomSource(type = SourceType.SMB, name = name, path = "smb://$server$normalizedPath", credentials = credentials, platformHint = platformHint)
         }
 
         fun archiveOrg() = RomSource(
@@ -48,6 +51,7 @@ data class RomSource(
                     name = obj.optString("name", ""),
                     path = obj.optString("path", ""),
                     credentials = credentials,
+                    platformHint = obj.optString("platformHint", "").takeIf { it.isNotBlank() },
                 )
             }
         }.getOrDefault(emptyList())
@@ -64,6 +68,7 @@ data class RomSource(
                         put("username", it.username)
                         put("password", it.password)
                     }
+                    src.platformHint?.let { put("platformHint", it) }
                 }
                 arr.put(obj)
             }

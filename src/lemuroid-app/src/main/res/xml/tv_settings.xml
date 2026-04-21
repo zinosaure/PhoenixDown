@@ -5,13 +5,25 @@
 
     <PreferenceCategory
         android:key="pref_category_roms"
-        android:title="@string/roms"
+        android:title="@string/settings_category_storage_locations"
         app:iconSpaceReserved="false">
 
         <Preference
             android:key="@string/pref_key_choose_directory"
             android:title="@string/settings_title_choose_directory"
             android:summary="@string/settings_description_choose_directory"
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="pref_key_tv_save_location"
+            android:title="@string/settings_title_save_location"
+            android:summary="@string/settings_desc_save_location"
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            android:key="pref_key_tv_download_location"
+            android:title="@string/settings_title_download_location"
+            android:summary="@string/settings_desc_download_location"
             app:iconSpaceReserved="false"/>
 
     </PreferenceCategory>

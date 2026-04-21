@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -23,7 +26,10 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +61,8 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
+import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
@@ -309,11 +318,30 @@ private fun RomsSettings(
     val allSources by viewModel.sources.collectAsState()
     val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
+    val saveLocationUri by viewModel.saveLocationUri.collectAsState()
+    val downloadSourceId by viewModel.downloadSourceId.collectAsState()
+
     var pendingDeleteSource by remember { mutableStateOf<RomSource?>(null) }
     var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
     var showAddSmbDialog by remember { mutableStateOf(false) }
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddMenu by remember { mutableStateOf(false) }
+    var showDownloadDialog by remember { mutableStateOf(false) }
+
+    // State machine: hold a source waiting for platform hint selection
+    var pendingSourceForPlatform by remember { mutableStateOf<RomSource?>(null) }
+    // true = it's an update (edit), false = it's a new source
+    var pendingSourceIsEdit by remember { mutableStateOf(false) }
+
+    // SAF picker — save location
+    val saveLocationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
+            viewModel.setSaveLocation(uri.toString())
+        }
+    }
 
     // SAF picker — ajouter dossier local
     val addLocalLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -322,7 +350,9 @@ private fun RomsSettings(
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
-            viewModel.addSource(RomSource.local(name, uri.toString()))
+            // Show platform picker before adding
+            pendingSourceForPlatform = RomSource.local(name, uri.toString())
+            pendingSourceIsEdit = false
         }
     }
 
@@ -334,10 +364,32 @@ private fun RomsSettings(
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }.onFailure { Log.w("SettingsScreen", "Permission non persistable pour $uri") }
             val name = DocumentFile.fromTreeUri(context, uri)?.name ?: "Jeux"
-            customSources.firstOrNull { it.id == sourceId }?.let { viewModel.updateSource(it.copy(name = name, path = uri.toString())) }
-                ?: viewModel.addSource(RomSource.local(name, uri.toString()))
+            val existingSource = customSources.firstOrNull { it.id == sourceId }
+            if (existingSource != null) {
+                pendingSourceForPlatform = existingSource.copy(name = name, path = uri.toString())
+            } else {
+                pendingSourceForPlatform = RomSource.local(name, uri.toString())
+            }
+            pendingSourceIsEdit = existingSource != null
         }
         editingLocalSourceId = null
+    }
+
+    // Platform picker dialog — shown after adding/editing a source
+    if (pendingSourceForPlatform != null) {
+        PlatformPickerDialog(
+            currentHint = pendingSourceForPlatform!!.platformHint,
+            onDismiss = { pendingSourceForPlatform = null },
+            onConfirm = { selectedHint ->
+                val source = pendingSourceForPlatform!!.copy(platformHint = selectedHint)
+                if (pendingSourceIsEdit) {
+                    viewModel.updateSource(source)
+                } else {
+                    viewModel.addSource(source)
+                }
+                pendingSourceForPlatform = null
+            },
+        )
     }
 
     // Dialog ajout SMB
@@ -349,7 +401,9 @@ private fun RomsSettings(
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
                     onSave = { name, server, path, credentials ->
-                        viewModel.addSource(RomSource.smb(name, server, path, credentials))
+                        val source = RomSource.smb(name, server, path, credentials)
+                        pendingSourceForPlatform = source
+                        pendingSourceIsEdit = false
                         showAddSmbDialog = false
                     },
                 )
@@ -367,7 +421,8 @@ private fun RomsSettings(
                     editSource = editingSmbSource,
                     onSave = { name, server, path, credentials ->
                         editingSmbSource?.let { src ->
-                            viewModel.updateSource(src.copy(name = name, path = "smb://$server$path", credentials = credentials))
+                            pendingSourceForPlatform = src.copy(name = name, path = "smb://$server$path", credentials = credentials)
+                            pendingSourceIsEdit = true
                         }
                         editingSmbSource = null
                     },
@@ -393,7 +448,7 @@ private fun RomsSettings(
         )
     }
 
-    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {
+    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
         // En-tête bibliothèque virtuelle
         Row(
             modifier = Modifier
@@ -474,18 +529,75 @@ private fun RomsSettings(
 
         HorizontalDivider()
 
-        if (scanInProgress) {
-            LemuroidSettingsMenuLink(
-                title = { Text(text = stringResource(id = R.string.stop)) },
-                onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
-            )
+        // Dossier des sauvegardes
+        val saveLocationDisplay = if (saveLocationUri.isBlank()) {
+            stringResource(R.string.settings_save_location_default)
         } else {
-            LemuroidSettingsMenuLink(
-                title = { Text(text = stringResource(id = R.string.rescan)) },
+            DocumentFile.fromTreeUri(context, Uri.parse(saveLocationUri))?.name ?: saveLocationUri
+        }
+        LemuroidSettingsMenuLink(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.settings_title_save_location))
+                }
+            },
+            subtitle = { Text(saveLocationDisplay) },
+            onClick = { saveLocationLauncher.launch(null) },
+        )
+
+        HorizontalDivider()
+
+        // Dossier de téléchargement
+        val downloadDisplay = if (downloadSourceId.isBlank()) {
+            stringResource(R.string.settings_download_location_default)
+        } else {
+            customSources.firstOrNull { it.id == downloadSourceId }?.name ?: stringResource(R.string.settings_download_location_default)
+        }
+        LemuroidSettingsMenuLink(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.settings_title_download_location))
+                }
+            },
+            subtitle = { Text(downloadDisplay) },
+            onClick = { showDownloadDialog = true },
+        )
+
+        HorizontalDivider()
+
+        // Bouton Rescan pleine largeur
+        if (scanInProgress) {
+            Button(
+                onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(stringResource(R.string.stop))
+            }
+        } else {
+            Button(
                 onClick = { LibraryIndexScheduler.scheduleLibrarySync(context) },
                 enabled = !indexingInProgress,
-            )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(stringResource(R.string.rescan))
+            }
         }
+    }
+
+    // Download location dialog (shown separately to avoid state inside LemuroidCardSettingsGroup)
+    if (showDownloadDialog) {
+        DownloadLocationDialog(
+            customSources = customSources,
+            currentSourceId = downloadSourceId,
+            onDismiss = { showDownloadDialog = false },
+            onConfirm = { id -> viewModel.setDownloadSourceId(id); showDownloadDialog = false },
+        )
     }
 }
 
@@ -553,4 +665,146 @@ private fun LibraryPathRow(
     HorizontalDivider(modifier = Modifier.padding(start = 24.dp))
 }
 
+/** Dialog to pick a platform hint for a ROM source (Auto or a specific system). */
+@Composable
+private fun PlatformPickerDialog(
+    currentHint: String?,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit,
+) {
+    val systems = remember {
+        GameSystem.all()
+            .filter { it.id != SystemID.UNKNOWN }
+            .sortedBy { it.libretroFullName }
+    }
+    var selected by remember { mutableStateOf(currentHint) }
 
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_platform_dialog_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_platform_dialog_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                LazyColumn(modifier = Modifier.height(320.dp)) {
+                    // Auto row
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selected = null }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selected == null, onClick = { selected = null })
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(stringResource(R.string.settings_platform_auto), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    stringResource(R.string.settings_platform_auto_warning),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        HorizontalDivider()
+                    }
+                    // One row per system
+                    items(systems) { system ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selected = system.id.dbname }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selected == system.id.dbname, onClick = { selected = system.id.dbname })
+                            Text(
+                                text = system.libretroFullName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 4.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selected) }) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+/** Dialog to choose the download destination among configured sources. */
+@Composable
+private fun DownloadLocationDialog(
+    customSources: List<RomSource>,
+    currentSourceId: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var selected by remember(currentSourceId) { mutableStateOf(currentSourceId) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_title_download_location)) },
+        text = {
+            LazyColumn(modifier = Modifier.height(280.dp)) {
+                // Default: /Downloads
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selected = "" }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected.isBlank(), onClick = { selected = "" })
+                        Text(
+                            text = stringResource(R.string.settings_download_location_default),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
+                    HorizontalDivider()
+                }
+                // One row per configured source
+                items(customSources) { source ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selected = source.id }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected == source.id, onClick = { selected = source.id })
+                        Column(modifier = Modifier.padding(start = 4.dp)) {
+                            Text(source.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(source.path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selected) }) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}

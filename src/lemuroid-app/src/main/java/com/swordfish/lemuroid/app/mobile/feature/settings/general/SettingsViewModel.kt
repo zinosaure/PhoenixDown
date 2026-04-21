@@ -8,6 +8,7 @@ import com.fredporciuncula.flow.preferences.FlowSharedPreferences
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
+import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.storage.source.RomSource
@@ -92,5 +93,27 @@ class SettingsViewModel(
 
     fun setTheGamesDbApiKey(apiKey: String) {
         sharedPreferences.getString(context.getString(R.string.settings_title_thegamesdb_apikey), "").set(apiKey)
+    }
+
+    /** Save location (SAF URI). Empty string = use internal default. */
+    val saveLocationUri: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    fun setSaveLocation(uri: String) {
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "").set(uri)
+    }
+
+    /** Download location: RomSource ID. Empty = Android /Downloads. */
+    val downloadSourceId: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    fun setDownloadSourceId(id: String) {
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "").set(id)
     }
 }
