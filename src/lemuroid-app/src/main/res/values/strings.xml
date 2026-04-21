@@ -243,6 +243,11 @@
     <string name="pref_key_redownload_covers">pref_key_redownload_covers</string>
     <string name="settings_title_choose_directory">ROMs Directory</string>
     <string name="settings_description_choose_directory">Select the folder containing your games</string>
+    <string name="settings_title_add_source">Add source…</string>
+    <string name="settings_description_add_source">Add a local folder or SMB share</string>
+    <string name="settings_source_tap_to_remove">Tap to remove</string>
+    <string name="settings_source_remove_confirm_title">Remove source?</string>
+    <string name="settings_source_remove_confirm_message">Remove \"%s\" from your library sources?</string>
     <string name="settings_title_covers_storage_location">Cover locations</string>
     <string name="settings_title_redownload_covers">Re-download covers</string>
     <string name="settings_description_redownload_covers">Clear cached cover images and request fresh downloads during the next scan.</string>

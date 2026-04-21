@@ -7,11 +7,13 @@ import android.widget.TextView
 import androidx.leanback.widget.ImageCardView
 import androidx.leanback.widget.Presenter
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.shared.compose.ui.resolveSourceName
 import com.swordfish.lemuroid.app.shared.GameContextMenuListener
 import com.swordfish.lemuroid.app.shared.GameInteractor
 import com.swordfish.lemuroid.app.shared.covers.CoverUtils
 import com.swordfish.lemuroid.app.utils.games.GameUtils
 import com.swordfish.lemuroid.lib.library.db.entity.Game
+import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 
 class GamePresenter(
     private val cardSize: Int,
@@ -24,7 +26,11 @@ class GamePresenter(
         if (item == null || viewHolder !is ViewHolder) return
         val game = item as Game
         viewHolder.mCardView.titleText = game.title
-        viewHolder.mCardView.contentText = GameUtils.getGameSubtitle(viewHolder.mCardView.context, game)
+        val ctx = viewHolder.mCardView.context
+        val sources = SourceRepository(ctx).getSources()
+        val sourceName = resolveSourceName(game.fileUri, sources)
+        val system = GameUtils.getGameSubtitle(ctx, game)
+        viewHolder.mCardView.contentText = if (sourceName != null) "$sourceName • $system" else system
         viewHolder.mCardView.setMainImageDimensions(cardSize, cardSize)
         viewHolder.updateCardViewImage(game)
         viewHolder.view.setOnCreateContextMenuListener(GameContextMenuListener(gameInteractor, game))

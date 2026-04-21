@@ -4,6 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
+        android:key="pref_category_roms"
         android:title="@string/roms"
         app:iconSpaceReserved="false">
 

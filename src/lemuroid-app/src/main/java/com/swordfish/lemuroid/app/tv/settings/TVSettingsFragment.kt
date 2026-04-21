@@ -152,11 +152,14 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             refreshCleanupPreferenceSummaries()
             refreshMetadataSummary()
         }
+
+        refreshSourcesSection()
     }
 
     override fun onResume() {
         super.onResume()
         refreshSaveSyncScreen()
+        refreshSourcesSection()
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
             refreshMetadataSummary()
@@ -165,6 +168,64 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun getGamePadPreferenceScreen(): PreferenceScreen? {
         return findPreference(resources.getString(R.string.pref_key_open_gamepad_settings))
+    }
+
+    private fun getRomsCategoryPreference() =
+        findPreference<androidx.preference.PreferenceCategory>("pref_category_roms")
+
+    private fun refreshSourcesSection() {
+        val category = getRomsCategoryPreference() ?: return
+        val ctx = requireContext()
+        val sources = com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
+
+        // Hide the static "Choose Directory" preference — replaced by the dynamic "Add source" button
+        category.findPreference<androidx.preference.Preference>(getString(R.string.pref_key_choose_directory))?.isVisible = false
+
+        // Remove any previously added dynamic source entries (key starts with "dyn_source_")
+        val keysToRemove = (0 until category.preferenceCount)
+            .mapNotNull { category.getPreference(it).key }
+            .filter { it.startsWith("dyn_source_") }
+        keysToRemove.forEach { key -> category.findPreference<androidx.preference.Preference>(key)?.let { category.removePreference(it) } }
+
+        // Also remove old "add source" button if present
+        category.findPreference<androidx.preference.Preference>("dyn_add_source")?.let { category.removePreference(it) }
+
+        // Add one row per configured source
+        sources.forEachIndexed { index, source ->
+            val pref = androidx.preference.Preference(ctx).apply {
+                key = "dyn_source_$index"
+                title = source.name
+                summary = getString(R.string.settings_source_tap_to_remove)
+                isIconSpaceReserved = false
+                setOnPreferenceClickListener {
+                    android.app.AlertDialog.Builder(ctx)
+                        .setTitle(R.string.settings_source_remove_confirm_title)
+                        .setMessage(getString(R.string.settings_source_remove_confirm_message, source.name))
+                        .setPositiveButton(R.string.delete_games_confirm) { _, _ ->
+                            com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).removeSource(source.id)
+                            com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(ctx.applicationContext)
+                            refreshSourcesSection()
+                        }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                    true
+                }
+            }
+            category.addPreference(pref)
+        }
+
+        // "Add source" button
+        val addPref = androidx.preference.Preference(ctx).apply {
+            key = "dyn_add_source"
+            title = getString(R.string.settings_title_add_source)
+            summary = getString(R.string.settings_description_add_source)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                launchFolderPicker()
+                true
+            }
+        }
+        category.addPreference(addPref)
     }
 
     private fun getSaveSyncScreen(): PreferenceScreen? {

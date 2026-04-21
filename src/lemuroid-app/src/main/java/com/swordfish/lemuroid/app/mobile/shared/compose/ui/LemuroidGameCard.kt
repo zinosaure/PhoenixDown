@@ -27,7 +27,8 @@ fun LemuroidGameCard(
     onClick: () -> Unit = { },
     onLongClick: () -> Unit = { },
 ) {
-    val badge = remember(game.fileUri) { sourceBadgeFor(game.fileUri) }
+    val sources = LocalRomSources.current
+    val badge = remember(game.fileUri, sources) { resolveSourceName(game.fileUri, sources) }
     ElevatedCard(
         modifier = modifier,
     ) {
