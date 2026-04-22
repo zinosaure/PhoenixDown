@@ -17,6 +17,7 @@ import androidx.preference.PreferenceScreen
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.library.PendingOperationsMonitor
+import com.swordfish.lemuroid.app.shared.logs.LogViewerActivity
 import com.swordfish.lemuroid.app.shared.settings.SaveSyncPreferences
 import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
@@ -496,6 +497,8 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 startActivity(Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.manual.TVManualActivity::class.java))
             getString(R.string.pref_key_open_about) ->
                 startActivity(Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.about.TVAboutActivity::class.java))
+            "pref_key_open_log_viewer" ->
+                startActivity(Intent(requireContext(), LogViewerActivity::class.java))
         }
         return super.onPreferenceTreeClick(preference)
     }

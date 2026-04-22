@@ -257,6 +257,12 @@
             android:summary="@string/settings_description_about"
             app:iconSpaceReserved="false"/>
 
+        <Preference
+            android:key="pref_key_open_log_viewer"
+            android:title="@string/settings_title_log_viewer"
+            android:summary="@string/settings_description_log_viewer"
+            app:iconSpaceReserved="false"/>
+
     </PreferenceCategory>
 
 </PreferenceScreen>

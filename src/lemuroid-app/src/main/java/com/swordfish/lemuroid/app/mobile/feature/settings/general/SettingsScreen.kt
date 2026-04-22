@@ -70,6 +70,7 @@ import com.swordfish.lemuroid.lib.storage.source.SourceType
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.app.shared.logs.LogViewerActivity
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
@@ -188,6 +189,8 @@ private fun ConsolesSettings(
     isSaveSyncSupported: Boolean,
     navController: NavController,
 ) {
+    val context = LocalContext.current
+
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_consoles)) },
     ) {
@@ -228,6 +231,13 @@ private fun ConsolesSettings(
                 Text(text = stringResource(id = R.string.settings_description_advanced_settings))
             },
             onClick = { navController.navigateToRoute(MainRoute.SETTINGS_ADVANCED) },
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_log_viewer)) },
+            subtitle = {
+                Text(text = stringResource(id = R.string.settings_description_log_viewer))
+            },
+            onClick = { context.startActivity(Intent(context, LogViewerActivity::class.java)) },
         )
 
     }

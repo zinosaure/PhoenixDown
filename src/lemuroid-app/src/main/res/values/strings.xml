@@ -431,6 +431,14 @@
     <string name="tv_smb_profile_description">Save a reusable SMB server login for TV settings.</string>
     <string name="tv_smb_profile_configured_successfully">SMB login saved successfully</string>
     <string name="tv_smb_saved_login_empty">No saved SMB login available yet</string>
+    <string name="settings_title_log_viewer">Log viewer</string>
+    <string name="settings_description_log_viewer">View recent Timber logs captured by the app.</string>
+    <string name="settings_logs_refresh">Refresh</string>
+    <string name="settings_logs_copy">Copy</string>
+    <string name="settings_logs_clear">Clear</string>
+    <string name="settings_logs_empty">No logs captured yet.</string>
+    <string name="settings_logs_copied">Logs copied to clipboard</string>
+    <string name="settings_logs_cleared">Logs cleared</string>
 
     <!-- Catalog screen -->
     <string name="catalog_filter_cloud">Archive.org</string>

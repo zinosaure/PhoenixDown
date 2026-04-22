@@ -32,4 +32,12 @@
     <string name="tv_smb_profile_description">Enregistrez un login SMB réutilisable pour les réglages TV.</string>
     <string name="tv_smb_profile_configured_successfully">Connexion SMB enregistrée avec succès</string>
     <string name="tv_smb_saved_login_empty">Aucune connexion SMB enregistrée pour le moment</string>
+    <string name="settings_title_log_viewer">Visualiseur de logs</string>
+    <string name="settings_description_log_viewer">Voir les logs Timber récents capturés par cette application.</string>
+    <string name="settings_logs_refresh">Actualiser</string>
+    <string name="settings_logs_copy">Copier</string>
+    <string name="settings_logs_clear">Effacer</string>
+    <string name="settings_logs_empty">Aucun log capturé pour le moment.</string>
+    <string name="settings_logs_copied">Logs copiés dans le presse-papiers</string>
+    <string name="settings_logs_cleared">Logs effacés</string>
 </resources>

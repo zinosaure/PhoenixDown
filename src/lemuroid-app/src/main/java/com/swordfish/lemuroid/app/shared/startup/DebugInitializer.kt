@@ -4,12 +4,19 @@ import android.content.Context
 import android.os.StrictMode
 import androidx.startup.Initializer
 import com.swordfish.lemuroid.BuildConfig
+import com.swordfish.lemuroid.app.shared.logs.InAppLogTree
 import timber.log.Timber
 
 class DebugInitializer : Initializer<Unit> {
     override fun create(context: Context) {
+        if (Timber.forest().none { it is InAppLogTree }) {
+            Timber.plant(InAppLogTree())
+        }
+
         if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+            if (Timber.forest().none { it is Timber.DebugTree }) {
+                Timber.plant(Timber.DebugTree())
+            }
             enableStrictMode()
         }
     }

@@ -167,6 +167,11 @@
             android:theme="@style/LemuroidMaterialTheme" />
 
         <activity
+            android:name=".app.shared.logs.LogViewerActivity"
+            android:label="@string/settings_title_log_viewer"
+            android:theme="@style/LemuroidMaterialTheme" />
+
+        <activity
             android:name=".app.tv.settings.manual.TVManualActivity"
             android:label="@string/settings_title_manual"
             android:theme="@style/LemuroidLeanbackTheme" />
