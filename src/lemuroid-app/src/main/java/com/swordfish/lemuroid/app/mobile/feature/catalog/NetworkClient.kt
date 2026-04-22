@@ -41,8 +41,9 @@ class NetworkClient(
             else smbClient.testConnection(server, shareName, credentials).map { Unit }
         }
         NetworkProtocol.SFTP -> testSftpConnection(server, credentials)
-        NetworkProtocol.WEBDAV -> testWebDavConnection(server, path, credentials, useSsl = true)
-        NetworkProtocol.WEBDAV_HTTP -> testWebDavConnection(server, path, credentials, useSsl = false)
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> Result.failure(UnsupportedOperationException("WebDAV is disabled in pre-release-v2.0"))
     }
 
     suspend fun listDirectories(
@@ -62,8 +63,9 @@ class NetworkClient(
             }
         }
         NetworkProtocol.SFTP -> listSftpDirectories(server, path, credentials)
-        NetworkProtocol.WEBDAV -> listWebDavDirectories(server, path, credentials, useSsl = true)
-        NetworkProtocol.WEBDAV_HTTP -> listWebDavDirectories(server, path, credentials, useSsl = false)
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> Result.failure(UnsupportedOperationException("WebDAV is disabled in pre-release-v2.0"))
     }
 
     suspend fun listFiles(
@@ -92,8 +94,9 @@ class NetworkClient(
             }
         }
         NetworkProtocol.SFTP -> listSftpFiles(server, path, credentials)
-        NetworkProtocol.WEBDAV -> listWebDavFiles(server, path, credentials, useSsl = true)
-        NetworkProtocol.WEBDAV_HTTP -> listWebDavFiles(server, path, credentials, useSsl = false)
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> Result.failure(UnsupportedOperationException("WebDAV is disabled in pre-release-v2.0"))
     }
 
     suspend fun readFileBytes(
@@ -104,8 +107,9 @@ class NetworkClient(
     ): Result<ByteArray> = when (protocol) {
         NetworkProtocol.SMB -> readSmbFileBytes(server, path, credentials)
         NetworkProtocol.SFTP -> readSftpFileBytes(server, path, credentials)
-        NetworkProtocol.WEBDAV -> readWebDavFileBytes(server, path, credentials, useSsl = true)
-        NetworkProtocol.WEBDAV_HTTP -> readWebDavFileBytes(server, path, credentials, useSsl = false)
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> Result.failure(UnsupportedOperationException("WebDAV is disabled in pre-release-v2.0"))
     }
 
     suspend fun deleteFile(
@@ -116,8 +120,9 @@ class NetworkClient(
     ): Result<Unit> = when (protocol) {
         NetworkProtocol.SMB -> Result.failure(UnsupportedOperationException("SMB delete not supported by NetworkClient"))
         NetworkProtocol.SFTP -> deleteSftpFile(server, path, credentials)
-        NetworkProtocol.WEBDAV -> deleteWebDavFile(server, path, credentials, useSsl = true)
-        NetworkProtocol.WEBDAV_HTTP -> deleteWebDavFile(server, path, credentials, useSsl = false)
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> Result.failure(UnsupportedOperationException("WebDAV is disabled in pre-release-v2.0"))
     }
 
     private suspend fun testSftpConnection(server: String, credentials: NetworkCredentials?): Result<Unit> = withContext(Dispatchers.IO) {

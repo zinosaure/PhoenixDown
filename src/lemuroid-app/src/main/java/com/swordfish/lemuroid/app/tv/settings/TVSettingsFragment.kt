@@ -339,8 +339,9 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                     when (profile.protocol) {
                         NetworkProtocol.SMB -> R.string.network_protocol_smb
                         NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                        NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-                        NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+                        NetworkProtocol.WEBDAV,
+                        NetworkProtocol.WEBDAV_HTTP,
+                        -> R.string.network_protocol_smb
                     },
                 )
                 summary = if (profile.username.isNotBlank()) {

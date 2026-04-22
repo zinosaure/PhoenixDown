@@ -465,14 +465,13 @@ class RomDownloader(
             val uri = URI(dest.path)
             val protocol = when (uri.scheme?.lowercase()) {
                 "sftp" -> NetworkProtocol.SFTP
-                "davs" -> NetworkProtocol.WEBDAV
-                "dav" -> NetworkProtocol.WEBDAV_HTTP
                 else -> NetworkProtocol.SMB
             }
 
             val server = when (protocol) {
                 NetworkProtocol.SMB, NetworkProtocol.SFTP,
-                NetworkProtocol.WEBDAV, NetworkProtocol.WEBDAV_HTTP -> {
+                NetworkProtocol.WEBDAV, NetworkProtocol.WEBDAV_HTTP,
+                -> {
                     val host = uri.host.orEmpty()
                     if (host.isBlank()) return
                     val port = uri.port
@@ -737,8 +736,6 @@ class RomDownloader(
             val sourceUri = URI(source.path)
             val protocol = when (sourceUri.scheme?.lowercase()) {
                 "sftp" -> NetworkProtocol.SFTP
-                "davs" -> NetworkProtocol.WEBDAV
-                "dav" -> NetworkProtocol.WEBDAV_HTTP
                 else -> NetworkProtocol.SMB
             }
             val host = sourceUri.host.orEmpty()

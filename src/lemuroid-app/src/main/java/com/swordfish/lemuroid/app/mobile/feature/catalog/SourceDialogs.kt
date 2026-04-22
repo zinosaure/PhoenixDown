@@ -197,8 +197,6 @@ fun NetworkConfigForm(
                 val expectedProtocol = when (parsedUri.scheme?.lowercase()) {
                     "smb" -> NetworkProtocol.SMB
                     "sftp" -> NetworkProtocol.SFTP
-                    "davs" -> NetworkProtocol.WEBDAV
-                    "dav" -> NetworkProtocol.WEBDAV_HTTP
                     else -> null
                 }
                 val expectedUsername = editSource.credentials?.username ?: ""
@@ -275,8 +273,9 @@ fun NetworkConfigForm(
                             when (profile.protocol) {
                                 NetworkProtocol.SMB -> R.string.network_protocol_smb
                                 NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                                NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-                                NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+                                NetworkProtocol.WEBDAV,
+                                NetworkProtocol.WEBDAV_HTTP,
+                                -> R.string.network_protocol_smb
                             },
                         )
                         Text(
@@ -424,8 +423,9 @@ fun NetworkConfigForm(
                                 when (profile.protocol) {
                                     NetworkProtocol.SMB -> R.string.network_protocol_smb
                                     NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-                                    NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+                                    NetworkProtocol.WEBDAV,
+                                    NetworkProtocol.WEBDAV_HTTP,
+                                    -> R.string.network_protocol_smb
                                 },
                             )
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -495,8 +495,9 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     val scheme = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "davs"
-        NetworkProtocol.WEBDAV_HTTP -> "dav"
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> "smb"
     }
     return "$scheme://$server$normalizedPath"
 }

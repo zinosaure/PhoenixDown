@@ -34,6 +34,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
     private lateinit var pathLabel: TextView
     
     private lateinit var savedLoginButton: Button
+    private lateinit var displayNameLabel: TextView
+    private lateinit var displayNameInput: EditText
     private lateinit var protocolLabel: TextView
     private lateinit var protocolSpinner: Spinner
     private lateinit var serverInput: EditText
@@ -47,6 +49,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
     private val networkLoginProfileRepository by lazy { NetworkLoginProfileRepository(this) }
     private val networkClient by lazy { NetworkClient(com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient()) }
     private var selectedProtocol: NetworkProtocol = NetworkProtocol.SMB
+    private var selectedProfileId: String? = null
 
     private val mode: String by lazy {
         intent.getStringExtra(EXTRA_MODE) ?: MODE_LIBRARY
@@ -69,6 +72,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
         descriptionText = findViewById(R.id.network_description_text)
         pathLabel = findViewById(R.id.network_path_label)
         savedLoginButton = findViewById(R.id.network_saved_login_button)
+        displayNameLabel = findViewById(R.id.network_display_name_label)
+        displayNameInput = findViewById(R.id.network_display_name_input)
         protocolLabel = findViewById(R.id.network_protocol_label)
         protocolSpinner = findViewById(R.id.network_protocol_spinner)
         serverInput = findViewById(R.id.network_server_input)
@@ -125,7 +130,10 @@ class TVNetworkConfigActivity : FragmentActivity() {
 
     private fun configureVisibilityForMode() {
         val isProfileMode = mode == MODE_PROFILE
+        val isLibraryMode = mode == MODE_LIBRARY || mode == MODE_EDIT_SOURCE
         savedLoginButton.visibility = if (isProfileMode) View.GONE else View.VISIBLE
+        displayNameLabel.visibility = if (isLibraryMode) View.VISIBLE else View.GONE
+        displayNameInput.visibility = if (isLibraryMode) View.VISIBLE else View.GONE
         pathLabel.visibility = if (isProfileMode) View.GONE else View.VISIBLE
         pathInput.visibility = if (isProfileMode) View.GONE else View.VISIBLE
         protocolLabel.visibility = if (isProfileMode) View.VISIBLE else View.GONE
@@ -137,7 +145,6 @@ class TVNetworkConfigActivity : FragmentActivity() {
         val labels = listOf(
             getString(R.string.network_protocol_smb),
             getString(R.string.network_protocol_sftp),
-            getString(R.string.network_protocol_webdav),
         )
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -147,7 +154,6 @@ class TVNetworkConfigActivity : FragmentActivity() {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedProtocol = when (position) {
                     1 -> NetworkProtocol.SFTP
-                    2 -> NetworkProtocol.WEBDAV
                     else -> NetworkProtocol.SMB
                 }
             }
@@ -170,6 +176,17 @@ class TVNetworkConfigActivity : FragmentActivity() {
                 pathInput.setText(normalizePath(parsed.path))
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, ""))
+                selectedProfileId = prefs.getString(SharedPreferencesHelper.KEY_SAVE_NETWORK_PROFILE_ID, "")?.ifBlank { null }
+                selectedProfileId?.let { id ->
+                    networkLoginProfileRepository.getProfiles().firstOrNull { it.id == id }?.let { profile ->
+                        selectedProtocol = profile.protocol
+                        val (profileHost, profilePort) = splitHostAndPort(profile.server)
+                        serverInput.setText(profileHost)
+                        portInput.setText(profilePort)
+                        usernameInput.setText(profile.username)
+                        passwordInput.setText(profile.password)
+                    }
+                }
             }
             MODE_DOWNLOAD -> {
                 val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
@@ -181,6 +198,17 @@ class TVNetworkConfigActivity : FragmentActivity() {
                 pathInput.setText(normalizePath(parsed.path))
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, ""))
+                selectedProfileId = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_NETWORK_PROFILE_ID, "")?.ifBlank { null }
+                selectedProfileId?.let { id ->
+                    networkLoginProfileRepository.getProfiles().firstOrNull { it.id == id }?.let { profile ->
+                        selectedProtocol = profile.protocol
+                        val (profileHost, profilePort) = splitHostAndPort(profile.server)
+                        serverInput.setText(profileHost)
+                        portInput.setText(profilePort)
+                        usernameInput.setText(profile.username)
+                        passwordInput.setText(profile.password)
+                    }
+                }
             }
             MODE_PROFILE -> {
                 val profile = networkLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
@@ -195,7 +223,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
                         NetworkProtocol.SMB -> 0
                         NetworkProtocol.SFTP -> 1
                         NetworkProtocol.WEBDAV,
-                        NetworkProtocol.WEBDAV_HTTP -> 2
+                        NetworkProtocol.WEBDAV_HTTP,
+                        -> 0
                     },
                 )
             }
@@ -211,6 +240,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
                     pathInput.setText(normalizePath(parsed.path))
                     usernameInput.setText(source.credentials?.username.orEmpty())
                     passwordInput.setText(source.credentials?.password.orEmpty())
+                    displayNameInput.setText(source.name)
+                    selectedProfileId = source.networkProfileId
                 }
             }
             else -> {
@@ -231,6 +262,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
 
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, ""))
+                val defaultName = savedServer.substringBefore(':').ifBlank { getString(R.string.network_protocol_smb) }
+                displayNameInput.setText(defaultName)
             }
         }
     }
@@ -248,8 +281,9 @@ class TVNetworkConfigActivity : FragmentActivity() {
                 when (profile.protocol) {
                     NetworkProtocol.SMB -> R.string.network_protocol_smb
                     NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-                    NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+                    NetworkProtocol.WEBDAV,
+                    NetworkProtocol.WEBDAV_HTTP,
+                    -> R.string.network_protocol_smb
                 },
             )
             if (profile.username.isNotBlank()) {
@@ -275,12 +309,14 @@ class TVNetworkConfigActivity : FragmentActivity() {
         usernameInput.setText(profile.username)
         passwordInput.setText(profile.password)
         selectedProtocol = profile.protocol
+        selectedProfileId = profile.id
         protocolSpinner.setSelection(
             when (profile.protocol) {
                 NetworkProtocol.SMB -> 0
                 NetworkProtocol.SFTP -> 1
                 NetworkProtocol.WEBDAV,
-                NetworkProtocol.WEBDAV_HTTP -> 2
+                NetworkProtocol.WEBDAV_HTTP,
+                -> 0
             },
         )
         statusText.visibility = View.GONE
@@ -329,8 +365,13 @@ class TVNetworkConfigActivity : FragmentActivity() {
     private fun saveAndFinish() {
         val server = buildServerAddress()
         val fullPath = normalizePath(pathInput.text.toString().trim())
+        val displayName = displayNameInput.text.toString().trim()
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
+
+        if (mode != MODE_PROFILE) {
+            selectedProfileId = ensureProfileForConnection(server, username, password, selectedProtocol)
+        }
 
         if (mode == MODE_PROFILE) {
             if (server.isBlank()) {
@@ -382,7 +423,14 @@ class TVNetworkConfigActivity : FragmentActivity() {
             val existing = repo.getCustomSources().firstOrNull { it.id == sourceId }
             if (existing != null) {
                 val credentials = if (username.isNotBlank()) NetworkCredentials(username, password) else null
-                repo.updateSource(existing.copy(path = networkUri, credentials = credentials))
+                repo.updateSource(
+                    existing.copy(
+                        name = if (displayName.isNotBlank()) displayName else existing.name,
+                        path = networkUri,
+                        credentials = credentials,
+                        networkProfileId = selectedProfileId,
+                    ),
+                )
                 rememberLogin(server, username, password)
                 com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(this)
                 Toast.makeText(this, getString(R.string.tv_network_configured_successfully), Toast.LENGTH_SHORT).show()
@@ -398,6 +446,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
                     putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, networkUri)
                     putString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, username)
                     putString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, password)
+                    putString(SharedPreferencesHelper.KEY_SAVE_NETWORK_PROFILE_ID, selectedProfileId.orEmpty())
                     apply()
                 }
                 rememberLogin(server, username, password)
@@ -408,6 +457,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, networkUri)
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, username)
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, password)
+                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_NETWORK_PROFILE_ID, selectedProfileId.orEmpty())
                     apply()
                 }
                 rememberLogin(server, username, password)
@@ -432,6 +482,19 @@ class TVNetworkConfigActivity : FragmentActivity() {
                     apply()
                 }
 
+                val sourceName = if (displayName.isNotBlank()) displayName else server.substringBefore(':').ifBlank { getString(R.string.network_protocol_smb) }
+                val credentials = if (username.isNotBlank()) NetworkCredentials(username, password) else null
+                val sourceRepo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+                sourceRepo.addSource(
+                    com.swordfish.lemuroid.lib.storage.source.RomSource(
+                        type = com.swordfish.lemuroid.lib.storage.source.SourceType.SMB,
+                        name = sourceName,
+                        path = networkUri,
+                        credentials = credentials,
+                        networkProfileId = selectedProfileId,
+                    ),
+                )
+
                 if (mode == MODE_PROFILE) {
                     rememberLogin(server, username, password)
                 }
@@ -440,6 +503,37 @@ class TVNetworkConfigActivity : FragmentActivity() {
             }
         }
         finish()
+    }
+
+    private fun ensureProfileForConnection(
+        server: String,
+        username: String,
+        password: String,
+        protocol: NetworkProtocol,
+    ): String? {
+        if (server.isBlank()) return null
+
+        val existing = networkLoginProfileRepository.getProfiles().firstOrNull {
+            it.protocol == protocol &&
+                it.server.equals(server, ignoreCase = true) &&
+                it.username == username
+        }
+        if (existing != null) {
+            if (existing.password != password) {
+                networkLoginProfileRepository.addOrUpdateProfile(existing.copy(password = password))
+            }
+            return existing.id
+        }
+
+        val created = NetworkLoginProfile(
+            name = server.substringBefore(':').ifBlank { server },
+            protocol = protocol,
+            server = server,
+            username = username,
+            password = password,
+        )
+        networkLoginProfileRepository.addOrUpdateProfile(created)
+        return created.id
     }
 
     private fun rememberLogin(server: String, username: String, password: String) {
@@ -487,8 +581,6 @@ class TVNetworkConfigActivity : FragmentActivity() {
 
         val protocol = when (parsed.scheme?.lowercase()) {
             "sftp" -> NetworkProtocol.SFTP
-            "davs" -> NetworkProtocol.WEBDAV
-            "dav" -> NetworkProtocol.WEBDAV_HTTP
             else -> NetworkProtocol.SMB
         }
         val authority = parsed.authority.orEmpty()
@@ -498,8 +590,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
 
     private fun isNetworkUri(uri: String): Boolean {
         val lower = uri.lowercase()
-        return lower.startsWith("smb://") || lower.startsWith("sftp://") ||
-            lower.startsWith("dav://") || lower.startsWith("davs://")
+        return lower.startsWith("smb://") || lower.startsWith("sftp://")
     }
 
     private fun buildServerAddress(): String {
@@ -542,8 +633,9 @@ class TVNetworkConfigActivity : FragmentActivity() {
         val scheme = when (protocol) {
             NetworkProtocol.SMB -> "smb"
             NetworkProtocol.SFTP -> "sftp"
-            NetworkProtocol.WEBDAV -> "davs"
-            NetworkProtocol.WEBDAV_HTTP -> "dav"
+            NetworkProtocol.WEBDAV,
+            NetworkProtocol.WEBDAV_HTTP,
+            -> "smb"
         }
         return "$scheme://$server$normalizedPath"
     }

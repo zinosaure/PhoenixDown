@@ -19,7 +19,7 @@ import com.swordfish.lemuroid.lib.storage.source.SourceType
  *  - `"content://…"`       → [SafSavesStorage]  (SAF folder chosen by the user)
  *  - `"smb://…"`           → [SmbSavesStorage]  (SMB share)
  *  - `"sftp://…"`          → [SftpSavesStorage] (SFTP server)
-    *  - network (profile-based) → [SmbSavesStorage] / [SftpSavesStorage] / [WebDavSavesStorage]
+    *  - network (profile-based) → [SmbSavesStorage] / [SftpSavesStorage]
  *
  * [resolve] is called on every save/state operation so that a preference change is
  * immediately effective without requiring a restart.
@@ -39,8 +39,9 @@ class SavesStorageResolver(
     private fun schemeForProtocol(protocol: NetworkProtocol): String = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "davs"
-        NetworkProtocol.WEBDAV_HTTP -> "dav"
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> "smb"
     }
 
     private fun normalizeUriForProtocol(uri: String, protocol: NetworkProtocol): String {
@@ -85,21 +86,9 @@ class SavesStorageResolver(
                         )
                     }
 
-                    NetworkProtocol.WEBDAV -> {
-                        val davUri = normalizeUriForProtocol(loc, NetworkProtocol.WEBDAV)
-                        WebDavSavesStorage(
-                            RomSource(type = SourceType.SMB, name = "Saves", path = davUri, id = "_save", credentials = credentials),
-                            useSsl = true,
-                        )
-                    }
-
-                    NetworkProtocol.WEBDAV_HTTP -> {
-                        val davUri = normalizeUriForProtocol(loc, NetworkProtocol.WEBDAV_HTTP)
-                        WebDavSavesStorage(
-                            RomSource(type = SourceType.SMB, name = "Saves", path = davUri, id = "_save", credentials = credentials),
-                            useSsl = false,
-                        )
-                    }
+                    NetworkProtocol.WEBDAV,
+                    NetworkProtocol.WEBDAV_HTTP,
+                    -> throw IllegalStateException("WebDAV save location is disabled in pre-release-v2.0")
                 }
             }
         }

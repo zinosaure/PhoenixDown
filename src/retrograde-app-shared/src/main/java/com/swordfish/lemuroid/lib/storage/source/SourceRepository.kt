@@ -80,8 +80,7 @@ class SourceRepository(private val context: Context) {
     private fun validateNetworkSource(source: RomSource) {
         if (source.type != SourceType.SMB) return
         val lowerPath = source.path.lowercase()
-        val isNetworkPath = lowerPath.startsWith("smb://") || lowerPath.startsWith("sftp://") ||
-            lowerPath.startsWith("dav://") || lowerPath.startsWith("davs://")
+        val isNetworkPath = lowerPath.startsWith("smb://") || lowerPath.startsWith("sftp://")
         if (isNetworkPath && source.networkProfileId.isNullOrBlank()) {
             throw IllegalArgumentException("networkProfileId is required for network source: ${source.path}")
         }
@@ -120,7 +119,7 @@ class SourceRepository(private val context: Context) {
     fun findSourceForUri(fileUri: String): RomSource? {
         val uri = try { Uri.parse(fileUri) } catch (_: Exception) { return null }
         return when (uri.scheme?.lowercase()) {
-            "smb", "sftp", "dav", "davs" -> {
+            "smb", "sftp" -> {
                 val expectedScheme = uri.scheme?.lowercase()
                 val gamePathCandidates = normalizedNetworkPathCandidates(uri)
                 getCustomSources()
@@ -261,12 +260,45 @@ class SourceRepository(private val context: Context) {
     }
 
     private fun hasSameNetworkAuthority(source: Uri, target: Uri): Boolean {
-        val sourceAuthority = source.authority?.trim().orEmpty()
-        val targetAuthority = target.authority?.trim().orEmpty()
-        if (sourceAuthority.isNotBlank() && targetAuthority.isNotBlank()) {
-            return sourceAuthority.equals(targetAuthority, ignoreCase = true)
+        val sourceAuthority = parseAuthority(source)
+        val targetAuthority = parseAuthority(target)
+
+        if (sourceAuthority.host.isBlank() || targetAuthority.host.isBlank()) return false
+        if (!sourceAuthority.host.equals(targetAuthority.host, ignoreCase = true)) return false
+
+        return sourceAuthority.port == null ||
+            targetAuthority.port == null ||
+            sourceAuthority.port == targetAuthority.port
+    }
+
+    private data class AuthorityParts(val host: String, val port: Int?)
+
+    private fun parseAuthority(uri: Uri): AuthorityParts {
+        val hostFromApi = uri.host?.trim().orEmpty()
+        val portFromApi = uri.port.takeIf { it >= 0 }
+        if (hostFromApi.isNotBlank()) {
+            return AuthorityParts(hostFromApi, portFromApi)
         }
-        return source.host.equals(target.host, ignoreCase = true)
+
+        val raw = uri.authority?.trim().orEmpty()
+        if (raw.isBlank()) return AuthorityParts("", null)
+
+        val noUserInfo = raw.substringAfterLast('@').trim()
+        if (noUserInfo.startsWith("[") && noUserInfo.contains("]")) {
+            val closing = noUserInfo.indexOf(']')
+            val host = noUserInfo.substring(1, closing)
+            val port = noUserInfo.substring(closing + 1).removePrefix(":").toIntOrNull()
+            return AuthorityParts(host, port)
+        }
+
+        val colon = noUserInfo.lastIndexOf(':')
+        if (colon > 0) {
+            val host = noUserInfo.substring(0, colon)
+            val port = noUserInfo.substring(colon + 1).toIntOrNull()
+            return AuthorityParts(host, port)
+        }
+
+        return AuthorityParts(noUserInfo, null)
     }
 
     private fun normalizedNetworkPathCandidates(uri: Uri): List<String> {

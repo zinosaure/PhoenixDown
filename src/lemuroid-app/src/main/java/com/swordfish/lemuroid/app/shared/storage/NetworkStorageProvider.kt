@@ -31,7 +31,7 @@ class NetworkStorageProvider(
 
     override val name: String = context.getString(R.string.smb_storage)
 
-    override val uriSchemes: List<String> = listOf("sftp", "dav", "davs")
+    override val uriSchemes: List<String> = listOf("sftp")
 
     override val prefsFragmentClass: Class<LeanbackPreferenceFragment>? = null
 
@@ -144,7 +144,7 @@ class NetworkStorageProvider(
                 val uri = runCatching { Uri.parse(source.path) }.getOrNull() ?: return@mapNotNull null
                 val profile = source.networkProfileId?.let { profilesById[it] } ?: return@mapNotNull null
                 val protocol = profile.protocol
-                if (protocol != NetworkProtocol.SFTP && protocol != NetworkProtocol.WEBDAV && protocol != NetworkProtocol.WEBDAV_HTTP) {
+                if (protocol != NetworkProtocol.SFTP) {
                     return@mapNotNull null
                 }
 
@@ -161,8 +161,6 @@ class NetworkStorageProvider(
         val protocol =
             when (uri.scheme?.lowercase()) {
                 "sftp" -> NetworkProtocol.SFTP
-                "davs" -> NetworkProtocol.WEBDAV
-                "dav" -> NetworkProtocol.WEBDAV_HTTP
                 else -> return null
             }
         val authority = uri.authority ?: return null
@@ -185,8 +183,9 @@ class NetworkStorageProvider(
             when (protocol) {
                 NetworkProtocol.SMB -> "smb"
                 NetworkProtocol.SFTP -> "sftp"
-                NetworkProtocol.WEBDAV -> "davs"
-                NetworkProtocol.WEBDAV_HTTP -> "dav"
+                NetworkProtocol.WEBDAV,
+                NetworkProtocol.WEBDAV_HTTP,
+                -> "sftp"
             }
 
         return Uri.Builder()

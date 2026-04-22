@@ -904,8 +904,9 @@ private fun NetworkLoginProfileRow(
         when (profile.protocol) {
             NetworkProtocol.SMB -> R.string.network_protocol_smb
             NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-            NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-            NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+            NetworkProtocol.WEBDAV,
+            NetworkProtocol.WEBDAV_HTTP,
+            -> R.string.network_protocol_smb
         },
     )
     val details = if (profile.username.isNotBlank()) {
@@ -1005,7 +1006,7 @@ private fun NetworkLoginProfileForm(
             )
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    NetworkProtocol.entries.forEach { proto ->
+                    listOf(NetworkProtocol.SMB, NetworkProtocol.SFTP).forEach { proto ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1030,8 +1031,9 @@ private fun NetworkLoginProfileForm(
                                     when (proto) {
                                         NetworkProtocol.SMB -> R.string.network_protocol_smb
                                         NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                                        NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
-                                        NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
+                                        NetworkProtocol.WEBDAV,
+                                        NetworkProtocol.WEBDAV_HTTP,
+                                        -> R.string.network_protocol_smb
                                     },
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -1313,8 +1315,7 @@ private fun uriToReadablePath(context: android.content.Context, uri: String): St
 
 private fun isNetworkLocationUri(uri: String): Boolean {
     val lower = uri.lowercase()
-    return lower.startsWith("smb://") || lower.startsWith("sftp://") ||
-    lower.startsWith("dav://") || lower.startsWith("davs://")
+    return lower.startsWith("smb://") || lower.startsWith("sftp://")
 }
 
 private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
@@ -1322,8 +1323,9 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     val scheme = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "davs"
-        NetworkProtocol.WEBDAV_HTTP -> "dav"
+        NetworkProtocol.WEBDAV,
+        NetworkProtocol.WEBDAV_HTTP,
+        -> "smb"
     }
     return "$scheme://$server$normalizedPath"
 }
