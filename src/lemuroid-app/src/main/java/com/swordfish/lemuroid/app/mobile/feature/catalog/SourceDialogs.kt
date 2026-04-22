@@ -306,7 +306,11 @@ fun SmbConfigForm(
                         ConnectionTestState.Success(context.getString(R.string.sources_smb_connection_success))
                     } else {
                         ConnectionTestState.Error(
-                            result.exceptionOrNull()?.message ?: context.getString(R.string.sources_network_test_unknown_error),
+                            toFriendlyNetworkError(
+                                result.exceptionOrNull()?.message,
+                                profile.protocol,
+                                context.getString(R.string.sources_network_test_unknown_error),
+                            ),
                         )
                     }
 
@@ -335,13 +339,11 @@ fun SmbConfigForm(
                 onDismissRequest = { testMessageDialog = null },
                 title = {
                     Text(
-                        stringResource(
-                            if (connectionTestState is ConnectionTestState.Success) {
-                                R.string.sources_smb_connection_success
-                            } else {
-                                R.string.sources_smb_connection_failed
-                            },
-                        ),
+                        if (connectionTestState is ConnectionTestState.Success) {
+                            stringResource(R.string.sources_smb_connection_success)
+                        } else {
+                            stringResource(R.string.sources_network_test_failed_title)
+                        },
                     )
                 },
                 text = { Text(testMessageDialog.orEmpty()) },
@@ -445,12 +447,35 @@ fun SmbConfigForm(
     }
 }
 
+private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unknownError: String): String {
+    val message = raw?.trim().orEmpty()
+    if (message.isBlank()) return unknownError
+
+    val lower = message.lowercase()
+    return when {
+        lower.contains("requires username/password") || lower.contains("auth fail") || lower.contains("authentication") ->
+            "Identifiants invalides ou manquants pour ${protocol.name}."
+        lower.contains("missing smb share name") ->
+            "Aucun partage SMB n'est sélectionné. Ouvrez le navigateur de dossiers et choisissez d'abord un partage."
+        lower.contains("status_bad_network_name") || lower.contains("bad_network_name") ->
+            "Partage SMB introuvable. Vérifiez le nom du partage au début du chemin (ex: /games)."
+        lower.contains("timeout") ->
+            "Connexion expirée. Vérifiez l'adresse serveur, le port et le réseau."
+        else -> message
+    }
+}
 private fun SmbLoginProfile.toCredentials(): SmbCredentials? =
     if (username.isNotBlank()) {
         SmbCredentials(username, password)
     } else {
         null
     }
+
+private fun normalizePath(path: String): String {
+    val value = path.trim()
+    if (value.isBlank()) return "/"
+    return if (value.startsWith('/')) value else "/$value"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -498,7 +523,13 @@ private fun SmbPathBrowserDialog(
     var entries by remember(profile.id, currentPath) { mutableStateOf<List<SmbDirectoryEntry>>(emptyList()) }
     var isLoading by remember(profile.id, currentPath) { mutableStateOf(true) }
     var loadError by remember(profile.id, currentPath) { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
+    var autoResetToRootDone by remember(profile.id) { mutableStateOf(false) }
+
+    fun normalizePath(path: String): String {
+        val value = path.trim()
+        if (value.isBlank()) return "/"
+        return if (value.startsWith('/')) value else "/$value"
+    }
 
     fun splitPath(path: String): Pair<String?, String> {
         val segments = path.removePrefix("/").split('/').filter { it.isNotBlank() }
@@ -522,7 +553,7 @@ private fun SmbPathBrowserDialog(
         val result = networkClient.listDirectories(
             protocol = profile.protocol,
             server = profile.server,
-            path = currentPath,
+            path = normalizePath(currentPath),
             credentials = profile.toCredentials(),
         )
 
@@ -531,8 +562,15 @@ private fun SmbPathBrowserDialog(
             isLoading = false
         }.onFailure {
             entries = emptyList()
-            loadError = it.message
+            loadError = toFriendlyNetworkError(it.message, profile.protocol, "Erreur inconnue")
             isLoading = false
+
+            val raw = it.message?.lowercase().orEmpty()
+            if (!autoResetToRootDone && currentPath != "/" &&
+                (raw.contains("status_bad_network_name") || raw.contains("bad_network_name"))) {
+                autoResetToRootDone = true
+                currentPath = "/"
+            }
         }
     }
 
@@ -542,7 +580,7 @@ private fun SmbPathBrowserDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = currentPath,
+                    text = normalizePath(currentPath),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -600,7 +638,7 @@ private fun SmbPathBrowserDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSelect(currentPath) }, enabled = currentPath != "/") {
+            Button(onClick = { onSelect(normalizePath(currentPath)) }, enabled = currentPath != "/" && loadError == null) {
                 Text(stringResource(R.string.sources_choose_path))
             }
         },

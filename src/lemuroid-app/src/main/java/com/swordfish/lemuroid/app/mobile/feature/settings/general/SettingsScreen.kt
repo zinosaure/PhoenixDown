@@ -952,7 +952,7 @@ private fun SmbLoginProfileForm(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     NetworkProtocol.entries.forEach { proto ->
                         Row(
                             modifier = Modifier
@@ -961,7 +961,7 @@ private fun SmbLoginProfileForm(
                                     protocol = proto
                                     connectionTestState = ConnectionTestState.Idle
                                 }
-                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
@@ -1083,7 +1083,7 @@ private fun SmbLoginProfileForm(
                         ConnectionTestState.Success(successMessage)
                     } else {
                         ConnectionTestState.Error(
-                            result.exceptionOrNull()?.message ?: unknownErrorMessage,
+                            toFriendlyNetworkError(result.exceptionOrNull()?.message, protocol, unknownErrorMessage),
                         )
                     }
 
@@ -1112,13 +1112,11 @@ private fun SmbLoginProfileForm(
                 onDismissRequest = { testMessageDialog = null },
                 title = {
                     Text(
-                        stringResource(
-                            if (connectionTestState is ConnectionTestState.Success) {
-                                R.string.sources_smb_connection_success
-                            } else {
-                                R.string.sources_smb_connection_failed
-                            },
-                        ),
+                        if (connectionTestState is ConnectionTestState.Success) {
+                            stringResource(R.string.sources_smb_connection_success)
+                        } else {
+                            stringResource(R.string.sources_network_test_failed_title)
+                        },
                     )
                 },
                 text = { Text(testMessageDialog.orEmpty()) },
@@ -1164,6 +1162,24 @@ private fun SmbLoginProfileForm(
                 Text(stringResource(R.string.sources_save), maxLines = 1)
             }
         }
+    }
+}
+
+private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unknownError: String): String {
+    val message = raw?.trim().orEmpty()
+    if (message.isBlank()) return unknownError
+
+    val lower = message.lowercase()
+    return when {
+        lower.contains("requires username/password") || lower.contains("auth fail") || lower.contains("authentication") ->
+            "Identifiants invalides ou manquants pour ${protocol.name}."
+        lower.contains("missing smb share name") ->
+            "Aucun partage SMB n'est sélectionné. Ouvrez le navigateur de dossiers et choisissez d'abord un partage."
+        lower.contains("status_bad_network_name") || lower.contains("bad_network_name") ->
+            "Partage SMB introuvable. Vérifiez le nom du partage au début du chemin (ex: /games)."
+        lower.contains("timeout") ->
+            "Connexion expirée. Vérifiez l'adresse serveur, le port et le réseau."
+        else -> message
     }
 }
 

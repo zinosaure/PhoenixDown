@@ -29,7 +29,7 @@ class NetworkClient(
     ): Result<Unit> = when (protocol) {
         NetworkProtocol.SMB -> {
             val shareName = path.removePrefix("/").substringBefore("/")
-            if (shareName.isBlank()) Result.failure(IllegalArgumentException("Missing SMB share name in path"))
+            if (shareName.isBlank()) smbClient.testServerConnection(server, credentials)
             else smbClient.testConnection(server, shareName, credentials).map { Unit }
         }
         NetworkProtocol.SFTP -> testSftpConnection(server, credentials)

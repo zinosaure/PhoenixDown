@@ -430,6 +430,7 @@
     <string name="sources_network_browse_error">Unable to load folders: %1$s</string>
     <string name="sources_choose_path">Choose this path</string>
     <string name="sources_network_test_unsupported">Connection test is available for SMB only for now.</string>
+    <string name="sources_network_test_failed_title">Connection failed</string>
     <string name="sources_network_test_unknown_error">Unknown error</string>
     <string name="network_login_anonymous">Anonymous connection</string>
     <string name="sources_no_custom">No custom sources configured</string>

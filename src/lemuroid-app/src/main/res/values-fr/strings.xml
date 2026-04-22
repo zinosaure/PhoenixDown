@@ -37,6 +37,7 @@
     <string name="sources_network_browse_error">Impossible de charger les dossiers : %1$s</string>
     <string name="sources_choose_path">Choisir ce chemin</string>
     <string name="sources_network_test_unsupported">Le test de connexion est disponible uniquement pour SMB pour le moment.</string>
+    <string name="sources_network_test_failed_title">Connexion échouée</string>
     <string name="sources_network_test_unknown_error">Erreur inconnue</string>
     <string name="network_login_anonymous">Connexion anonyme</string>
 
