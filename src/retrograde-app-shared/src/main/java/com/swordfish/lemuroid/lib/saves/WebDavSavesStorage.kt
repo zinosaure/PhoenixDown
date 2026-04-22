@@ -10,6 +10,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import java.io.IOException
+import android.net.Uri
 
 class WebDavSavesStorage(
     private val source: RomSource,
@@ -22,10 +23,26 @@ class WebDavSavesStorage(
 
     private fun baseUrl(): String {
         val raw = source.path.trim().removeSuffix("/")
-        return when {
-            raw.startsWith("http://") || raw.startsWith("https://") -> raw
-            else -> if (useSsl) "https://$raw" else "http://$raw"
+        if (raw.startsWith("http://") || raw.startsWith("https://")) {
+            return raw
         }
+
+        val parsed = runCatching { Uri.parse(raw) }.getOrNull()
+        if (parsed != null && !parsed.scheme.isNullOrBlank() && !parsed.authority.isNullOrBlank()) {
+            val scheme = when (parsed.scheme?.lowercase()) {
+                "davs" -> "https"
+                "dav" -> "http"
+                else -> if (useSsl) "https" else "http"
+            }
+            val basePath = parsed.path.orEmpty().trimEnd('/')
+            return if (basePath.isBlank()) {
+                "$scheme://${parsed.authority}"
+            } else {
+                "$scheme://${parsed.authority}$basePath"
+            }
+        }
+
+        return if (useSsl) "https://$raw" else "http://$raw"
     }
 
     private fun fullUrl(savePath: String): String {

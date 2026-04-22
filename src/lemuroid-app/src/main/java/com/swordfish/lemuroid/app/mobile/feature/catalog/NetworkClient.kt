@@ -247,7 +247,7 @@ class NetworkClient(
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
-            val fullUrl = joinUrl(baseUrl, path)
+            val fullUrl = buildWebDavDirectoryUrl(baseUrl, path)
             val response = buildWebDavClient()
                 .newCall(
                     Request.Builder()
@@ -280,7 +280,7 @@ class NetworkClient(
     ): Result<List<NetworkDirectoryEntry>> = withContext(Dispatchers.IO) {
         runCatching {
             val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
-            val fullUrl = joinUrl(baseUrl, path)
+            val fullUrl = buildWebDavDirectoryUrl(baseUrl, path)
             val request = Request.Builder()
                 .url(fullUrl)
                 .method("PROPFIND", "".toRequestBody(null))
@@ -447,7 +447,7 @@ class NetworkClient(
     ) {
         if (depth > MAX_NETWORK_SCAN_DEPTH) return
 
-        val fullUrl = joinUrl(baseUrl, currentPath)
+        val fullUrl = buildWebDavDirectoryUrl(baseUrl, currentPath)
         val request = Request.Builder()
             .url(fullUrl)
             .method("PROPFIND", "".toRequestBody(null))
@@ -505,7 +505,15 @@ class NetworkClient(
             if (decodedPath.isBlank() || decodedPath.trimEnd('/') == basePath.trimEnd('/')) continue
 
             val collectionNode = findFirstDescendant(responseNode, "collection")
-            val isDirectory = collectionNode != null
+            val contentType = findFirstDescendant(responseNode, "getcontenttype")
+                ?.textContent
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+            // Some WebDAV servers omit <collection/>; fallback to href/content-type heuristics.
+            val isDirectory =
+                collectionNode != null || href.endsWith("/") ||
+                    contentType.contains("directory") || contentType == "httpd/unix-directory"
 
             val normalized = decodedPath.trimEnd('/')
             val name = normalized.substringAfterLast('/').ifBlank { normalized }
@@ -546,6 +554,16 @@ class NetworkClient(
     private fun joinUrl(base: String, path: String): String {
         val normalizedPath = if (path.isBlank() || path == "/") "" else path.removePrefix("/")
         return if (normalizedPath.isBlank()) base else "$base/$normalizedPath"
+    }
+
+    private fun buildWebDavDirectoryUrl(base: String, path: String): String {
+        val normalizedPath = normalizeAbsolutePath(path)
+        val url = joinUrl(base, normalizedPath)
+        return if (normalizedPath == "/") {
+            if (url.endsWith("/")) url else "$url/"
+        } else {
+            if (url.endsWith("/")) url else "$url/"
+        }
     }
 
     private fun normalizeAbsolutePath(path: String): String {
