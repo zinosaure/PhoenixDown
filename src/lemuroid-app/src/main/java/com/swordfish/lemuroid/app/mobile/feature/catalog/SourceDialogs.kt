@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,9 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -153,6 +159,8 @@ fun NetworkConfigForm(
     excludedProfileProtocols: Set<NetworkProtocol> = emptySet(),
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val pathRequester = remember { FocusRequester() }
     var name by remember { mutableStateOf(fixedDisplayName ?: editSource?.name ?: "") }
     var path by remember { mutableStateOf("/") }
     var selectedProfileId by remember { mutableStateOf<String?>(null) }
@@ -241,6 +249,8 @@ fun NetworkConfigForm(
                 placeholder = { Text(stringResource(R.string.sources_smb_display_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { requestFocusOrMove(pathRequester, focusManager) }),
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -289,8 +299,10 @@ fun NetworkConfigForm(
             },
             label = { Text(stringResource(R.string.sources_smb_path)) },
             placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(pathRequester),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
             supportingText = {
                 Text(stringResource(R.string.sources_network_path_hint))
             },
@@ -471,6 +483,11 @@ private fun normalizePath(path: String): String {
     val value = path.trim()
     if (value.isBlank()) return "/"
     return if (value.startsWith('/')) value else "/$value"
+}
+
+private fun requestFocusOrMove(requester: FocusRequester, focusManager: androidx.compose.ui.focus.FocusManager) {
+    runCatching { requester.requestFocus() }
+        .onFailure { focusManager.moveFocus(FocusDirection.Down) }
 }
 
 private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {

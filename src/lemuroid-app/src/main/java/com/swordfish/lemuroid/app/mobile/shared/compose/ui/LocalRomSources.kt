@@ -17,7 +17,7 @@ val LocalRomSources = compositionLocalOf<List<RomSource>> { emptyList() }
  * against the known sources provided via [LocalRomSources].
  *
  * Matching rules:
- *  - SMB: match by host
+ *  - Network (SMB/SFTP/WebDAV): match by scheme + host + longest path prefix
  *  - LOCAL (content://): decode and compare tree document ID prefix
  *  - file://: compare path prefix
  *
@@ -27,15 +27,17 @@ fun resolveSourceName(fileUri: String, sources: List<RomSource>): String? {
     if (sources.isEmpty()) return sourceBadgeFor(fileUri)
     val uri = try { Uri.parse(fileUri) } catch (_: Exception) { return null }
     return when (uri.scheme?.lowercase()) {
-        "smb" -> {
+        "smb", "sftp", "dav", "davs" -> {
+            val expectedScheme = uri.scheme?.lowercase()
             val host = uri.host ?: return "SMB"
             val gamePath = uri.path ?: ""
-            // Best match: SMB source on the same host whose path is the longest prefix of the game path.
+            // Best match: network source on the same scheme/host whose path is the longest prefix.
             // This correctly distinguishes two shares on the same NAS (e.g. /gba vs /snes).
             sources
                 .filter { it.type == SourceType.SMB }
                 .mapNotNull { src ->
                     val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
+                    if (srcUri.scheme?.lowercase() != expectedScheme) return@mapNotNull null
                     if (!srcUri.host.equals(host, ignoreCase = true)) return@mapNotNull null
                     val srcPath = srcUri.path ?: ""
                     if (gamePath.startsWith(srcPath)) src to srcPath.length else null

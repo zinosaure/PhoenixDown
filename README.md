@@ -97,11 +97,6 @@ The following updates were recently implemented in this fork:
     * Scan and index these libraries in parallel to reduce total import time.
     * Keep per-folder status and error reporting to make troubleshooting easier.
 
-*   **📦 Cover persistence on SMB / local storage:**
-    * Once a cover is downloaded, it will be saved alongside the ROMs (in a `.covers` subfolder) so it's available offline and reused on next launch without hitting the network again.
-    * For SMB libraries: covers will be uploaded directly to the share when write access is available.
-    * For local/SAF libraries: covers will be stored in the ROM directory or the SAF-selected folder.
-    * A settings row will display where covers are currently being stored.
 
 ---
 
@@ -118,6 +113,36 @@ The following updates were recently implemented in this fork:
     * non-blocking cover model resolution.
 
 *   Add/verify basic documentation for contributors.
+
+---
+
+## Sprint Status (April 2026)
+
+### Confirmed
+
+*   [x] WebDAV scan test: OK.
+*   [x] Multiple libraries using the same `networkProfileId`: OK.
+*   [x] Multi-source saves (SFTP + SMB): OK.
+*   [x] SFTP scan: works, but game ordering is still messy and needs sorting improvements.
+
+### Still To Test
+
+*   [ ] Saves with WebDAV + SMB + SFTP in mixed usage.
+*   [ ] Downloads after the latest network/sources refactor.
+
+### Bugs (Current Priority)
+
+*   [x] Source badge on game covers restored (origin visibility).
+*   [x] Duplicate source priority enforced: local source remains preferred over network sources.
+*   [x] Log viewer moved under `Advanced Settings` and viewer action buttons aligned with Material theme.
+*   [x] Network form fields now support Enter/Next navigation (focus moves to next field).
+
+### Next Steps
+
+*   [ ] Validate full TV flow after these changes.
+*   [ ] Run a broader refactor pass.
+*   [ ] Prepare v2.3 pre-release build.
+*   [ ] Add local network discovery to simplify source configuration.
 
 ---
 

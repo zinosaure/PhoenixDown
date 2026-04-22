@@ -77,6 +77,8 @@ fun sourceBadgeFor(fileUri: String): String? {
         val uri = Uri.parse(fileUri)
         when (uri.scheme?.lowercase()) {
             "smb" -> uri.host ?: "SMB"
+            "sftp" -> uri.host ?: "SFTP"
+            "davs", "dav" -> uri.host ?: "WebDAV"
             "content" -> "Local"
             "file" -> "Local"
             else -> null

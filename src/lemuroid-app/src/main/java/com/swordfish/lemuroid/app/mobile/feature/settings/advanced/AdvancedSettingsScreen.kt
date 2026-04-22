@@ -1,4 +1,5 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.advanced
+import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -17,6 +18,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
+import com.swordfish.lemuroid.app.shared.logs.LogViewerActivity
 import com.swordfish.lemuroid.app.shared.storage.cache.StorageCleanupManager
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
@@ -90,6 +92,7 @@ private fun SystemInteractionSettings() {
 
 @Composable
 private fun GeneralSettings() {
+    val context = LocalContext.current
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_general)) },
     ) {
@@ -102,6 +105,11 @@ private fun GeneralSettings() {
             state = booleanPreferenceState(R.string.pref_key_allow_direct_game_load, true),
             title = { Text(text = stringResource(id = R.string.settings_title_direct_game_load)) },
             subtitle = { Text(text = stringResource(id = R.string.settings_description_direct_game_load)) },
+        )
+        LemuroidSettingsMenuLink(
+            title = { Text(text = stringResource(id = R.string.settings_title_log_viewer)) },
+            subtitle = { Text(text = stringResource(id = R.string.settings_description_log_viewer)) },
+            onClick = { context.startActivity(Intent(context, LogViewerActivity::class.java)) },
         )
     }
 }

@@ -364,7 +364,7 @@ class LemuroidLibrary(
         }
 
         // Deduplication: compare by fileName (same ROM on two sources).
-        // Priority: LOCAL (content:// or file://) > SMB (smb://) > other.
+        // Priority: LOCAL (content:// or file://) > network (smb/sftp/webdav) > other.
         // If existing entry has lower priority than this one → promote it to the new URI.
         // Otherwise → skip, the higher-priority (or same) source already owns this game.
         if (game != null) {
@@ -386,11 +386,11 @@ class LemuroidLibrary(
         return buildScanEntry(groupedStorageFile, game, forcedSystemId)
     }
 
-    /** Higher value = higher priority. LOCAL beats SMB. */
+    /** Higher value = higher priority. LOCAL beats network sources. */
     private fun sourceUriPriority(fileUri: String): Int =
         when (Uri.parse(fileUri).scheme?.lowercase()) {
             "content", "file" -> 2  // local storage — fastest
-            "smb" -> 1              // network share
+            "smb", "sftp", "dav", "davs" -> 1 // network sources
             else -> 0               // archive.org / unknown
         }
 

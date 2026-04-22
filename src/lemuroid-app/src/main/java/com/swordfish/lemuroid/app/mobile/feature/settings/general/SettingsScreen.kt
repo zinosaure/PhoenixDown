@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -55,8 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,7 +82,6 @@ import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkConfigForm
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
-import com.swordfish.lemuroid.app.shared.logs.LogViewerActivity
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidCardSettingsGroup
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsList
 import com.swordfish.lemuroid.app.utils.android.settings.LemuroidSettingsMenuLink
@@ -243,13 +250,6 @@ private fun ConsolesSettings(
                 Text(text = stringResource(id = R.string.settings_description_advanced_settings))
             },
             onClick = { navController.navigateToRoute(MainRoute.SETTINGS_ADVANCED) },
-        )
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_title_log_viewer)) },
-            subtitle = {
-                Text(text = stringResource(id = R.string.settings_description_log_viewer))
-            },
-            onClick = { context.startActivity(Intent(context, LogViewerActivity::class.java)) },
         )
     }
 }
@@ -978,6 +978,11 @@ private fun NetworkLoginProfileForm(
     var testMessageDialog by remember(initialProfile) { mutableStateOf<String?>(null) }
     val networkClient = remember { NetworkClient(SmbClient()) }
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val serverRequester = remember { FocusRequester() }
+    val portRequester = remember { FocusRequester() }
+    val usernameRequester = remember { FocusRequester() }
+    val passwordRequester = remember { FocusRequester() }
     val successMessage = stringResource(R.string.sources_smb_connection_success)
     val unknownErrorMessage = stringResource(R.string.sources_network_test_unknown_error)
 
@@ -988,6 +993,8 @@ private fun NetworkLoginProfileForm(
             label = { Text(stringResource(R.string.sources_smb_display_name)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusRequesterOrMove(serverRequester, focusManager) }),
         )
 
         Column {
@@ -1043,8 +1050,10 @@ private fun NetworkLoginProfileForm(
                     connectionTestState = ConnectionTestState.Idle
                 },
                 label = { Text(stringResource(R.string.sources_smb_server)) },
-                modifier = Modifier.weight(3f),
+                modifier = Modifier.weight(3f).focusRequester(serverRequester),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusRequesterOrMove(portRequester, focusManager) }),
             )
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
@@ -1054,8 +1063,16 @@ private fun NetworkLoginProfileForm(
                     connectionTestState = ConnectionTestState.Idle
                 },
                 label = { Text(stringResource(R.string.sources_smb_port)) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(portRequester),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = if (isAnonymous) ImeAction.Done else ImeAction.Next,
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusRequesterOrMove(usernameRequester, focusManager) },
+                    onDone = { focusManager.clearFocus() },
+                ),
             )
         }
 
@@ -1084,8 +1101,10 @@ private fun NetworkLoginProfileForm(
                     connectionTestState = ConnectionTestState.Idle
                 },
                 label = { Text(stringResource(R.string.sources_smb_username_label)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(usernameRequester),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusRequesterOrMove(passwordRequester, focusManager) }),
             )
             OutlinedTextField(
                 value = password,
@@ -1094,8 +1113,10 @@ private fun NetworkLoginProfileForm(
                     connectionTestState = ConnectionTestState.Idle
                 },
                 label = { Text(stringResource(R.string.sources_smb_password_label)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordRequester),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
@@ -1209,6 +1230,11 @@ private fun NetworkLoginProfileForm(
             }
         }
     }
+}
+
+private fun focusRequesterOrMove(requester: FocusRequester, focusManager: androidx.compose.ui.focus.FocusManager) {
+    runCatching { requester.requestFocus() }
+        .onFailure { focusManager.moveFocus(FocusDirection.Down) }
 }
 
 private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unknownError: String): String {
