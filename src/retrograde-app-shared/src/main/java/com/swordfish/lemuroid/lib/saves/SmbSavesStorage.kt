@@ -5,6 +5,7 @@ import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -22,6 +23,10 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
 
     private val smbCredentials: SmbCredentials? = source.credentials?.let {
         SmbCredentials(it.username, it.password)
+    }
+
+    companion object {
+        private const val TAG = "SmbSavesStorage"
     }
 
     /** Parse the [RomSource] path (smb://server/share/subpath) into components. */
@@ -50,6 +55,9 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
         val remote = remotePath(savePath)
         val buffer = ByteArrayOutputStream()
         val result = smbClient.downloadFile(c.server, c.share, remote, buffer, smbCredentials)
+        if (result.isFailure) {
+            Timber.tag(TAG).w(result.exceptionOrNull(), "readBytes failed for smb://%s/%s/%s", c.server, c.share, remote)
+        }
         if (result.isSuccess && buffer.size() > 0) buffer.toByteArray() else null
     }
 
@@ -57,7 +65,11 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
         val c = coords()
         val remote = remotePath(savePath)
         bytes.inputStream().use { input ->
-            smbClient.uploadFile(c.server, c.share, remote, input, smbCredentials).getOrThrow()
+            smbClient.uploadFile(c.server, c.share, remote, input, smbCredentials)
+                .onFailure {
+                    Timber.tag(TAG).w(it, "writeBytes failed for smb://%s/%s/%s", c.server, c.share, remote)
+                }
+                .getOrThrow()
         }
         Unit
     }
@@ -72,6 +84,9 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
     override suspend fun delete(savePath: String) = withContext(Dispatchers.IO) {
         val c = coords()
         smbClient.deleteFile(c.server, c.share, remotePath(savePath), smbCredentials)
+            .onFailure {
+                Timber.tag(TAG).w(it, "delete failed for smb://%s/%s/%s", c.server, c.share, remotePath(savePath))
+            }
         Unit
     }
 
@@ -79,6 +94,9 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
         val c = coords()
         val remote = remotePath(directory).trimEnd('/')
         smbClient.listFilesRaw(c.server, c.share, remote, smbCredentials)
+            .onFailure {
+                Timber.tag(TAG).w(it, "list failed for smb://%s/%s/%s", c.server, c.share, remote)
+            }
             .getOrDefault(emptyList())
             .map { it.name }
     }

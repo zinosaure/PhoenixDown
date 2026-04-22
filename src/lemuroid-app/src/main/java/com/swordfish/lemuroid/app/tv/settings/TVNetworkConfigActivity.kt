@@ -432,7 +432,9 @@ class TVNetworkConfigActivity : FragmentActivity() {
                     apply()
                 }
 
-                rememberLogin(server, username, password)
+                if (mode == MODE_PROFILE) {
+                    rememberLogin(server, username, password)
+                }
                 LibraryIndexScheduler.scheduleLibrarySync(this)
                 Toast.makeText(this, getString(R.string.tv_network_configured_successfully), Toast.LENGTH_SHORT).show()
             }
@@ -449,41 +451,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
     }
 
     private fun seedExistingProfiles() {
-        val prefs = SharedPreferencesHelper.getSharedPreferences(this)
-        val sourceRepo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
-        sourceRepo.getCustomSources()
-            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
-            .forEach { source ->
-                val parsed = parseNetworkUri(source.path)
-                if (parsed.server.isNotBlank()) {
-                    networkLoginProfileRepository.rememberConnection(
-                        parsed.server,
-                        source.credentials,
-                        protocol = parsed.protocol,
-                    )
-                }
-            }
-
-        rememberLoginFromUri(
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "",
-        )
-        rememberLoginFromUri(
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "",
-        )
-    }
-
-    private fun rememberLoginFromUri(uri: String, username: String, password: String) {
-        val parsed = parseNetworkUri(uri)
-        if (parsed.server.isBlank()) return
-        networkLoginProfileRepository.rememberConnection(
-            parsed.server,
-            if (username.isNotBlank()) NetworkCredentials(username, password) else null,
-            protocol = parsed.protocol,
-        )
+        // Profiles are managed explicitly by the network manager.
     }
 
     private fun normalizePath(path: String): String {

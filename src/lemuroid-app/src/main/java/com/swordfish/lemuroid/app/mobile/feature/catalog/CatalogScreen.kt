@@ -557,12 +557,13 @@ fun CatalogScreen(
                 folderPickerLauncher.launch(null)
                 showAddSourceDialog = false
             },
-            onAddNetwork = { name, selectedProtocol, server, _, path, credentials ->
+            onAddNetwork = { name, selectedProtocol, server, _, path, credentials, profileId ->
                 val newSource = RomSource(
                     type = SourceType.SMB,
                     name = name,
                     path = buildNetworkLocationUri(selectedProtocol, server, path),
                     credentials = credentials,
+                    networkProfileId = profileId,
                 )
                 sourceManager.addSource(newSource)
                 sources = sourceManager.getSources()

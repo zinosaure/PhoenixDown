@@ -13,6 +13,8 @@ import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -36,6 +38,15 @@ class NetworkStorageProvider(
     override val enabledByDefault: Boolean = true
 
     private val networkClient = NetworkClient(SmbClient())
+    private val profileRepository = SmbLoginProfileRepository(context)
+
+    private fun credentialsFromProfile(profile: SmbLoginProfile): com.swordfish.lemuroid.lib.storage.source.SourceCredentials? {
+        return if (profile.username.isNotBlank()) {
+            com.swordfish.lemuroid.lib.storage.source.SourceCredentials(profile.username, profile.password)
+        } else {
+            null
+        }
+    }
 
     override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> = flow {
         val files = mutableListOf<BaseStorageFile>()
@@ -124,22 +135,24 @@ class NetworkStorageProvider(
     }
 
     private fun getNetworkSources(): List<NetworkSourceConfig> {
+        val profilesById = profileRepository.getProfiles().associateBy { it.id }
+
         return sourceRepository.getCustomSources()
             .asSequence()
             .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
             .mapNotNull { source ->
                 val uri = runCatching { Uri.parse(source.path) }.getOrNull() ?: return@mapNotNull null
-                val protocol =
-                    when (uri.scheme?.lowercase()) {
-                        "sftp" -> NetworkProtocol.SFTP
-                        "davs" -> NetworkProtocol.WEBDAV
-                        "dav" -> NetworkProtocol.WEBDAV_HTTP
-                        else -> null
-                    } ?: return@mapNotNull null
+                val profile = source.networkProfileId?.let { profilesById[it] } ?: return@mapNotNull null
+                val protocol = profile.protocol
+                if (protocol != NetworkProtocol.SFTP && protocol != NetworkProtocol.WEBDAV && protocol != NetworkProtocol.WEBDAV_HTTP) {
+                    return@mapNotNull null
+                }
 
                 val authority = uri.authority.orEmpty().ifBlank { return@mapNotNull null }
                 val basePath = uri.path.orEmpty().ifBlank { "/" }
-                NetworkSourceConfig(protocol, authority, basePath, source.credentials)
+                val credentials = credentialsFromProfile(profile)
+
+                NetworkSourceConfig(protocol, authority, basePath, credentials)
             }
             .toList()
     }

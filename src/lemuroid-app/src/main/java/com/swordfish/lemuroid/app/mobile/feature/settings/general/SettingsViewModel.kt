@@ -14,7 +14,6 @@ import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +22,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import android.net.Uri
 
 class SettingsViewModel(
     private val context: Context,
@@ -59,12 +57,6 @@ class SettingsViewModel(
     private val sourceRepository = SourceRepository(context)
     private val smbLoginProfileRepository = SmbLoginProfileRepository(context)
 
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            seedSmbLoginProfiles()
-        }
-    }
-
     /** Live list of user-configured ROM sources, auto-updated via in-process SharedFlow. */
     val sources: StateFlow<List<RomSource>> = sourceRepository.sourcesFlow()
         .flowOn(Dispatchers.IO)
@@ -77,7 +69,6 @@ class SettingsViewModel(
     fun addSource(source: RomSource) {
         viewModelScope.launch(Dispatchers.IO) {
             sourceRepository.addSource(source)
-            rememberSmbLogin(source.path, source.credentials)
             LibraryIndexScheduler.scheduleLibrarySync(context)
         }
     }
@@ -85,7 +76,6 @@ class SettingsViewModel(
     fun updateSource(source: RomSource) {
         viewModelScope.launch(Dispatchers.IO) {
             sourceRepository.updateSource(source)
-            rememberSmbLogin(source.path, source.credentials)
             LibraryIndexScheduler.scheduleLibrarySync(context)
         }
     }
@@ -125,6 +115,18 @@ class SettingsViewModel(
             .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
+    val saveLocationUsername: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    val saveLocationPassword: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
     val saveLocationProfileId: StateFlow<String> =
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_NETWORK_PROFILE_ID, "")
             .asFlow()
@@ -136,12 +138,23 @@ class SettingsViewModel(
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "").set(username)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "").set(password)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_NETWORK_PROFILE_ID, "").set(profileId.orEmpty())
-        rememberSmbLogin(uri, username, password)
     }
 
     /** Download location: RomSource ID. Empty = Android /Downloads. */
     val downloadSourceId: StateFlow<String> =
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    val downloadLocationUsername: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "")
+            .asFlow()
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    val downloadLocationPassword: StateFlow<String> =
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "")
             .asFlow()
             .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
@@ -157,7 +170,6 @@ class SettingsViewModel(
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "").set(username)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "").set(password)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_NETWORK_PROFILE_ID, "").set(profileId.orEmpty())
-        rememberSmbLogin(id, username, password)
     }
 
     fun addOrUpdateSmbLoginProfile(profile: SmbLoginProfile) {
@@ -170,47 +182,5 @@ class SettingsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             smbLoginProfileRepository.removeProfile(id)
         }
-    }
-
-    private fun rememberSmbLogin(uri: String, username: String, password: String) {
-        val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
-        rememberSmbLogin(uri, credentials)
-    }
-
-    private fun rememberSmbLogin(uri: String, credentials: SourceCredentials?) {
-        val lower = uri.lowercase()
-        if (!lower.startsWith("smb://") && !lower.startsWith("sftp://") && !lower.startsWith("dav://") && !lower.startsWith("davs://")) {
-            return
-        }
-        val authority = runCatching { Uri.parse(uri).authority }.getOrNull().orEmpty()
-        val protocol = when {
-            lower.startsWith("smb://") -> com.swordfish.lemuroid.lib.storage.source.NetworkProtocol.SMB
-            lower.startsWith("sftp://") -> com.swordfish.lemuroid.lib.storage.source.NetworkProtocol.SFTP
-            lower.startsWith("dav://") -> com.swordfish.lemuroid.lib.storage.source.NetworkProtocol.WEBDAV_HTTP
-            else -> com.swordfish.lemuroid.lib.storage.source.NetworkProtocol.WEBDAV
-        }
-        smbLoginProfileRepository.rememberConnection(authority, credentials, protocol)
-    }
-
-    private fun seedSmbLoginProfiles() {
-        sourceRepository.getCustomSources()
-            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
-            .forEach { source ->
-                rememberSmbLogin(source.path, source.credentials)
-            }
-
-        val prefs = SharedPreferencesHelper.getSharedPreferences(context)
-        rememberSmbLogin(
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "")?.takeIf { it.isNotBlank() }?.let {
-                SourceCredentials(it, prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "")
-            },
-        )
-        rememberSmbLogin(
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "")?.takeIf { it.isNotBlank() }?.let {
-                SourceCredentials(it, prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "")
-            },
-        )
     }
 }

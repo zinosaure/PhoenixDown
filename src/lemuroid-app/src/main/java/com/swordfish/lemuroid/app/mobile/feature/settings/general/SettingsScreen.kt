@@ -342,8 +342,12 @@ private fun RomsSettings(
     val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
     val saveLocationUri by viewModel.saveLocationUri.collectAsState()
+    val saveLocationUsername by viewModel.saveLocationUsername.collectAsState()
+    val saveLocationPassword by viewModel.saveLocationPassword.collectAsState()
     val saveLocationProfileId by viewModel.saveLocationProfileId.collectAsState()
     val downloadSourceId by viewModel.downloadSourceId.collectAsState()
+    val downloadLocationUsername by viewModel.downloadLocationUsername.collectAsState()
+    val downloadLocationPassword by viewModel.downloadLocationPassword.collectAsState()
     val downloadLocationProfileId by viewModel.downloadLocationProfileId.collectAsState()
 
     var pendingDeleteSource by remember { mutableStateOf<RomSource?>(null) }
@@ -601,7 +605,15 @@ private fun RomsSettings(
                     onDismiss = { showSaveSmbDialog = false },
                     onBack = { showSaveSmbDialog = false },
                     editSource = if (isNetworkLocationUri(saveLocationUri)) {
-                        RomSource(type = SourceType.SMB, name = "Sauvegardes", path = saveLocationUri, id = "_save")
+                        RomSource(
+                            type = SourceType.SMB,
+                            name = "Sauvegardes",
+                            path = saveLocationUri,
+                            id = "_save",
+                            credentials = saveLocationUsername.takeIf { it.isNotBlank() }?.let {
+                                NetworkCredentials(it, saveLocationPassword)
+                            },
+                        )
                     } else null,
                     preferredProfileId = saveLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,
@@ -629,7 +641,15 @@ private fun RomsSettings(
                     onDismiss = { showDownloadSmbDialog = false },
                     onBack = { showDownloadSmbDialog = false },
                     editSource = if (isNetworkLocationUri(downloadSourceId)) {
-                        RomSource(type = SourceType.SMB, name = "Téléchargements", path = downloadSourceId, id = "_dl")
+                        RomSource(
+                            type = SourceType.SMB,
+                            name = "Téléchargements",
+                            path = downloadSourceId,
+                            id = "_dl",
+                            credentials = downloadLocationUsername.takeIf { it.isNotBlank() }?.let {
+                                NetworkCredentials(it, downloadLocationPassword)
+                            },
+                        )
                     } else null,
                     preferredProfileId = downloadLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,

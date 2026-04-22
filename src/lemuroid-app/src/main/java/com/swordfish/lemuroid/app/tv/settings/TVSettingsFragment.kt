@@ -396,36 +396,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     private fun seedExistingNetworkLoginProfiles(repo: SmbLoginProfileRepository) {
-        val ctx = requireContext()
-        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
-        com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
-            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
-            .forEach { source ->
-                val authority = runCatching { Uri.parse(source.path).authority }.getOrNull().orEmpty()
-                repo.rememberConnection(authority, source.credentials)
-            }
-
-        rememberProfileFromUri(
-            repo,
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "",
-        )
-        rememberProfileFromUri(
-            repo,
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: "",
-            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "",
-        )
-    }
-
-    private fun rememberProfileFromUri(repo: SmbLoginProfileRepository, uri: String, username: String, password: String) {
-        if (!uri.startsWith("smb://")) return
-        val authority = runCatching { Uri.parse(uri).authority }.getOrNull().orEmpty()
-        repo.rememberConnection(
-            authority,
-            if (username.isNotBlank()) com.swordfish.lemuroid.lib.storage.source.SourceCredentials(username, password) else null,
-        )
+        // Profiles are managed explicitly by the network manager.
     }
 
     private fun getSaveSyncScreen(): PreferenceScreen? {

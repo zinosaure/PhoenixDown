@@ -36,7 +36,7 @@ import java.net.URI
 fun AddSourceDialog(
     onDismiss: () -> Unit,
     onAddLocal: () -> Unit,
-                onAddNetwork: (name: String, selectedProtocol: NetworkProtocol, server: String, share: String, path: String, credentials: NetworkCredentials?) -> Unit
+                onAddNetwork: (name: String, selectedProtocol: NetworkProtocol, server: String, share: String, path: String, credentials: NetworkCredentials?, profileId: String) -> Unit
 ) {
     var showSmbForm by remember { mutableStateOf(false) }
     
@@ -93,8 +93,9 @@ fun AddSourceDialog(
                 // Network configuration form
                 NetworkConfigForm(
                     onDismiss = onDismiss,
-                    onSave = { name, selectedProtocol, server, path, credentials, _ ->
-                        onAddNetwork(name, selectedProtocol, server, "", path, credentials)
+                    onSave = { name, selectedProtocol, server, path, credentials, profileId ->
+                        val selectedProfileId = profileId ?: return@NetworkConfigForm
+                        onAddNetwork(name, selectedProtocol, server, "", path, credentials, selectedProfileId)
                         onDismiss()
                     },
                     onBack = { showSmbForm = false },

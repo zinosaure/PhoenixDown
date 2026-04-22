@@ -50,12 +50,14 @@ class SourceRepository(private val context: Context) {
     // -----------------------------------------------------------------------
 
     fun addSource(source: RomSource) {
+        validateNetworkSource(source)
         val list = getCustomSources().toMutableList()
         list.add(source)
         save(list)
     }
 
     fun updateSource(source: RomSource) {
+        validateNetworkSource(source)
         val list = getCustomSources().toMutableList()
         val idx = list.indexOfFirst { it.id == source.id }
         if (idx >= 0) { list[idx] = source; save(list) }
@@ -69,9 +71,20 @@ class SourceRepository(private val context: Context) {
 
     /** Adds [source] only if no existing source has the same type + normalized path. */
     fun upsertByPath(source: RomSource) {
+        validateNetworkSource(source)
         val norm = source.path.trimEnd('/')
         val exists = getCustomSources().any { it.type == source.type && it.path.trimEnd('/') == norm }
         if (!exists) addSource(source)
+    }
+
+    private fun validateNetworkSource(source: RomSource) {
+        if (source.type != SourceType.SMB) return
+        val lowerPath = source.path.lowercase()
+        val isNetworkPath = lowerPath.startsWith("smb://") || lowerPath.startsWith("sftp://") ||
+            lowerPath.startsWith("dav://") || lowerPath.startsWith("davs://")
+        if (isNetworkPath && source.networkProfileId.isNullOrBlank()) {
+            throw IllegalArgumentException("networkProfileId is required for network source: ${source.path}")
+        }
     }
 
     // -----------------------------------------------------------------------
