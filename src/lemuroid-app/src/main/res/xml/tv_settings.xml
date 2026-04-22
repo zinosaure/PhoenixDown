@@ -196,21 +196,6 @@
                     android:title="@string/settings_cleanup_cover_images"
                     app:iconSpaceReserved="false"/>
 
-                <Preference
-                    android:key="@string/pref_key_clear_save_files"
-                    android:title="@string/settings_cleanup_save_files"
-                    app:iconSpaceReserved="false"/>
-
-                <Preference
-                    android:key="@string/pref_key_clear_save_states"
-                    android:title="@string/settings_cleanup_save_states"
-                    app:iconSpaceReserved="false"/>
-
-                <Preference
-                    android:key="@string/pref_key_clear_state_previews"
-                    android:title="@string/settings_cleanup_state_previews"
-                    app:iconSpaceReserved="false"/>
-
             </PreferenceCategory>
 
             <PreferenceCategory

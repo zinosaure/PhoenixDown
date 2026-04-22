@@ -826,7 +826,6 @@ private fun RomsSettings(
         StorageLocationRow(
             title = stringResource(R.string.settings_title_download_location),
             subtitle = downloadDisplayPath,
-            subtitleHorizontalPadding = if (downloadSourceId.isBlank()) 16.dp else 0.dp,
             onDelete = if (downloadSourceId.isNotBlank()) { { viewModel.setDownloadSourceId("") } } else null,
             onClick = {
                 when {
@@ -840,7 +839,7 @@ private fun RomsSettings(
             text = stringResource(R.string.settings_download_location_library_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp),
         )
     }
 }
@@ -999,7 +998,6 @@ private fun SmbLoginProfileForm(
 private fun StorageLocationRow(
     title: String,
     subtitle: String,
-    subtitleHorizontalPadding: Dp = 0.dp,
     onDelete: (() -> Unit)?,
     onClick: () -> Unit,
 ) {
@@ -1019,7 +1017,6 @@ private fun StorageLocationRow(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = subtitleHorizontalPadding),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
