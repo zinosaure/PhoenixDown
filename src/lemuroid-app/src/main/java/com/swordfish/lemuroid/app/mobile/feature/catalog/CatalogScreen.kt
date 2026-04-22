@@ -136,8 +136,8 @@ fun CatalogScreen(
                     val uri = URI(source.path)
                     val protocol = when (uri.scheme?.lowercase()) {
                         "sftp" -> NetworkProtocol.SFTP
-                        "webdav" -> NetworkProtocol.WEBDAV
-                        "webdavh" -> NetworkProtocol.WEBDAV_HTTP
+                        "davs" -> NetworkProtocol.WEBDAV
+                        "dav" -> NetworkProtocol.WEBDAV_HTTP
                         else -> NetworkProtocol.SMB
                     }
 
@@ -685,8 +685,8 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     val scheme = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "webdav"
-        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
+        NetworkProtocol.WEBDAV -> "davs"
+        NetworkProtocol.WEBDAV_HTTP -> "dav"
     }
     return "$scheme://$server$normalizedPath"
 }

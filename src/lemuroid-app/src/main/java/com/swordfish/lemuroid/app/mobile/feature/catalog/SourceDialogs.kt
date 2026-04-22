@@ -93,7 +93,7 @@ fun AddSourceDialog(
                 // Network configuration form
                 NetworkConfigForm(
                     onDismiss = onDismiss,
-                    onSave = { name, selectedProtocol, server, path, credentials ->
+                    onSave = { name, selectedProtocol, server, path, credentials, _ ->
                         onAddNetwork(name, selectedProtocol, server, "", path, credentials)
                         onDismiss()
                     },
@@ -142,12 +142,13 @@ private fun SourceTypeButton(
 @Composable
 fun NetworkConfigForm(
     onDismiss: () -> Unit,
-    onSave: (name: String, protocol: NetworkProtocol, server: String, path: String, credentials: NetworkCredentials?) -> Unit,
+    onSave: (name: String, protocol: NetworkProtocol, server: String, path: String, credentials: NetworkCredentials?, profileId: String?) -> Unit,
     onBack: () -> Unit,
     editSource: RomSource?,
     showDisplayNameField: Boolean = true,
     fixedDisplayName: String? = null,
     savedProfiles: List<SmbLoginProfile> = emptyList(),
+    preferredProfileId: String? = null,
     excludedProfileProtocols: Set<NetworkProtocol> = emptySet(),
 ) {
     val context = LocalContext.current
@@ -168,7 +169,12 @@ fun NetworkConfigForm(
         connectionTestState = ConnectionTestState.Idle
     }
 
-    LaunchedEffect(editSource, availableProfiles) {
+    LaunchedEffect(editSource, availableProfiles, preferredProfileId) {
+        val preferred = preferredProfileId?.let { id -> availableProfiles.firstOrNull { it.id == id } }
+        if (preferred != null) {
+            selectedProfileId = preferred.id
+        }
+
         editSource?.path?.let { sourcePath ->
             val parsedUri = runCatching { URI(sourcePath) }.getOrNull()
             if (parsedUri != null) {
@@ -182,21 +188,27 @@ fun NetworkConfigForm(
                 val expectedProtocol = when (parsedUri.scheme?.lowercase()) {
                     "smb" -> NetworkProtocol.SMB
                     "sftp" -> NetworkProtocol.SFTP
-                    "webdav" -> NetworkProtocol.WEBDAV
-                    "webdavh" -> NetworkProtocol.WEBDAV_HTTP
+                    "davs" -> NetworkProtocol.WEBDAV
+                    "dav" -> NetworkProtocol.WEBDAV_HTTP
                     else -> null
                 }
                 val expectedUsername = editSource.credentials?.username ?: ""
                 // Match by protocol + server + username (skip password to be resilient to changes)
-                val matchedProfile = availableProfiles.firstOrNull { profile ->
+                val matchedProfileByUser = availableProfiles.firstOrNull { profile ->
                     (expectedProtocol == null || profile.protocol == expectedProtocol) &&
                         profile.server.equals(serverPart, ignoreCase = true) &&
                         profile.username == expectedUsername
                 }
-                selectedProfileId = matchedProfile?.id
+                val matchedProfileByServer = availableProfiles.firstOrNull { profile ->
+                    (expectedProtocol == null || profile.protocol == expectedProtocol) &&
+                        profile.server.equals(serverPart, ignoreCase = true)
+                }
+                selectedProfileId = preferred?.id ?: matchedProfileByUser?.id ?: matchedProfileByServer?.id
             } else {
                 path = "/"
-                selectedProfileId = null
+                if (preferred == null) {
+                    selectedProfileId = null
+                }
             }
         }
     }
@@ -371,7 +383,7 @@ fun NetworkConfigForm(
                     val profile = selectedProfile ?: return@Button
                     val displayName = (fixedDisplayName ?: name).ifBlank { "${profile.name} $path" }
                     val normalizedPath = if (path.startsWith("/")) path else "/$path"
-                    onSave(displayName, profile.protocol, profile.server, normalizedPath, profile.toCredentials())
+                    onSave(displayName, profile.protocol, profile.server, normalizedPath, profile.toCredentials(), profile.id)
                 },
                 modifier = Modifier.weight(7f),
                 enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && (!showDisplayNameField || name.isNotBlank()),
@@ -465,8 +477,8 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     val scheme = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "webdav"
-        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
+        NetworkProtocol.WEBDAV -> "davs"
+        NetworkProtocol.WEBDAV_HTTP -> "dav"
     }
     return "$scheme://$server$normalizedPath"
 }
@@ -667,11 +679,12 @@ fun ManageSourcesDialog(
                 // Show edit form for SMB
                 NetworkConfigForm(
                     onDismiss = { editingSource = null },
-                    onSave = { name, protocol, server, path, credentials ->
+                    onSave = { name, protocol, server, path, credentials, profileId ->
                         val updatedSource = editingSource!!.copy(
                             name = name,
                             path = buildNetworkLocationUri(protocol, server, path),
-                            credentials = credentials
+                            credentials = credentials,
+                            networkProfileId = profileId,
                         )
                         onEdit(updatedSource)
                         editingSource = null

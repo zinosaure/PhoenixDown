@@ -1,9 +1,19 @@
 package com.swordfish.lemuroid.lib.storage
 
 import android.content.Context
+import android.os.Environment
 import java.io.File
 
 class DirectoriesManager(private val appContext: Context) {
+    private fun documentsRoot(): File =
+        appContext.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+            ?: appContext.getExternalFilesDir(null)
+            ?: appContext.filesDir
+
+    private fun externalRoot(): File =
+        appContext.getExternalFilesDir(null)
+            ?: appContext.filesDir
+
     @Deprecated("Use the external states directory")
     fun getInternalStatesDirectory(): File =
         File(appContext.filesDir, "states").apply {
@@ -21,17 +31,32 @@ class DirectoriesManager(private val appContext: Context) {
         }
 
     fun getStatesDirectory(): File =
-        File(appContext.getExternalFilesDir(null), "states").apply {
+        File(documentsRoot(), "states").apply {
             mkdirs()
         }
 
     fun getStatesPreviewDirectory(): File =
-        File(appContext.getExternalFilesDir(null), "state-previews").apply {
+        File(documentsRoot(), "state-previews").apply {
             mkdirs()
         }
 
     fun getSavesDirectory(): File =
-        File(appContext.getExternalFilesDir(null), "saves").apply {
+        File(documentsRoot(), "saves").apply {
+            mkdirs()
+        }
+
+    fun getLegacyStatesDirectory(): File =
+        File(externalRoot(), "states").apply {
+            mkdirs()
+        }
+
+    fun getLegacyStatesPreviewDirectory(): File =
+        File(externalRoot(), "state-previews").apply {
+            mkdirs()
+        }
+
+    fun getLegacySavesDirectory(): File =
+        File(externalRoot(), "saves").apply {
             mkdirs()
         }
 

@@ -7,7 +7,7 @@
     <string name="settings_library_empty">No folder configured. Tap + to add one.</string>
     <string name="settings_title_save_location">Save files location</string>
     <string name="settings_desc_save_location">Where to store save files (states and SRAM)</string>
-    <string name="settings_save_location_default">Internal storage (default)</string>
+    <string name="settings_save_location_default">Internal storage (Documents)</string>
     <string name="settings_title_download_location">Downloads location</string>
     <string name="settings_desc_download_location">Where to store downloaded ROMs</string>
     <string name="settings_download_location_default">Internal storage (Downloads)</string>

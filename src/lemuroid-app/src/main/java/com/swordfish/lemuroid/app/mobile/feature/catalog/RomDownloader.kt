@@ -465,8 +465,8 @@ class RomDownloader(
             val uri = URI(dest.path)
             val protocol = when (uri.scheme?.lowercase()) {
                 "sftp" -> NetworkProtocol.SFTP
-                "webdav" -> NetworkProtocol.WEBDAV
-                "webdavh" -> NetworkProtocol.WEBDAV_HTTP
+                "davs" -> NetworkProtocol.WEBDAV
+                "dav" -> NetworkProtocol.WEBDAV_HTTP
                 else -> NetworkProtocol.SMB
             }
 

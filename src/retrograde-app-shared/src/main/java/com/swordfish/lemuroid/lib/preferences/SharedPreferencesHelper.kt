@@ -24,10 +24,12 @@ object SharedPreferencesHelper {
     const val KEY_SAVE_LOCATION_URI = "save_location_uri"
     const val KEY_SAVE_SMB_USERNAME = "save_smb_username"
     const val KEY_SAVE_SMB_PASSWORD = "save_smb_password"
+    const val KEY_SAVE_NETWORK_PROFILE_ID = "save_network_profile_id"
     /** Download location: RomSource.id of destination for downloads. "" = Android /Downloads. */
     const val KEY_DOWNLOAD_SOURCE_ID = "download_source_id"
     const val KEY_DOWNLOAD_SMB_USERNAME = "download_smb_username"
     const val KEY_DOWNLOAD_SMB_PASSWORD = "download_smb_password"
+    const val KEY_DOWNLOAD_NETWORK_PROFILE_ID = "download_network_profile_id"
 
     fun getSharedPreferences(context: Context): SharedPreferences {
         return context.getHarmonySharedPreferences(context.getString(R.string.pref_file_harmony_options))

@@ -246,7 +246,7 @@
     <string name="settings_category_library">Bibliothèque de jeux</string>
     <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
     <string name="settings_title_save_location">Emplacement des sauvegardes</string>
-    <string name="settings_save_location_default">Stockage interne (défaut)</string>
+    <string name="settings_save_location_default">Stockage interne (Documents)</string>
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_download_location_default">Stockage interne (Téléchargements)</string>
     <string name="settings_picker_local_folder">Dossier local</string>

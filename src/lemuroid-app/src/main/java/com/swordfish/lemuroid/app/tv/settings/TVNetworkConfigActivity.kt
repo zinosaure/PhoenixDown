@@ -519,8 +519,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
 
         val protocol = when (parsed.scheme?.lowercase()) {
             "sftp" -> NetworkProtocol.SFTP
-            "webdav" -> NetworkProtocol.WEBDAV
-            "webdavh" -> NetworkProtocol.WEBDAV_HTTP
+            "davs" -> NetworkProtocol.WEBDAV
+            "dav" -> NetworkProtocol.WEBDAV_HTTP
             else -> NetworkProtocol.SMB
         }
         val authority = parsed.authority.orEmpty()
@@ -531,7 +531,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
     private fun isNetworkUri(uri: String): Boolean {
         val lower = uri.lowercase()
         return lower.startsWith("smb://") || lower.startsWith("sftp://") ||
-            lower.startsWith("webdav://") || lower.startsWith("webdavh://")
+            lower.startsWith("dav://") || lower.startsWith("davs://")
     }
 
     private fun buildServerAddress(): String {
@@ -574,8 +574,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
         val scheme = when (protocol) {
             NetworkProtocol.SMB -> "smb"
             NetworkProtocol.SFTP -> "sftp"
-            NetworkProtocol.WEBDAV -> "webdav"
-            NetworkProtocol.WEBDAV_HTTP -> "webdavh"
+            NetworkProtocol.WEBDAV -> "davs"
+            NetworkProtocol.WEBDAV_HTTP -> "dav"
         }
         return "$scheme://$server$normalizedPath"
     }

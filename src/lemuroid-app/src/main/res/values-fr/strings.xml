@@ -7,7 +7,7 @@
     <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
     <string name="settings_title_save_location">Emplacement des sauvegardes</string>
     <string name="settings_desc_save_location">Où stocker les fichiers de sauvegarde (états et SRAM)</string>
-    <string name="settings_save_location_default">Stockage interne (défaut)</string>
+    <string name="settings_save_location_default">Stockage interne (Documents)</string>
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
     <string name="settings_download_location_default">Stockage interne (Téléchargements)</string>
@@ -80,7 +80,7 @@
     <string name="network_protocol_label">Protocole</string>
     <string name="network_protocol_smb">SMB</string>
     <string name="network_protocol_sftp">SFTP</string>
-    <string name="network_protocol_webdav">WebDAV</string>
+    <string name="network_protocol_webdav">WebDAV (https)</string>
     <string name="settings_title_log_viewer">Visualiseur de logs</string>
     <string name="settings_description_log_viewer">Voir les logs Timber récents capturés par cette application.</string>
     <string name="settings_logs_refresh">Actualiser</string>

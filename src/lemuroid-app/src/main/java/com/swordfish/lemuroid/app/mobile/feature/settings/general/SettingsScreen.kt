@@ -342,7 +342,9 @@ private fun RomsSettings(
     val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
     val saveLocationUri by viewModel.saveLocationUri.collectAsState()
+    val saveLocationProfileId by viewModel.saveLocationProfileId.collectAsState()
     val downloadSourceId by viewModel.downloadSourceId.collectAsState()
+    val downloadLocationProfileId by viewModel.downloadLocationProfileId.collectAsState()
 
     var pendingDeleteSource by remember { mutableStateOf<RomSource?>(null) }
     var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
@@ -440,12 +442,13 @@ private fun RomsSettings(
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
                     savedProfiles = smbLoginProfiles,
-                    onSave = { name, protocol, server, path, credentials ->
+                    onSave = { name, protocol, server, path, credentials, profileId ->
                         pendingSourceForPlatform = RomSource(
                             type = SourceType.SMB,
                             name = name,
                             path = buildNetworkLocationUri(protocol, server, path),
                             credentials = credentials,
+                            networkProfileId = profileId,
                         )
                         pendingSourceIsEdit = false
                         showAddSmbDialog = false
@@ -463,14 +466,16 @@ private fun RomsSettings(
                     onDismiss = { editingSmbSource = null },
                     onBack = { editingSmbSource = null },
                     editSource = editingSmbSource,
+                    preferredProfileId = editingSmbSource?.networkProfileId,
                     savedProfiles = smbLoginProfiles,
-                    onSave = { name, protocol, server, path, credentials ->
+                    onSave = { name, protocol, server, path, credentials, profileId ->
                         editingSmbSource?.let { src ->
                             pendingSourceForPlatform = RomSource(
                                 type = SourceType.SMB,
                                 name = name,
                                 path = buildNetworkLocationUri(protocol, server, path),
                                 credentials = credentials,
+                                networkProfileId = profileId,
                                 platformHint = src.platformHint,
                             ).copy(id = src.id)
                             pendingSourceIsEdit = true
@@ -598,14 +603,16 @@ private fun RomsSettings(
                     editSource = if (isNetworkLocationUri(saveLocationUri)) {
                         RomSource(type = SourceType.SMB, name = "Sauvegardes", path = saveLocationUri, id = "_save")
                     } else null,
+                    preferredProfileId = saveLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,
                     fixedDisplayName = "Sauvegardes",
                     savedProfiles = smbLoginProfiles,
-                    onSave = { _, protocol, server, path, credentials ->
+                    onSave = { _, protocol, server, path, credentials, profileId ->
                         viewModel.setSaveLocation(
                             buildNetworkLocationUri(protocol, server, path),
                             credentials?.username ?: "",
                             credentials?.password ?: "",
+                            profileId,
                         )
                         showSaveSmbDialog = false
                     },
@@ -624,14 +631,16 @@ private fun RomsSettings(
                     editSource = if (isNetworkLocationUri(downloadSourceId)) {
                         RomSource(type = SourceType.SMB, name = "Téléchargements", path = downloadSourceId, id = "_dl")
                     } else null,
+                    preferredProfileId = downloadLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,
                     fixedDisplayName = "Téléchargements",
                     savedProfiles = smbLoginProfiles,
-                    onSave = { _, protocol, server, path, credentials ->
+                    onSave = { _, protocol, server, path, credentials, profileId ->
                         viewModel.setDownloadSourceId(
                             buildNetworkLocationUri(protocol, server, path),
                             credentials?.username ?: "",
                             credentials?.password ?: "",
+                            profileId,
                         )
                         showDownloadSmbDialog = false
                     },
@@ -1259,7 +1268,7 @@ private fun uriToReadablePath(context: android.content.Context, uri: String): St
 private fun isNetworkLocationUri(uri: String): Boolean {
     val lower = uri.lowercase()
     return lower.startsWith("smb://") || lower.startsWith("sftp://") ||
-    lower.startsWith("webdav://") || lower.startsWith("webdavh://")
+    lower.startsWith("dav://") || lower.startsWith("davs://")
 }
 
 private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
@@ -1267,8 +1276,8 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     val scheme = when (protocol) {
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
-        NetworkProtocol.WEBDAV -> "webdav"
-        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
+        NetworkProtocol.WEBDAV -> "davs"
+        NetworkProtocol.WEBDAV_HTTP -> "dav"
     }
     return "$scheme://$server$normalizedPath"
 }

@@ -17,6 +17,7 @@ data class RomSource(
     val name: String,
     val path: String,
     val credentials: SourceCredentials? = null,
+    val networkProfileId: String? = null,
     /** If non-null, forces all .zip files from this source into this system (e.g. "gba"). */
     val platformHint: String? = null,
 ) {
@@ -51,6 +52,7 @@ data class RomSource(
                     name = obj.optString("name", ""),
                     path = obj.optString("path", ""),
                     credentials = credentials,
+                    networkProfileId = obj.optString("networkProfileId", "").takeIf { it.isNotBlank() },
                     platformHint = obj.optString("platformHint", "").takeIf { it.isNotBlank() },
                 )
             }
@@ -68,6 +70,7 @@ data class RomSource(
                         put("username", it.username)
                         put("password", it.password)
                     }
+                    src.networkProfileId?.let { put("networkProfileId", it) }
                     src.platformHint?.let { put("platformHint", it) }
                 }
                 arr.put(obj)
