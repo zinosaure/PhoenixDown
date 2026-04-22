@@ -11,6 +11,12 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import jcifs.CIFSContext
+import jcifs.Configuration
+import jcifs.context.BaseContext
+import jcifs.context.SingletonContext
+import jcifs.smb.NtlmPasswordAuthenticator
+import jcifs.smb.SmbFile as JcifsSmbFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -128,6 +134,43 @@ class SmbClient {
             session.close()
             connection.close()
             client.close()
+        }
+    }
+
+    suspend fun listShares(
+        server: String,
+        credentials: SmbCredentials? = null,
+    ): Result<List<SmbDirectoryEntry>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val endpoint = parseEndpoint(server)
+            val rootUrl = "smb://${endpoint.host}:${endpoint.port}/"
+
+            val context: CIFSContext = createJcifsContext(credentials)
+            JcifsSmbFile(rootUrl, context)
+                .listFiles()
+                .mapNotNull { smbFile ->
+                    val name = smbFile.name.trimEnd('/')
+                    if (name.isBlank() || name.endsWith("$")) {
+                        null
+                    } else {
+                        SmbDirectoryEntry(name = name, path = "/$name")
+                    }
+                }
+                .sortedBy { it.name.lowercase() }
+        }
+    }
+
+    private fun createJcifsContext(credentials: SmbCredentials?): CIFSContext {
+        val singleton = SingletonContext.getInstance()
+        val config: Configuration = singleton.config
+        val base = BaseContext(config)
+
+        val username = credentials?.username?.trim().orEmpty()
+        return if (username.isNotBlank()) {
+            val authenticator = NtlmPasswordAuthenticator(null, username, credentials?.password.orEmpty())
+            base.withCredentials(authenticator)
+        } else {
+            base
         }
     }
 

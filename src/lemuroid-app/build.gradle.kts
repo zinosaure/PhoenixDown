@@ -84,7 +84,11 @@ android {
             useLegacyPackaging = true
         }
         resources {
-            excludes += setOf("META-INF/DEPENDENCIES", "META-INF/library_release.kotlin_module")
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/library_release.kotlin_module",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+            )
         }
     }
 
@@ -198,6 +202,8 @@ dependencies {
     
     // SMB/NAS client
     implementation("com.hierynomus:smbj:0.12.2")
+    implementation("eu.agno3.jcifs:jcifs-ng:2.1.10")
+    implementation("com.github.mwiede:jsch:0.2.20")
 
     implementation(platform(deps.libs.androidx.compose.composeBom))
     implementation(deps.libs.androidx.compose.material3)

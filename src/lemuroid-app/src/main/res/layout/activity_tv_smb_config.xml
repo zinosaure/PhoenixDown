@@ -51,6 +51,24 @@
             android:background="#2d2d2d"
             android:padding="20dp">
 
+            <TextView
+                android:id="@+id/smb_protocol_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/network_protocol_label"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <Spinner
+                android:id="@+id/smb_protocol_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginBottom="12dp"
+                android:background="#3d3d3d"
+                android:spinnerMode="dropdown"
+                android:visibility="gone" />
+
             <!-- Server + Port -->
             <LinearLayout
                 android:layout_width="match_parent"

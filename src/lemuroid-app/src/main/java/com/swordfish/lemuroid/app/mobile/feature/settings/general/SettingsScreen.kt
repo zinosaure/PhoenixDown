@@ -26,11 +26,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +44,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +68,7 @@ import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestState
 import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestStatus
+import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkClient
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
@@ -88,6 +93,7 @@ import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 fun SettingsScreen(
@@ -924,9 +930,9 @@ private fun SmbLoginProfileForm(
     var password by remember(initialProfile) { mutableStateOf(initialProfile?.password ?: "") }
     var showPassword by remember { mutableStateOf(false) }
     var connectionTestState by remember(initialProfile) { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
-    val smbClient = remember { SmbClient() }
+    var testMessageDialog by remember(initialProfile) { mutableStateOf<String?>(null) }
+    val networkClient = remember { NetworkClient(SmbClient()) }
     val scope = rememberCoroutineScope()
-    val unsupportedMessage = stringResource(R.string.sources_network_test_unsupported)
     val successMessage = stringResource(R.string.sources_smb_connection_success)
     val unknownErrorMessage = stringResource(R.string.sources_network_test_unknown_error)
 
@@ -945,36 +951,39 @@ private fun SmbLoginProfileForm(
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                NetworkProtocol.entries.forEach { proto ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                protocol = proto
-                                connectionTestState = ConnectionTestState.Idle
-                            }
-                            .padding(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        RadioButton(
-                            selected = protocol == proto,
-                            onClick = {
-                                protocol = proto
-                                connectionTestState = ConnectionTestState.Idle
-                            },
-                        )
-                        Text(
-                            text = stringResource(
-                                when (proto) {
-                                    NetworkProtocol.SMB -> R.string.network_protocol_smb
-                                    NetworkProtocol.SFTP -> R.string.network_protocol_sftp
-                                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    NetworkProtocol.entries.forEach { proto ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    protocol = proto
+                                    connectionTestState = ConnectionTestState.Idle
+                                }
+                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            RadioButton(
+                                modifier = Modifier.size(20.dp),
+                                selected = protocol == proto,
+                                onClick = {
+                                    protocol = proto
+                                    connectionTestState = ConnectionTestState.Idle
                                 },
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                            )
+                            Text(
+                                text = stringResource(
+                                    when (proto) {
+                                        NetworkProtocol.SMB -> R.string.network_protocol_smb
+                                        NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                                        NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                    },
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
                     }
                 }
             }
@@ -1053,53 +1062,87 @@ private fun SmbLoginProfileForm(
             )
         }
 
-        Row(
+        OutlinedButton(
+            onClick = {
+                val trimmedServer = server.trim()
+                connectionTestState = ConnectionTestState.Testing
+                scope.launch {
+                    val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
+                    val credentials = if (!isAnonymous && username.isNotBlank()) {
+                        SmbCredentials(username.trim(), password)
+                    } else {
+                        null
+                    }
+                    val result = networkClient.testConnection(
+                        protocol = protocol,
+                        server = serverAddress,
+                        path = "/",
+                        credentials = credentials,
+                    )
+                    connectionTestState = if (result.isSuccess) {
+                        ConnectionTestState.Success(successMessage)
+                    } else {
+                        ConnectionTestState.Error(
+                            result.exceptionOrNull()?.message ?: unknownErrorMessage,
+                        )
+                    }
+
+                    testMessageDialog = when (val state = connectionTestState) {
+                        is ConnectionTestState.Success -> state.message
+                        is ConnectionTestState.Error -> state.message
+                        else -> null
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            enabled = server.isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
         ) {
-            OutlinedButton(
-                onClick = {
-                    val trimmedServer = server.trim()
-                    if (protocol != NetworkProtocol.SMB) {
-                        connectionTestState = ConnectionTestState.Error(unsupportedMessage)
-                        return@OutlinedButton
-                    }
-                    connectionTestState = ConnectionTestState.Testing
-                    scope.launch {
-                        val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
-                        val credentials = if (!isAnonymous && username.isNotBlank()) {
-                            SmbCredentials(username.trim(), password)
-                        } else {
-                            null
-                        }
-                        val result = smbClient.testServerConnection(serverAddress, credentials)
-                        connectionTestState = if (result.isSuccess) {
-                            ConnectionTestState.Success(successMessage)
-                        } else {
-                            ConnectionTestState.Error(
-                                result.exceptionOrNull()?.message ?: unknownErrorMessage,
-                            )
-                        }
-                    }
+            Text(
+                text = if (connectionTestState is ConnectionTestState.Testing) {
+                    stringResource(R.string.sources_smb_testing)
+                } else {
+                    stringResource(R.string.sources_smb_test_connection)
                 },
-                modifier = Modifier.weight(1f),
-                enabled = server.isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
-            ) {
-                Text(stringResource(R.string.sources_smb_test_connection))
-            }
-            ConnectionTestStatus(testState = connectionTestState)
+                maxLines = 1,
+            )
         }
 
+        if (testMessageDialog != null) {
+            AlertDialog(
+                onDismissRequest = { testMessageDialog = null },
+                title = {
+                    Text(
+                        stringResource(
+                            if (connectionTestState is ConnectionTestState.Success) {
+                                R.string.sources_smb_connection_success
+                            } else {
+                                R.string.sources_smb_connection_failed
+                            },
+                        ),
+                    )
+                },
+                text = { Text(testMessageDialog.orEmpty()) },
+                confirmButton = {
+                    TextButton(onClick = { testMessageDialog = null }) {
+                        Text(stringResource(R.string.ok))
+                    }
+                },
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedButton(
                 onClick = onCancel,
-                modifier = Modifier.weight(4f),
+                modifier = Modifier.weight(5f),
             ) {
-                Text(stringResource(R.string.sources_cancel))
+                Text(stringResource(R.string.sources_cancel), maxLines = 1)
             }
             Button(
                 onClick = {
@@ -1115,10 +1158,10 @@ private fun SmbLoginProfileForm(
                         ),
                     )
                 },
-                modifier = Modifier.weight(8f),
+                modifier = Modifier.weight(7f),
                 enabled = name.isNotBlank() && server.isNotBlank() && (isAnonymous || username.isNotBlank()),
             ) {
-                Text(stringResource(R.string.sources_save))
+                Text(stringResource(R.string.sources_save), maxLines = 1)
             }
         }
     }

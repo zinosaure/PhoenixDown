@@ -2,20 +2,22 @@ package com.swordfish.lemuroid.app.tv.settings
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkClient
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.smb.SmbClient
-import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,6 +33,8 @@ class TVSmbConfigActivity : FragmentActivity() {
     private lateinit var pathLabel: TextView
     
     private lateinit var savedLoginButton: Button
+    private lateinit var protocolLabel: TextView
+    private lateinit var protocolSpinner: Spinner
     private lateinit var serverInput: EditText
     private lateinit var portInput: EditText
     private lateinit var pathInput: EditText
@@ -40,6 +44,8 @@ class TVSmbConfigActivity : FragmentActivity() {
     private lateinit var testButton: Button
 
     private val smbLoginProfileRepository by lazy { SmbLoginProfileRepository(this) }
+    private val networkClient by lazy { NetworkClient(com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient()) }
+    private var selectedProtocol: NetworkProtocol = NetworkProtocol.SMB
 
     private val mode: String by lazy {
         intent.getStringExtra(EXTRA_MODE) ?: MODE_LIBRARY
@@ -62,6 +68,8 @@ class TVSmbConfigActivity : FragmentActivity() {
         descriptionText = findViewById(R.id.smb_description_text)
         pathLabel = findViewById(R.id.smb_path_label)
         savedLoginButton = findViewById(R.id.smb_saved_login_button)
+        protocolLabel = findViewById(R.id.smb_protocol_label)
+        protocolSpinner = findViewById(R.id.smb_protocol_spinner)
         serverInput = findViewById(R.id.smb_server_input)
         portInput = findViewById(R.id.smb_port_input)
         pathInput = findViewById(R.id.smb_path_input)
@@ -72,6 +80,7 @@ class TVSmbConfigActivity : FragmentActivity() {
 
         configureTextsForMode()
         configureVisibilityForMode()
+    configureProtocolSpinner()
         
         // Load existing values
         loadExistingConfig()
@@ -118,7 +127,32 @@ class TVSmbConfigActivity : FragmentActivity() {
         savedLoginButton.visibility = if (isProfileMode) View.GONE else View.VISIBLE
         pathLabel.visibility = if (isProfileMode) View.GONE else View.VISIBLE
         pathInput.visibility = if (isProfileMode) View.GONE else View.VISIBLE
-        testButton.visibility = if (isProfileMode) View.GONE else View.VISIBLE
+        protocolLabel.visibility = if (isProfileMode) View.VISIBLE else View.GONE
+        protocolSpinner.visibility = if (isProfileMode) View.VISIBLE else View.GONE
+        testButton.visibility = View.VISIBLE
+    }
+
+    private fun configureProtocolSpinner() {
+        val labels = listOf(
+            getString(R.string.network_protocol_smb),
+            getString(R.string.network_protocol_sftp),
+            getString(R.string.network_protocol_webdav),
+        )
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, labels)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        protocolSpinner.adapter = adapter
+        protocolSpinner.setSelection(0)
+        protocolSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedProtocol = when (position) {
+                    1 -> NetworkProtocol.SFTP
+                    2 -> NetworkProtocol.WEBDAV
+                    else -> NetworkProtocol.SMB
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
     }
 
     private fun loadExistingConfig() {
@@ -152,6 +186,14 @@ class TVSmbConfigActivity : FragmentActivity() {
                 portInput.setText(port)
                 usernameInput.setText(profile?.username.orEmpty())
                 passwordInput.setText(profile?.password.orEmpty())
+                selectedProtocol = profile?.protocol ?: NetworkProtocol.SMB
+                protocolSpinner.setSelection(
+                    when (selectedProtocol) {
+                        NetworkProtocol.SMB -> 0
+                        NetworkProtocol.SFTP -> 1
+                        NetworkProtocol.WEBDAV -> 2
+                    },
+                )
             }
             MODE_EDIT_SOURCE -> {
                 val source = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
@@ -226,6 +268,14 @@ class TVSmbConfigActivity : FragmentActivity() {
         portInput.setText(port)
         usernameInput.setText(profile.username)
         passwordInput.setText(profile.password)
+        selectedProtocol = profile.protocol
+        protocolSpinner.setSelection(
+            when (profile.protocol) {
+                NetworkProtocol.SMB -> 0
+                NetworkProtocol.SFTP -> 1
+                NetworkProtocol.WEBDAV -> 2
+            },
+        )
         statusText.visibility = View.GONE
     }
 
@@ -235,7 +285,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
         
-        if (server.isBlank() || path.isBlank()) {
+        if (server.isBlank() || (mode != MODE_PROFILE && path.isBlank())) {
             statusText.text = getString(R.string.tv_smb_enter_server_and_path)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
@@ -247,15 +297,14 @@ class TVSmbConfigActivity : FragmentActivity() {
         statusText.visibility = View.VISIBLE
         
         CoroutineScope(Dispatchers.IO).launch {
-            val smbClient = SmbClient()
             val credentials = if (username.isNotBlank()) {
                 SmbCredentials(username, password)
             } else null
-            
-            // Parse share from path (first segment)
-            val shareName = path.removePrefix("/").split("/").firstOrNull() ?: ""
-            
-            val result = smbClient.testConnection(server, shareName, credentials)
+
+            val effectivePath = if (mode == MODE_PROFILE) "/" else path
+            val protocol = if (mode == MODE_PROFILE) selectedProtocol else NetworkProtocol.SMB
+
+            val result = networkClient.testConnection(protocol, server, effectivePath, credentials)
             
             withContext(Dispatchers.Main) {
                 if (result.isSuccess) {
@@ -290,6 +339,7 @@ class TVSmbConfigActivity : FragmentActivity() {
                 SmbLoginProfile(
                     id = existing?.id ?: SmbLoginProfile(name = profileName, server = server).id,
                     name = profileName,
+                    protocol = selectedProtocol,
                     server = server,
                     username = username,
                     password = password,
@@ -332,7 +382,7 @@ class TVSmbConfigActivity : FragmentActivity() {
             val repo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
             val existing = repo.getCustomSources().firstOrNull { it.id == sourceId }
             if (existing != null) {
-                val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
+                val credentials = if (username.isNotBlank()) SmbCredentials(username, password) else null
                 repo.updateSource(existing.copy(path = "smb://$server$fullPath", credentials = credentials))
                 rememberLogin(server, username, password)
                 com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(this)
@@ -387,7 +437,8 @@ class TVSmbConfigActivity : FragmentActivity() {
     private fun rememberLogin(server: String, username: String, password: String) {
         smbLoginProfileRepository.rememberConnection(
             server,
-            if (username.isNotBlank()) SourceCredentials(username, password) else null,
+            if (username.isNotBlank()) SmbCredentials(username, password) else null,
+            protocol = selectedProtocol,
         )
     }
 
@@ -416,7 +467,11 @@ class TVSmbConfigActivity : FragmentActivity() {
     private fun rememberLoginFromUri(uri: String, username: String, password: String) {
         if (!uri.startsWith("smb://")) return
         val authority = runCatching { android.net.Uri.parse(uri).authority }.getOrNull().orEmpty()
-        rememberLogin(authority, username, password)
+        smbLoginProfileRepository.rememberConnection(
+            authority,
+            if (username.isNotBlank()) SmbCredentials(username, password) else null,
+            protocol = NetworkProtocol.SMB,
+        )
     }
 
     private fun normalizePath(path: String): String {

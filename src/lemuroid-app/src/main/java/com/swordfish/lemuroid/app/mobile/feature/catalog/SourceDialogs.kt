@@ -155,8 +155,10 @@ fun SmbConfigForm(
     var showSavedProfilesDialog by remember { mutableStateOf(false) }
     var showPathBrowserDialog by remember { mutableStateOf(false) }
     var connectionTestState by remember { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
+    var testMessageDialog by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val smbClient = remember { SmbClient() }
+    val networkClient = remember { NetworkClient(smbClient) }
     val selectedProfile = savedProfiles.firstOrNull { it.id == selectedProfileId }
 
     fun applyProfile(profile: SmbLoginProfile) {
@@ -225,7 +227,7 @@ fun SmbConfigForm(
                 onClick = { showSavedProfilesDialog = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = selectedProfile?.name ?: stringResource(R.string.sources_smb_saved_profile_pick),
                     )
@@ -249,83 +251,123 @@ fun SmbConfigForm(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = path,
-            onValueChange = {},
-            label = { Text(stringResource(R.string.sources_smb_path)) },
-            placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            readOnly = true,
-            supportingText = {
-                Text(
-                    if (selectedProfile?.protocol == NetworkProtocol.SMB) {
-                        stringResource(R.string.sources_network_path_hint)
-                    } else {
-                        stringResource(R.string.sources_network_path_hint_smb_only)
-                    },
-                )
-            },
-        )
+        val canBrowsePath = selectedProfile != null && selectedProfile.protocol == NetworkProtocol.SMB
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = { showPathBrowserDialog = true },
-            enabled = selectedProfile != null && selectedProfile.protocol == NetworkProtocol.SMB,
-            modifier = Modifier.fillMaxWidth(),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = canBrowsePath) {
+                    showPathBrowserDialog = true
+                },
         ) {
-            Text(stringResource(R.string.sources_network_browse_path))
+            OutlinedTextField(
+                value = path,
+                onValueChange = {},
+                label = { Text(stringResource(R.string.sources_smb_path)) },
+                placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                readOnly = true,
+                trailingIcon = {
+                    IconButton(
+                        enabled = canBrowsePath,
+                        onClick = { showPathBrowserDialog = true },
+                    ) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null)
+                    }
+                },
+                supportingText = {
+                    Text(
+                        if (selectedProfile?.protocol == NetworkProtocol.SMB) {
+                            stringResource(R.string.sources_network_path_hint)
+                        } else {
+                            stringResource(R.string.sources_network_path_hint_smb_only)
+                        },
+                    )
+                },
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            OutlinedButton(
-                onClick = {
-                    val profile = selectedProfile ?: return@OutlinedButton
-                    if (profile.protocol != NetworkProtocol.SMB) {
-                        connectionTestState = ConnectionTestState.Error(context.getString(R.string.sources_network_test_unsupported))
-                        return@OutlinedButton
+        OutlinedButton(
+            onClick = {
+                val profile = selectedProfile ?: return@OutlinedButton
+                connectionTestState = ConnectionTestState.Testing
+                scope.launch {
+                    val credentials = profile.toCredentials()
+                    val result = networkClient.testConnection(
+                        protocol = profile.protocol,
+                        server = profile.server,
+                        path = path,
+                        credentials = credentials,
+                    )
+                    connectionTestState = if (result.isSuccess) {
+                        ConnectionTestState.Success(context.getString(R.string.sources_smb_connection_success))
+                    } else {
+                        ConnectionTestState.Error(
+                            result.exceptionOrNull()?.message ?: context.getString(R.string.sources_network_test_unknown_error),
+                        )
                     }
-                    connectionTestState = ConnectionTestState.Testing
-                    scope.launch {
-                        val credentials = profile.toCredentials()
-                        val shareName = path.removePrefix("/").substringBefore("/")
-                        val result = smbClient.testConnection(profile.server, shareName, credentials)
-                        connectionTestState = if (result.isSuccess) {
-                            ConnectionTestState.Success(context.getString(R.string.sources_smb_connection_success))
-                        } else {
-                            ConnectionTestState.Error(
-                                result.exceptionOrNull()?.message ?: context.getString(R.string.sources_network_test_unknown_error),
-                            )
-                        }
+
+                    testMessageDialog = when (val state = connectionTestState) {
+                        is ConnectionTestState.Success -> state.message
+                        is ConnectionTestState.Error -> state.message
+                        else -> null
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
+        ) {
+            Text(
+                text = if (connectionTestState is ConnectionTestState.Testing) {
+                    stringResource(R.string.sources_smb_testing)
+                } else {
+                    stringResource(R.string.sources_smb_test_connection)
+                },
+                maxLines = 1,
+            )
+        }
+
+        if (testMessageDialog != null) {
+            AlertDialog(
+                onDismissRequest = { testMessageDialog = null },
+                title = {
+                    Text(
+                        stringResource(
+                            if (connectionTestState is ConnectionTestState.Success) {
+                                R.string.sources_smb_connection_success
+                            } else {
+                                R.string.sources_smb_connection_failed
+                            },
+                        ),
+                    )
+                },
+                text = { Text(testMessageDialog.orEmpty()) },
+                confirmButton = {
+                    TextButton(onClick = { testMessageDialog = null }) {
+                        Text(stringResource(R.string.ok))
                     }
                 },
-                modifier = Modifier.weight(1f),
-                enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
-            ) {
-                Text(stringResource(R.string.sources_smb_test_connection))
-            }
-
-            ConnectionTestStatus(testState = connectionTestState)
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedButton(
                 onClick = onDismiss,
-                modifier = Modifier.weight(4f),
+                modifier = Modifier.weight(5f),
             ) {
-                Text(stringResource(R.string.sources_cancel))
+                Text(stringResource(R.string.sources_cancel), maxLines = 1)
             }
             Button(
                 onClick = {
@@ -334,10 +376,10 @@ fun SmbConfigForm(
                     val normalizedPath = if (path.startsWith("/")) path else "/$path"
                     onSave(displayName, profile.server, normalizedPath, profile.toCredentials())
                 },
-                modifier = Modifier.weight(8f),
+                modifier = Modifier.weight(7f),
                 enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && (!showDisplayNameField || name.isNotBlank()),
             ) {
-                Text(stringResource(R.string.sources_finish))
+                Text(stringResource(R.string.sources_finish), maxLines = 1)
             }
         }
     }
@@ -392,7 +434,7 @@ fun SmbConfigForm(
         SmbPathBrowserDialog(
             profile = selectedProfile,
             initialPath = path,
-            smbClient = smbClient,
+            networkClient = networkClient,
             onDismiss = { showPathBrowserDialog = false },
             onSelect = {
                 path = it
@@ -444,7 +486,7 @@ fun ConnectionTestStatus(
 private fun SmbPathBrowserDialog(
     profile: SmbLoginProfile,
     initialPath: String,
-    smbClient: SmbClient,
+    networkClient: NetworkClient,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -477,16 +519,12 @@ private fun SmbPathBrowserDialog(
     LaunchedEffect(profile.id, currentPath) {
         isLoading = true
         loadError = null
-        val result = if (currentPath == "/") {
-            Result.success(emptyList())
-        } else {
-            val (share, subPath) = splitPath(currentPath)
-            if (share == null) {
-                Result.success(emptyList())
-            } else {
-                smbClient.listDirectories(profile.server, share, subPath, profile.toCredentials())
-            }
-        }
+        val result = networkClient.listDirectories(
+            protocol = profile.protocol,
+            server = profile.server,
+            path = currentPath,
+            credentials = profile.toCredentials(),
+        )
 
         result.onSuccess {
             entries = it
@@ -509,18 +547,20 @@ private fun SmbPathBrowserDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (currentPath == "/") {
-                    OutlinedTextField(
-                        value = shareName,
-                        onValueChange = { shareName = it.trim() },
-                        label = { Text(stringResource(R.string.sources_network_share_name)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
-                    OutlinedButton(
-                        onClick = { currentPath = "/${shareName.trim().removePrefix("/")}" },
-                        enabled = shareName.isNotBlank(),
-                    ) {
-                        Text(stringResource(R.string.sources_network_open_share))
+                    if (profile.protocol == NetworkProtocol.SMB) {
+                        OutlinedTextField(
+                            value = shareName,
+                            onValueChange = { shareName = it.trim() },
+                            label = { Text(stringResource(R.string.sources_network_share_name)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                        OutlinedButton(
+                            onClick = { currentPath = "/${shareName.trim().removePrefix("/")}" },
+                            enabled = shareName.isNotBlank(),
+                        ) {
+                            Text(stringResource(R.string.sources_network_open_share))
+                        }
                     }
                 }
                 if (currentPath != "/") {
