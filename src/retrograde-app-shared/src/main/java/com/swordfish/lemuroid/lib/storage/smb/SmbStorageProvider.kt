@@ -66,11 +66,12 @@ class SmbStorageProvider(
             )
             result.onSuccess { files ->
                 emit(files.map { f ->
+                    val scanPath = buildScanPath(config.path, f.relativePath)
                     BaseStorageFile(
                         name = f.name,
                         size = f.size,
                         uri = buildSmbUri(config.server, config.share, f.path),
-                        path = f.relativePath
+                        path = scanPath
                     )
                 })
             }.onFailure { error ->
@@ -333,6 +334,17 @@ class SmbStorageProvider(
             .authority(server)
             .path("/$share/$smbPath")
             .build()
+    }
+
+    private fun buildScanPath(rootPath: String, relativePath: String): String {
+        val normalizedRoot = rootPath.replace('\\', '/').trimEnd('/')
+        val normalizedRelative = relativePath.replace('\\', '/').trimStart('/')
+
+        return when {
+            normalizedRoot.isBlank() -> normalizedRelative
+            normalizedRelative.isBlank() -> normalizedRoot
+            else -> "$normalizedRoot/$normalizedRelative"
+        }
     }
 
     override suspend fun delete(game: Game): Boolean {

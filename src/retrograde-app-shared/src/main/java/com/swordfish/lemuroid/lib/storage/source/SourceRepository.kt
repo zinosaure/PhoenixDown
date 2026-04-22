@@ -109,13 +109,13 @@ class SourceRepository(private val context: Context) {
         return when (uri.scheme?.lowercase()) {
             "smb" -> {
                 val host = uri.host ?: return null
-                val gamePath = uri.path ?: ""
+                val gamePath = (uri.path ?: "").replace('\\', '/')
                 getCustomSources()
                     .filter { it.type == SourceType.SMB }
                     .mapNotNull { src ->
                         val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
                         if (!srcUri.host.equals(host, ignoreCase = true)) return@mapNotNull null
-                        val srcPath = srcUri.path ?: ""
+                        val srcPath = (srcUri.path ?: "").replace('\\', '/')
                         if (gamePath.startsWith(srcPath)) src to srcPath.length else null
                     }
                     .maxByOrNull { (_, len) -> len }
