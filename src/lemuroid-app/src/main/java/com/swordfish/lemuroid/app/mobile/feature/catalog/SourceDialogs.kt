@@ -140,9 +140,11 @@ fun SmbConfigForm(
     onDismiss: () -> Unit,
     onSave: (name: String, server: String, path: String, credentials: SmbCredentials?) -> Unit,
     onBack: () -> Unit,
-    editSource: RomSource?
+    editSource: RomSource?,
+    showDisplayNameField: Boolean = true,
+    fixedDisplayName: String? = null,
 ) {
-    var name by remember { mutableStateOf(editSource?.name ?: "") }
+    var name by remember { mutableStateOf(fixedDisplayName ?: editSource?.name ?: "") }
     var server by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("") }
     var path by remember { mutableStateOf("") }
@@ -223,16 +225,18 @@ fun SmbConfigForm(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text(stringResource(R.string.sources_smb_display_name)) },
-            placeholder = { Text(stringResource(R.string.sources_smb_display_name_placeholder)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        
-        Spacer(modifier = Modifier.height(12.dp))
+        if (showDisplayNameField) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.sources_smb_display_name)) },
+                placeholder = { Text(stringResource(R.string.sources_smb_display_name_placeholder)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         
         Row(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
@@ -401,11 +405,12 @@ fun SmbConfigForm(
                 Button(
                     onClick = {
                         val serverAddress = buildServerAddress()
-                        val displayName = name.ifBlank { serverAddress + path }
+                        val displayName = (fixedDisplayName ?: name).ifBlank { serverAddress + path }
+                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
                         val credentials = if (useAuth && username.isNotBlank()) {
                             SmbCredentials(username, password)
                         } else null
-                        onSave(displayName, serverAddress, path, credentials)
+                        onSave(displayName, serverAddress, normalizedPath, credentials)
                     },
                     enabled = server.isNotBlank() && path.isNotBlank()
                 ) {

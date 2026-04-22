@@ -553,8 +553,15 @@ private fun RomsSettings(
                     editSource = if (saveLocationUri.startsWith("smb://")) {
                         RomSource(type = SourceType.SMB, name = "Sauvegardes", path = saveLocationUri, id = "_save")
                     } else null,
-                    onSave = { _, server, path, _ ->
-                        viewModel.setSaveLocation("smb://$server$path")
+                    showDisplayNameField = false,
+                    fixedDisplayName = "Sauvegardes",
+                    onSave = { _, server, path, credentials ->
+                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+                        viewModel.setSaveLocation(
+                            "smb://$server$normalizedPath",
+                            credentials?.username ?: "",
+                            credentials?.password ?: "",
+                        )
                         showSaveSmbDialog = false
                     },
                 )
@@ -572,8 +579,15 @@ private fun RomsSettings(
                     editSource = if (downloadSourceId.startsWith("smb://")) {
                         RomSource(type = SourceType.SMB, name = "Téléchargements", path = downloadSourceId, id = "_dl")
                     } else null,
-                    onSave = { _, server, path, _ ->
-                        viewModel.setDownloadSourceId("smb://$server$path")
+                    showDisplayNameField = false,
+                    fixedDisplayName = "Téléchargements",
+                    onSave = { _, server, path, credentials ->
+                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+                        viewModel.setDownloadSourceId(
+                            "smb://$server$normalizedPath",
+                            credentials?.username ?: "",
+                            credentials?.password ?: "",
+                        )
                         showDownloadSmbDialog = false
                     },
                 )
@@ -636,7 +650,7 @@ private fun RomsSettings(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         ) {
             val spacing = 8.dp
             val availableWidth = maxWidth - spacing
@@ -704,6 +718,12 @@ private fun RomsSettings(
                     else -> showDownloadPickerDialog = true
                 }
             },
+        )
+        Text(
+            text = stringResource(R.string.settings_download_location_library_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
     }
 }
@@ -775,7 +795,7 @@ private fun LibraryPathRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onEdit)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -831,7 +851,7 @@ private fun PlatformPickerDialog(
                     text = stringResource(R.string.settings_platform_dialog_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(bottom = 16.dp),
                 )
                 LazyColumn(modifier = Modifier.height(320.dp)) {
                     // Auto row

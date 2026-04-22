@@ -435,6 +435,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             onGameClick = onGameClick,
                             onGameLongClick = onGameLongClick,
                             onGameFavoriteToggle = onGameFavoriteToggle,
+                            multiSelectEnabled = (metaSystemId == "UNKNOWN"),
                         )
                     }
                     composable(MainRoute.SETTINGS) {

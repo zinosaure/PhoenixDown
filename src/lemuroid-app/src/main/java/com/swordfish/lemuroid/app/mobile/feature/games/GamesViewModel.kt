@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class GamesViewModel(
     private val retrogradeDb: RetrogradeDatabase,
@@ -42,4 +43,10 @@ class GamesViewModel(
                     else -> buildFlowPaging(20, viewModelScope) { retrogradeDb.gameDao().selectBySystems(it) }
                 }
             }
+
+    fun bulkUpdateSystem(games: List<Game>, newSystemId: String) {
+        viewModelScope.launch {
+            retrogradeDb.gameDao().update(games.map { it.copy(systemId = newSystemId) })
+        }
+    }
 }

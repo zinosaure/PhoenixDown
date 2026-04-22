@@ -261,6 +261,7 @@
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
     <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
+    <string name="settings_download_location_library_hint">Pour que les téléchargements apparaissent dans la bibliothèque, ce dossier doit être inclus dans la Bibliothèque de jeux.</string>
     <string name="settings_picker_local_folder">Dossier local</string>
     <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
     <string name="settings_picker_reset">Réinitialiser (défaut)</string>
@@ -439,6 +440,11 @@
     <string name="delete_games_confirm">Delete</string>
     <string name="delete_mode_title">Select games to delete</string>
     <string name="delete_selected">Delete selected (%1$d)</string>
+    <string name="multiselect_selected_count">%1$d selected</string>
+    <string name="assign_platform_button">Assign Platform</string>
+    <string name="assign_platform_title">Assign Platform</string>
+    <string name="assign_platform_subtitle">Assign the same platform to %1$d selected game(s).</string>
+    <string name="assign_platform_confirm">Assign</string>
 
     <!-- Metadata Settings -->
     <string name="settings_category_metadata">Metadata/API</string>

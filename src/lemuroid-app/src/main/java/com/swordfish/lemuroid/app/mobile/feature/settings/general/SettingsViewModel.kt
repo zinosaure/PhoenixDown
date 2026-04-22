@@ -108,8 +108,10 @@ class SettingsViewModel(
             .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
-    fun setSaveLocation(uri: String) {
+    fun setSaveLocation(uri: String, username: String = "", password: String = "") {
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "").set(uri)
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "").set(username)
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "").set(password)
     }
 
     /** Download location: RomSource ID. Empty = Android /Downloads. */
@@ -119,7 +121,9 @@ class SettingsViewModel(
             .flowOn(Dispatchers.IO)
             .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
-    fun setDownloadSourceId(id: String) {
+    fun setDownloadSourceId(id: String, username: String = "", password: String = "") {
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "").set(id)
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "").set(username)
+        sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "").set(password)
     }
 }

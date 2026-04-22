@@ -5,6 +5,7 @@ import android.net.Uri
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 
 /**
@@ -24,16 +25,22 @@ class SavesStorageResolver(
     private val directoriesManager: DirectoriesManager,
 ) {
     fun resolve(): SavesStorage {
-        val loc = SharedPreferencesHelper.getSharedPreferences(context)
+        val prefs = SharedPreferencesHelper.getSharedPreferences(context)
+        val loc = prefs
             .getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "")
             ?.takeIf { it.isNotBlank() }
             ?: return LocalSavesStorage(directoriesManager)
 
         return when {
             loc.startsWith("content://") -> SafSavesStorage(context, Uri.parse(loc))
-            loc.startsWith("smb://") -> SmbSavesStorage(
-                RomSource(type = SourceType.SMB, name = "Saves", path = loc, id = "_save")
-            )
+            loc.startsWith("smb://") -> {
+                val username = prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: ""
+                val password = prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: ""
+                val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
+                SmbSavesStorage(
+                    RomSource(type = SourceType.SMB, name = "Saves", path = loc, id = "_save", credentials = credentials),
+                )
+            }
             else -> LocalSavesStorage(directoriesManager) // old RomSource.id → graceful fallback
         }
     }

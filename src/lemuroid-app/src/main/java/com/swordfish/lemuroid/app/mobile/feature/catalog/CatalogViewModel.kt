@@ -63,7 +63,10 @@ class CatalogViewModel(
             }
             downloadLoc.startsWith("smb://") -> {
                 Log.e("ANTIGRAVITY", "Download destination (SMB): $downloadLoc")
-                RomSource(type = com.swordfish.lemuroid.lib.storage.source.SourceType.SMB, name = "Download", path = downloadLoc, id = "_dl")
+                val dlUsername = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: ""
+                val dlPassword = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: ""
+                val dlCredentials = if (dlUsername.isNotBlank()) SmbCredentials(dlUsername, dlPassword) else null
+                RomSource(type = com.swordfish.lemuroid.lib.storage.source.SourceType.SMB, name = "Download", path = downloadLoc, id = "_dl", credentials = dlCredentials)
             }
             else -> {
                 // Legacy: try to find by RomSource.id, then fall back to legacy SMB prefs
