@@ -12,6 +12,7 @@ import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.smb.SmbClient
 import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
@@ -196,10 +197,17 @@ class TVSmbConfigActivity : FragmentActivity() {
         }
 
         val labels = profiles.map { profile ->
+            val protocolName = getString(
+                when (profile.protocol) {
+                    NetworkProtocol.SMB -> R.string.network_protocol_smb
+                    NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                },
+            )
             if (profile.username.isNotBlank()) {
-                "${profile.name} (${profile.username}@${profile.server})"
+                "$protocolName • ${profile.name} (${profile.username}@${profile.server})"
             } else {
-                "${profile.name} (${profile.server})"
+                "$protocolName • ${profile.name} (${profile.server})"
             }
         }.toTypedArray()
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
@@ -30,13 +31,14 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,29 +46,26 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestState
+import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestStatus
+import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
-import com.swordfish.lemuroid.lib.library.GameSystem
-import com.swordfish.lemuroid.lib.library.SystemID
-import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
-import com.swordfish.lemuroid.lib.storage.source.SourceType
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
@@ -81,6 +80,14 @@ import com.swordfish.lemuroid.app.utils.android.settings.booleanPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.indexPreferenceState
 import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
+import com.swordfish.lemuroid.lib.library.GameSystem
+import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
+import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceType
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -112,7 +119,7 @@ fun SettingsScreen(
         GeneralSettings()
         InputSettings(navController = navController)
         MetadataSettings(
-            viewModel = viewModel
+            viewModel = viewModel,
         )
         ConsolesSettings(
             indexingInProgress = indexingInProgress,
@@ -124,10 +131,10 @@ fun SettingsScreen(
 
 @Composable
 private fun MetadataSettings(
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
 ) {
     val apiKey = viewModel.theGamesDbApiKey.collectAsState().value
-    
+
     var showApiKeyDialog by remember { mutableStateOf(false) }
 
     if (showApiKeyDialog) {
@@ -139,7 +146,7 @@ private fun MetadataSettings(
                 OutlinedTextField(
                     value = tempApiKey,
                     onValueChange = { tempApiKey = it },
-                    singleLine = true
+                    singleLine = true,
                 )
             },
             confirmButton = {
@@ -147,7 +154,7 @@ private fun MetadataSettings(
                     onClick = {
                         viewModel.setTheGamesDbApiKey(tempApiKey)
                         showApiKeyDialog = false
-                    }
+                    },
                 ) {
                     Text(stringResource(R.string.ok))
                 }
@@ -156,7 +163,7 @@ private fun MetadataSettings(
                 TextButton(onClick = { showApiKeyDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 
@@ -167,21 +174,20 @@ private fun MetadataSettings(
             text = stringResource(R.string.settings_thegamesdb_help),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         )
-        
+
         LemuroidSettingsMenuLink(
             title = { Text(text = stringResource(id = R.string.settings_title_thegamesdb_apikey)) },
-            subtitle = { 
+            subtitle = {
                 Text(
-                    text = if (apiKey.isNotEmpty()) stringResource(R.string.settings_thegamesdb_configured) else stringResource(R.string.settings_thegamesdb_not_configured)
-                ) 
+                    text = if (apiKey.isNotEmpty()) stringResource(R.string.settings_thegamesdb_configured) else stringResource(R.string.settings_thegamesdb_not_configured),
+                )
             },
             onClick = { showApiKeyDialog = true },
         )
     }
 }
-
 
 @Composable
 private fun ConsolesSettings(
@@ -239,7 +245,6 @@ private fun ConsolesSettings(
             },
             onClick = { context.startActivity(Intent(context, LogViewerActivity::class.java)) },
         )
-
     }
 }
 
@@ -654,6 +659,10 @@ private fun RomsSettings(
             text = {
                 SmbLoginProfileForm(
                     initialProfile = initialProfile,
+                    onCancel = {
+                        showAddSmbLoginDialog = false
+                        editingSmbLoginProfile = null
+                    },
                     onSave = { profile ->
                         viewModel.addOrUpdateSmbLoginProfile(profile)
                         showAddSmbLoginDialog = false
@@ -662,16 +671,7 @@ private fun RomsSettings(
                 )
             },
             confirmButton = {},
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showAddSmbLoginDialog = false
-                        editingSmbLoginProfile = null
-                    },
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            dismissButton = {},
         )
     }
 
@@ -850,10 +850,17 @@ private fun SmbLoginProfileRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val protocolName = stringResource(
+        when (profile.protocol) {
+            NetworkProtocol.SMB -> R.string.network_protocol_smb
+            NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+            NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+        },
+    )
     val details = if (profile.username.isNotBlank()) {
-        "${profile.server} • ${profile.username}"
+        "$protocolName • ${profile.server} • ${profile.username}"
     } else {
-        profile.server
+        "$protocolName • ${profile.server}"
     }
 
     Row(
@@ -895,9 +902,11 @@ private fun SmbLoginProfileRow(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun SmbLoginProfileForm(
     initialProfile: SmbLoginProfile?,
+    onCancel: () -> Unit,
     onSave: (SmbLoginProfile) -> Unit,
 ) {
     var name by remember(initialProfile) { mutableStateOf(initialProfile?.name ?: "") }
@@ -909,10 +918,17 @@ private fun SmbLoginProfileForm(
                 ?: "",
         )
     }
-    var useAuth by remember(initialProfile) { mutableStateOf(initialProfile?.username?.isNotBlank() == true) }
+    var protocol by remember(initialProfile) { mutableStateOf(initialProfile?.protocol ?: NetworkProtocol.SMB) }
+    var isAnonymous by remember(initialProfile) { mutableStateOf(initialProfile?.username?.isBlank() != false) }
     var username by remember(initialProfile) { mutableStateOf(initialProfile?.username ?: "") }
     var password by remember(initialProfile) { mutableStateOf(initialProfile?.password ?: "") }
     var showPassword by remember { mutableStateOf(false) }
+    var connectionTestState by remember(initialProfile) { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
+    val smbClient = remember { SmbClient() }
+    val scope = rememberCoroutineScope()
+    val unsupportedMessage = stringResource(R.string.sources_network_test_unsupported)
+    val successMessage = stringResource(R.string.sources_smb_connection_success)
+    val unknownErrorMessage = stringResource(R.string.sources_network_test_unknown_error)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -922,10 +938,55 @@ private fun SmbLoginProfileForm(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
+
+        Column {
+            Text(
+                text = stringResource(R.string.network_protocol_label),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                NetworkProtocol.entries.forEach { proto ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                protocol = proto
+                                connectionTestState = ConnectionTestState.Idle
+                            }
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        RadioButton(
+                            selected = protocol == proto,
+                            onClick = {
+                                protocol = proto
+                                connectionTestState = ConnectionTestState.Idle
+                            },
+                        )
+                        Text(
+                            text = stringResource(
+                                when (proto) {
+                                    NetworkProtocol.SMB -> R.string.network_protocol_smb
+                                    NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        }
+
         Row(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = server,
-                onValueChange = { server = it },
+                onValueChange = {
+                    server = it
+                    connectionTestState = ConnectionTestState.Idle
+                },
                 label = { Text(stringResource(R.string.sources_smb_server)) },
                 modifier = Modifier.weight(3f),
                 singleLine = true,
@@ -933,27 +994,50 @@ private fun SmbLoginProfileForm(
             Spacer(modifier = Modifier.width(8.dp))
             OutlinedTextField(
                 value = port,
-                onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                onValueChange = {
+                    port = it.filter(Char::isDigit).take(5)
+                    connectionTestState = ConnectionTestState.Idle
+                },
                 label = { Text(stringResource(R.string.sources_smb_port)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = useAuth, onCheckedChange = { useAuth = it })
-            Text(stringResource(R.string.sources_smb_use_auth))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.network_login_anonymous),
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = isAnonymous,
+                onCheckedChange = {
+                    isAnonymous = it
+                    connectionTestState = ConnectionTestState.Idle
+                },
+            )
         }
-        if (useAuth) {
+
+        if (!isAnonymous) {
             OutlinedTextField(
                 value = username,
-                onValueChange = { username = it },
+                onValueChange = {
+                    username = it
+                    connectionTestState = ConnectionTestState.Idle
+                },
                 label = { Text(stringResource(R.string.sources_smb_username_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    connectionTestState = ConnectionTestState.Idle
+                },
                 label = { Text(stringResource(R.string.sources_smb_password_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -968,10 +1052,55 @@ private fun SmbLoginProfileForm(
                 },
             )
         }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            OutlinedButton(
+                onClick = {
+                    val trimmedServer = server.trim()
+                    if (protocol != NetworkProtocol.SMB) {
+                        connectionTestState = ConnectionTestState.Error(unsupportedMessage)
+                        return@OutlinedButton
+                    }
+                    connectionTestState = ConnectionTestState.Testing
+                    scope.launch {
+                        val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
+                        val credentials = if (!isAnonymous && username.isNotBlank()) {
+                            SmbCredentials(username.trim(), password)
+                        } else {
+                            null
+                        }
+                        val result = smbClient.testServerConnection(serverAddress, credentials)
+                        connectionTestState = if (result.isSuccess) {
+                            ConnectionTestState.Success(successMessage)
+                        } else {
+                            ConnectionTestState.Error(
+                                result.exceptionOrNull()?.message ?: unknownErrorMessage,
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                enabled = server.isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
+            ) {
+                Text(stringResource(R.string.sources_smb_test_connection))
+            }
+            ConnectionTestStatus(testState = connectionTestState)
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(4f),
+            ) {
+                Text(stringResource(R.string.sources_cancel))
+            }
             Button(
                 onClick = {
                     val trimmedServer = server.trim()
@@ -980,12 +1109,14 @@ private fun SmbLoginProfileForm(
                         (initialProfile ?: SmbLoginProfile(name = "", server = "")).copy(
                             name = name.trim().ifBlank { trimmedServer.substringBefore(':').ifBlank { trimmedServer } },
                             server = serverAddress,
-                            username = if (useAuth) username.trim() else "",
-                            password = if (useAuth) password else "",
+                            protocol = protocol,
+                            username = if (isAnonymous) "" else username.trim(),
+                            password = if (isAnonymous) "" else password,
                         ),
                     )
                 },
-                enabled = name.isNotBlank() && server.isNotBlank(),
+                modifier = Modifier.weight(8f),
+                enabled = name.isNotBlank() && server.isNotBlank() && (isAnonymous || username.isNotBlank()),
             ) {
                 Text(stringResource(R.string.sources_save))
             }

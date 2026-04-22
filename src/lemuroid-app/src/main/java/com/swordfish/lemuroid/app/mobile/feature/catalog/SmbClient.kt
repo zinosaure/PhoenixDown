@@ -79,6 +79,79 @@ class SmbClient {
             .build()
         return SMBClient(config)
     }
+
+    private inline fun <T> withDiskShare(
+        server: String,
+        share: String,
+        credentials: SmbCredentials? = null,
+        block: (DiskShare) -> T,
+    ): Result<T> = runCatching {
+        val endpoint = parseEndpoint(server)
+        val client = createClient()
+        val connection = client.connect(endpoint.host, endpoint.port)
+
+        val authContext = if (credentials != null && credentials.username.isNotBlank()) {
+            AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
+        } else {
+            AuthenticationContext.guest()
+        }
+
+        val session = connection.authenticate(authContext)
+        val diskShare = session.connectShare(share) as DiskShare
+
+        try {
+            block(diskShare)
+        } finally {
+            diskShare.close()
+            session.close()
+            connection.close()
+            client.close()
+        }
+    }
+
+    suspend fun testServerConnection(
+        server: String,
+        credentials: SmbCredentials? = null,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val endpoint = parseEndpoint(server)
+            val client = createClient()
+            val connection = client.connect(endpoint.host, endpoint.port)
+
+            val authContext = if (credentials != null && credentials.username.isNotBlank()) {
+                AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
+            } else {
+                AuthenticationContext.guest()
+            }
+
+            val session = connection.authenticate(authContext)
+            session.close()
+            connection.close()
+            client.close()
+        }
+    }
+
+    suspend fun listDirectories(
+        server: String,
+        share: String,
+        path: String = "",
+        credentials: SmbCredentials? = null,
+    ): Result<List<SmbDirectoryEntry>> = withContext(Dispatchers.IO) {
+        withDiskShare(server, share, credentials) { diskShare ->
+            val smbPath = path.removePrefix("/").replace("/", "\\")
+            diskShare.list(smbPath)
+                .filter { entry ->
+                    val name = entry.fileName
+                    name != "." && name != ".." &&
+                        entry.fileAttributes and FileAttributes.FILE_ATTRIBUTE_DIRECTORY.value != 0L
+                }
+                .map { entry ->
+                    val fullPath = if (path.isBlank() || path == "/") "/$share/${entry.fileName}" else "$path/${entry.fileName}"
+                    SmbDirectoryEntry(name = entry.fileName, path = fullPath)
+                }
+                .sortedBy { it.name.lowercase() }
+        }
+    }
     
     /**
      * List ROM files in an SMB share recursively
@@ -362,6 +435,11 @@ class SmbClient {
         }
     }
 }
+
+data class SmbDirectoryEntry(
+    val name: String,
+    val path: String,
+)
 
 /**
  * Represents a file on an SMB share with extracted metadata

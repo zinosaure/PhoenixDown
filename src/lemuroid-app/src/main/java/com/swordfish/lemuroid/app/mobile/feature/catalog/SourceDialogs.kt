@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.mobile.feature.catalog
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,12 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
@@ -76,7 +77,7 @@ fun AddSourceDialog(
                         // SMB/NAS button
                         SourceTypeButton(
                             icon = Icons.Default.Dns,
-                            label = stringResource(R.string.sources_add_smb),
+                            label = stringResource(R.string.sources_add_network),
                             onClick = { showSmbForm = true }
                         )
                     }
@@ -136,6 +137,7 @@ private fun SourceTypeButton(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmbConfigForm(
     onDismiss: () -> Unit,
@@ -146,96 +148,41 @@ fun SmbConfigForm(
     fixedDisplayName: String? = null,
     savedProfiles: List<SmbLoginProfile> = emptyList(),
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(fixedDisplayName ?: editSource?.name ?: "") }
-    var server by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("") }
-    var path by remember { mutableStateOf("") }
-    var useAuth by remember { mutableStateOf(false) }
-    var username by remember { mutableStateOf(editSource?.credentials?.username ?: "") }
-    var password by remember { mutableStateOf(editSource?.credentials?.password ?: "") }
-    var showPassword by remember { mutableStateOf(false) }
+    var path by remember { mutableStateOf("/") }
     var selectedProfileId by remember { mutableStateOf<String?>(null) }
     var showSavedProfilesDialog by remember { mutableStateOf(false) }
-    
-    // Test connection state
+    var showPathBrowserDialog by remember { mutableStateOf(false) }
     var connectionTestState by remember { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
     val scope = rememberCoroutineScope()
     val smbClient = remember { SmbClient() }
-
-    fun buildServerAddress(): String {
-        val host = server.trim()
-        val portValue = port.trim()
-        if (host.isBlank() || portValue.isBlank()) {
-            return host
-        }
-
-        val parsedPort = portValue.toIntOrNull()
-        return if (parsedPort != null && parsedPort in 1..65535) {
-            "$host:$parsedPort"
-        } else {
-            host
-        }
-    }
+    val selectedProfile = savedProfiles.firstOrNull { it.id == selectedProfileId }
 
     fun applyProfile(profile: SmbLoginProfile) {
-        val separator = profile.server.lastIndexOf(':')
-        if (separator > 0 && separator < profile.server.lastIndex) {
-            val maybePort = profile.server.substring(separator + 1)
-            if (maybePort.toIntOrNull() in 1..65535) {
-                server = profile.server.substring(0, separator)
-                port = maybePort
-            } else {
-                server = profile.server
-                port = ""
-            }
-        } else {
-            server = profile.server
-            port = ""
-        }
-        useAuth = profile.username.isNotBlank()
-        username = profile.username
-        password = profile.password
         selectedProfileId = profile.id
         connectionTestState = ConnectionTestState.Idle
     }
-    
-    // Parse existing SMB path if editing
+
     LaunchedEffect(editSource) {
         editSource?.path?.let { smbPath ->
-            // Parse smb://server/path
             val withoutScheme = smbPath.removePrefix("smb://")
             val slashIndex = withoutScheme.indexOf('/')
             if (slashIndex > 0) {
                 val serverPart = withoutScheme.substring(0, slashIndex)
-                val separator = serverPart.lastIndexOf(':')
-                if (separator > 0 && separator < serverPart.lastIndex) {
-                    val maybePort = serverPart.substring(separator + 1)
-                    if (maybePort.toIntOrNull() in 1..65535) {
-                        server = serverPart.substring(0, separator)
-                        port = maybePort
-                    } else {
-                        server = serverPart
-                        port = ""
-                    }
-                } else {
-                    server = serverPart
-                    port = ""
+                path = withoutScheme.substring(slashIndex).ifBlank { "/" }
+                val matchedProfile = savedProfiles.firstOrNull {
+                    it.server.equals(serverPart, ignoreCase = true) &&
+                        it.username == (editSource.credentials?.username ?: "") &&
+                        it.password == (editSource.credentials?.password ?: "")
                 }
-                path = withoutScheme.substring(slashIndex)
+                selectedProfileId = matchedProfile?.id
             } else {
-                server = withoutScheme
-                port = ""
-                path = ""
+                path = "/"
             }
-            useAuth = editSource.credentials != null
-            val matchedProfile = savedProfiles.firstOrNull {
-                it.server.equals(buildServerAddress(), ignoreCase = true) &&
-                    it.username == (editSource.credentials?.username ?: "")
-            }
-            selectedProfileId = matchedProfile?.id
         }
     }
-    
+
     Column(
         modifier = Modifier
             .padding(24.dp)
@@ -248,28 +195,13 @@ fun SmbConfigForm(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
             Text(
-                text = if (editSource != null) stringResource(R.string.sources_smb_edit_title) else stringResource(R.string.sources_smb_connection_title),
+                text = if (editSource != null) stringResource(R.string.sources_network_edit_title) else stringResource(R.string.sources_network_connection_title),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
         }
         
         Spacer(modifier = Modifier.height(16.dp))
-
-        if (savedProfiles.isNotEmpty()) {
-            val selectedProfile = savedProfiles.firstOrNull { it.id == selectedProfileId }
-            OutlinedButton(
-                onClick = { showSavedProfilesDialog = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = selectedProfile?.name ?: stringResource(R.string.sources_smb_saved_profile_pick),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-        
         if (showDisplayNameField) {
             OutlinedTextField(
                 value = name,
@@ -282,185 +214,130 @@ fun SmbConfigForm(
 
             Spacer(modifier = Modifier.height(12.dp))
         }
-        
-        Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = server,
-                onValueChange = { server = it },
-                label = { Text(stringResource(R.string.sources_smb_server)) },
-                placeholder = { Text(stringResource(R.string.sources_smb_server_placeholder)) },
-                modifier = Modifier.weight(3f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-            )
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            OutlinedTextField(
-                value = port,
-                onValueChange = { port = it.filter(Char::isDigit).take(5) },
-                label = { Text(stringResource(R.string.sources_smb_port)) },
-                placeholder = { Text(stringResource(R.string.sources_smb_port_placeholder)) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        if (savedProfiles.isEmpty()) {
+            Text(
+                text = stringResource(R.string.sources_network_profile_required),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        OutlinedTextField(
-            value = path,
-            onValueChange = { path = it },
-            label = { Text(stringResource(R.string.sources_smb_path)) },
-            placeholder = { Text(stringResource(R.string.sources_smb_path_placeholder)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            supportingText = { Text(stringResource(R.string.sources_smb_path_hint)) }
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = useAuth,
-                onCheckedChange = { useAuth = it }
-            )
-            Text(stringResource(R.string.sources_smb_use_auth))
-        }
-        
-        if (useAuth) {
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text(stringResource(R.string.sources_smb_username_label)) },
+        } else {
+            OutlinedButton(
+                onClick = { showSavedProfilesDialog = true },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text(stringResource(R.string.sources_smb_password_label)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showPassword) "Hide password" else "Show password"
+            ) {
+                Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = selectedProfile?.name ?: stringResource(R.string.sources_smb_saved_profile_pick),
+                    )
+                    selectedProfile?.let { profile ->
+                        val protocolName = context.getString(
+                            when (profile.protocol) {
+                                NetworkProtocol.SMB -> R.string.network_protocol_smb
+                                NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                                NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                            },
+                        )
+                        Text(
+                            text = "$protocolName • ${profile.server}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-            )
+            }
         }
-        
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = path,
+            onValueChange = {},
+            label = { Text(stringResource(R.string.sources_smb_path)) },
+            placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            readOnly = true,
+            supportingText = {
+                Text(
+                    if (selectedProfile?.protocol == NetworkProtocol.SMB) {
+                        stringResource(R.string.sources_network_path_hint)
+                    } else {
+                        stringResource(R.string.sources_network_path_hint_smb_only)
+                    },
+                )
+            },
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { showPathBrowserDialog = true },
+            enabled = selectedProfile != null && selectedProfile.protocol == NetworkProtocol.SMB,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.sources_network_browse_path))
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
-        
-        // Connection test result
-        when (connectionTestState) {
-            is ConnectionTestState.Success -> {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        stringResource(R.string.sources_smb_connection_success),
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-            is ConnectionTestState.Error -> {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        stringResource(R.string.sources_smb_connection_failed, (connectionTestState as ConnectionTestState.Error).message),
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-            is ConnectionTestState.Testing -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.sources_smb_testing))
-                }
-            }
-            else -> {}
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Column(modifier = Modifier.fillMaxWidth()) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             OutlinedButton(
                 onClick = {
+                    val profile = selectedProfile ?: return@OutlinedButton
+                    if (profile.protocol != NetworkProtocol.SMB) {
+                        connectionTestState = ConnectionTestState.Error(context.getString(R.string.sources_network_test_unsupported))
+                        return@OutlinedButton
+                    }
                     connectionTestState = ConnectionTestState.Testing
                     scope.launch {
-                        val credentials = if (useAuth && username.isNotBlank()) {
-                            SmbCredentials(username, password)
-                        } else null
-                        
-                        // Parse share name from path
-                        val shareName = path.removePrefix("/").split("/").firstOrNull() ?: ""
-                        val serverAddress = buildServerAddress()
-                        val result = smbClient.testConnection(serverAddress, shareName, credentials)
+                        val credentials = profile.toCredentials()
+                        val shareName = path.removePrefix("/").substringBefore("/")
+                        val result = smbClient.testConnection(profile.server, shareName, credentials)
                         connectionTestState = if (result.isSuccess) {
-                            ConnectionTestState.Success
+                            ConnectionTestState.Success(context.getString(R.string.sources_smb_connection_success))
                         } else {
                             ConnectionTestState.Error(
-                                result.exceptionOrNull()?.message ?: "Unknown error"
+                                result.exceptionOrNull()?.message ?: context.getString(R.string.sources_network_test_unknown_error),
                             )
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = server.isNotBlank() && path.isNotBlank() && connectionTestState !is ConnectionTestState.Testing
+                modifier = Modifier.weight(1f),
+                enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && connectionTestState !is ConnectionTestState.Testing,
             ) {
                 Text(stringResource(R.string.sources_smb_test_connection))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            ConnectionTestStatus(testState = connectionTestState)
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(4f),
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.sources_cancel))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        val serverAddress = buildServerAddress()
-                        val displayName = (fixedDisplayName ?: name).ifBlank { serverAddress + path }
-                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
-                        val credentials = if (useAuth && username.isNotBlank()) {
-                            SmbCredentials(username, password)
-                        } else null
-                        onSave(displayName, serverAddress, normalizedPath, credentials)
-                    },
-                    enabled = server.isNotBlank() && path.isNotBlank()
-                ) {
-                    Text(stringResource(R.string.sources_save))
-                }
+                Text(stringResource(R.string.sources_cancel))
+            }
+            Button(
+                onClick = {
+                    val profile = selectedProfile ?: return@Button
+                    val displayName = (fixedDisplayName ?: name).ifBlank { "${profile.name} $path" }
+                    val normalizedPath = if (path.startsWith("/")) path else "/$path"
+                    onSave(displayName, profile.server, normalizedPath, profile.toCredentials())
+                },
+                modifier = Modifier.weight(8f),
+                enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && (!showDisplayNameField || name.isNotBlank()),
+            ) {
+                Text(stringResource(R.string.sources_finish))
             }
         }
     }
@@ -479,13 +356,20 @@ fun SmbConfigForm(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
+                            val protocolName = stringResource(
+                                when (profile.protocol) {
+                                    NetworkProtocol.SMB -> R.string.network_protocol_smb
+                                    NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                                    NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                },
+                            )
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(text = profile.name)
                                 Text(
                                     text = if (profile.username.isNotBlank()) {
-                                        "${profile.server} • ${profile.username}"
+                                        "$protocolName • ${profile.server} • ${profile.username}"
                                     } else {
-                                        profile.server
+                                        "$protocolName • ${profile.server}"
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -503,6 +387,189 @@ fun SmbConfigForm(
             },
         )
     }
+
+    if (showPathBrowserDialog && selectedProfile != null) {
+        SmbPathBrowserDialog(
+            profile = selectedProfile,
+            initialPath = path,
+            smbClient = smbClient,
+            onDismiss = { showPathBrowserDialog = false },
+            onSelect = {
+                path = it
+                connectionTestState = ConnectionTestState.Idle
+                showPathBrowserDialog = false
+            },
+        )
+    }
+}
+
+private fun SmbLoginProfile.toCredentials(): SmbCredentials? =
+    if (username.isNotBlank()) {
+        SmbCredentials(username, password)
+    } else {
+        null
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConnectionTestStatus(
+    testState: ConnectionTestState,
+    modifier: Modifier = Modifier,
+) {
+    when (testState) {
+        is ConnectionTestState.Testing -> CircularProgressIndicator(modifier = modifier.size(24.dp), strokeWidth = 2.dp)
+        is ConnectionTestState.Success -> {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(testState.message) } },
+                state = rememberTooltipState(),
+            ) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+        is ConnectionTestState.Error -> {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(testState.message) } },
+                state = rememberTooltipState(),
+            ) {
+                Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            }
+        }
+        ConnectionTestState.Idle -> Spacer(modifier = modifier.size(24.dp))
+    }
+}
+
+@Composable
+private fun SmbPathBrowserDialog(
+    profile: SmbLoginProfile,
+    initialPath: String,
+    smbClient: SmbClient,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    val initialSegments = initialPath.removePrefix("/").split('/').filter { it.isNotBlank() }
+    var shareName by remember(profile.id, initialPath) { mutableStateOf(initialSegments.firstOrNull() ?: "") }
+    var currentPath by remember(profile.id, initialPath) {
+        mutableStateOf(initialPath.takeIf { it.startsWith("/") && it.length > 1 } ?: "/")
+    }
+    var entries by remember(profile.id, currentPath) { mutableStateOf<List<SmbDirectoryEntry>>(emptyList()) }
+    var isLoading by remember(profile.id, currentPath) { mutableStateOf(true) }
+    var loadError by remember(profile.id, currentPath) { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun splitPath(path: String): Pair<String?, String> {
+        val segments = path.removePrefix("/").split('/').filter { it.isNotBlank() }
+        val share = segments.firstOrNull()
+        val subPath = segments.drop(1).joinToString("/")
+        return share to subPath
+    }
+
+    fun parentPath(path: String): String {
+        val segments = path.removePrefix("/").split('/').filter { it.isNotBlank() }
+        return when {
+            segments.isEmpty() -> "/"
+            segments.size == 1 -> "/"
+            else -> "/" + segments.dropLast(1).joinToString("/")
+        }
+    }
+
+    LaunchedEffect(profile.id, currentPath) {
+        isLoading = true
+        loadError = null
+        val result = if (currentPath == "/") {
+            Result.success(emptyList())
+        } else {
+            val (share, subPath) = splitPath(currentPath)
+            if (share == null) {
+                Result.success(emptyList())
+            } else {
+                smbClient.listDirectories(profile.server, share, subPath, profile.toCredentials())
+            }
+        }
+
+        result.onSuccess {
+            entries = it
+            isLoading = false
+        }.onFailure {
+            entries = emptyList()
+            loadError = it.message
+            isLoading = false
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sources_network_browse_path)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = currentPath,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (currentPath == "/") {
+                    OutlinedTextField(
+                        value = shareName,
+                        onValueChange = { shareName = it.trim() },
+                        label = { Text(stringResource(R.string.sources_network_share_name)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    OutlinedButton(
+                        onClick = { currentPath = "/${shareName.trim().removePrefix("/")}" },
+                        enabled = shareName.isNotBlank(),
+                    ) {
+                        Text(stringResource(R.string.sources_network_open_share))
+                    }
+                }
+                if (currentPath != "/") {
+                    TextButton(onClick = { currentPath = parentPath(currentPath) }) {
+                        Text(stringResource(R.string.sources_network_go_up))
+                    }
+                }
+                when {
+                    isLoading -> {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Text(stringResource(R.string.sources_network_loading))
+                        }
+                    }
+                    loadError != null -> Text(
+                        text = stringResource(R.string.sources_network_browse_error, loadError ?: ""),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        entries.forEach { entry ->
+                            TextButton(
+                                onClick = { currentPath = entry.path },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(Icons.Default.Folder, contentDescription = null)
+                                    Text(entry.name)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSelect(currentPath) }, enabled = currentPath != "/") {
+                Text(stringResource(R.string.sources_choose_path))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.sources_cancel))
+            }
+        },
+    )
 }
 
 
@@ -655,6 +722,6 @@ private fun SourceItem(
 sealed class ConnectionTestState {
     object Idle : ConnectionTestState()
     object Testing : ConnectionTestState()
-    object Success : ConnectionTestState()
+    data class Success(val message: String) : ConnectionTestState()
     data class Error(val message: String) : ConnectionTestState()
 }

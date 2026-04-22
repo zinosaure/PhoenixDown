@@ -10,9 +10,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
 
+enum class NetworkProtocol {
+    SMB,
+    SFTP,
+    WEBDAV,
+}
+
 data class SmbLoginProfile(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
+    val protocol: NetworkProtocol = NetworkProtocol.SMB,
     val server: String,
     val username: String = "",
     val password: String = "",
@@ -30,6 +37,9 @@ data class SmbLoginProfile(
                     SmbLoginProfile(
                         id = obj.optString("id", UUID.randomUUID().toString()),
                         name = name,
+                        protocol = runCatching {
+                            NetworkProtocol.valueOf(obj.optString("protocol", NetworkProtocol.SMB.name))
+                        }.getOrDefault(NetworkProtocol.SMB),
                         server = server,
                         username = obj.optString("username", ""),
                         password = obj.optString("password", ""),
@@ -45,6 +55,7 @@ data class SmbLoginProfile(
                     JSONObject().apply {
                         put("id", profile.id)
                         put("name", profile.name)
+                        put("protocol", profile.protocol.name)
                         put("server", profile.server)
                         put("username", profile.username)
                         put("password", profile.password)
@@ -92,24 +103,32 @@ class SmbLoginProfileRepository(context: Context) {
         save(profiles)
     }
 
-    fun rememberConnection(server: String, credentials: SourceCredentials?) {
+    fun rememberConnection(
+        server: String,
+        credentials: SourceCredentials?,
+        protocol: NetworkProtocol = NetworkProtocol.SMB,
+    ) {
         val normalizedServer = server.trim()
         val normalizedUsername = credentials?.username?.trim().orEmpty()
         if (normalizedServer.isBlank()) return
 
         val profiles = getProfiles().toMutableList()
         val existingIndex = profiles.indexOfFirst {
-            it.server.equals(normalizedServer, ignoreCase = true) && it.username == normalizedUsername
+            it.protocol == protocol &&
+                it.server.equals(normalizedServer, ignoreCase = true) &&
+                it.username == normalizedUsername
         }
 
         val profile = if (existingIndex >= 0) {
             profiles[existingIndex].copy(
+                protocol = protocol,
                 server = normalizedServer,
                 password = credentials?.password.orEmpty(),
             )
         } else {
             SmbLoginProfile(
                 name = normalizedServer.substringBefore(':').ifBlank { normalizedServer },
+                protocol = protocol,
                 server = normalizedServer,
                 username = normalizedUsername,
                 password = credentials?.password.orEmpty(),

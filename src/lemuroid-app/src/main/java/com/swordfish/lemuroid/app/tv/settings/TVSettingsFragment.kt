@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import dagger.android.support.AndroidSupportInjection
@@ -334,10 +335,17 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             val pref = androidx.preference.Preference(ctx).apply {
                 key = "dyn_smb_login_$index"
                 title = profile.name
+                val protocolName = ctx.getString(
+                    when (profile.protocol) {
+                        NetworkProtocol.SMB -> R.string.network_protocol_smb
+                        NetworkProtocol.SFTP -> R.string.network_protocol_sftp
+                        NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                    },
+                )
                 summary = if (profile.username.isNotBlank()) {
-                    "${profile.server} • ${profile.username}"
+                    "$protocolName • ${profile.server} • ${profile.username}"
                 } else {
-                    profile.server
+                    "$protocolName • ${profile.server}"
                 }
                 isIconSpaceReserved = false
                 setOnPreferenceClickListener {
