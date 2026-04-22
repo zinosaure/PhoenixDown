@@ -12,8 +12,8 @@ import java.io.IOException
 /**
  * [SavesStorage] backed by an SMB share (a [RomSource] of type SMB).
  *
- * Logical paths like "states/coreName/game.state" are stored under
- * a "saves/" directory in the configured SMB share.
+ * Logical paths (e.g. "saves/game.srm", "states/core/game.state") are stored
+ * directly under the configured SMB base path.
  *
  * @param source  The SMB [RomSource] to write saves into.
  */
@@ -44,10 +44,9 @@ class SmbSavesStorage(private val source: RomSource) : SavesStorage {
         return SmbCoords(server, share, basePath)
     }
 
-    /** Prepend the SMB base path to a logical save path. */
     private fun remotePath(savePath: String): String {
         val c = coords()
-        return if (c.basePath.isEmpty()) "saves/$savePath" else "${c.basePath}/saves/$savePath"
+        return if (c.basePath.isEmpty()) savePath else "${c.basePath}/$savePath"
     }
 
     override suspend fun readBytes(savePath: String): ByteArray? = withContext(Dispatchers.IO) {

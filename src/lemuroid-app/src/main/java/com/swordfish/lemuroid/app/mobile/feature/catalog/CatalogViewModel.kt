@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 
@@ -32,7 +32,7 @@ class CatalogViewModel(
     private val archiveClient = ArchiveOrgClient()
     // val romDownloader = RomDownloader(context, gameMetadataProvider) // Removed manual instantiation
     private val sourceManager = SourceManager(context)
-    // V8.4: smbClient removed - now internal to RomDownloader
+    // V8.4: network transport client is internal to RomDownloader
     
     private val _uiState = MutableStateFlow(UiState(isLoading = true))
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -44,8 +44,7 @@ class CatalogViewModel(
     
     init {
         Log.d(TAG, "CatalogViewModel init - starting search")
-        // Initialize SMB Client and Sources
-        // smbClient is already a class member
+        // Initialize sources
         val sources = sourceManager.getSources()
         
         // Configure RomDownloader with Library Destination (from Prefs)
@@ -65,7 +64,7 @@ class CatalogViewModel(
                 Log.e("ANTIGRAVITY", "Download destination (SMB): $downloadLoc")
                 val dlUsername = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: ""
                 val dlPassword = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: ""
-                val dlCredentials = if (dlUsername.isNotBlank()) SmbCredentials(dlUsername, dlPassword) else null
+                val dlCredentials = if (dlUsername.isNotBlank()) NetworkCredentials(dlUsername, dlPassword) else null
                 RomSource(type = com.swordfish.lemuroid.lib.storage.source.SourceType.SMB, name = "Download", path = downloadLoc, id = "_dl", credentials = dlCredentials)
             }
             else -> {
@@ -81,7 +80,7 @@ class CatalogViewModel(
                             val username = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, "") ?: ""
                             val password = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, "") ?: ""
                             if (server.isNotBlank() && share.isNotBlank()) {
-                                val creds = if (username.isNotBlank()) SmbCredentials(username, password) else null
+                                val creds = if (username.isNotBlank()) NetworkCredentials(username, password) else null
                                 val sharePath = "/$share$path"
                                 RomSource.smb(name = "Library Destination", server = server, path = sharePath, credentials = creds)
                             } else null
@@ -92,7 +91,7 @@ class CatalogViewModel(
 
         Log.e("ANTIGRAVITY", "Final Library Destination: ${libraryDestination?.path}")
         
-        // V8.4: SmbClient is now internal to RomDownloader
+        // V8.4: network transport is now internal to RomDownloader
         romDownloader.setLibraryDestination(libraryDestination)
         
         // Initialize search

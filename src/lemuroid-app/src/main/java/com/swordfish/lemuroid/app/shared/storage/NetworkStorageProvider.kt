@@ -12,9 +12,9 @@ import com.swordfish.lemuroid.lib.storage.BaseStorageFile
 import com.swordfish.lemuroid.lib.storage.RomFiles
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import com.swordfish.lemuroid.lib.storage.StorageProvider
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -38,9 +38,9 @@ class NetworkStorageProvider(
     override val enabledByDefault: Boolean = true
 
     private val networkClient = NetworkClient(SmbClient())
-    private val profileRepository = SmbLoginProfileRepository(context)
+    private val profileRepository = NetworkLoginProfileRepository(context)
 
-    private fun credentialsFromProfile(profile: SmbLoginProfile): com.swordfish.lemuroid.lib.storage.source.SourceCredentials? {
+    private fun credentialsFromProfile(profile: NetworkLoginProfile): com.swordfish.lemuroid.lib.storage.source.SourceCredentials? {
         return if (profile.username.isNotBlank()) {
             com.swordfish.lemuroid.lib.storage.source.SourceCredentials(profile.username, profile.password)
         } else {

@@ -94,14 +94,14 @@ fun CatalogScreen(
         }
     }
     
-    // States for Local/SMB files
+    // States for local/network files
     var localFiles by remember { mutableStateOf<List<LocalFile>>(emptyList()) }
-    var smbFiles by remember { mutableStateOf<List<Pair<RomSource, SmbFile>>>(emptyList()) }
+    var networkFiles by remember { mutableStateOf<List<Pair<RomSource, NetworkFile>>>(emptyList()) }
     var isLoadingExternalFiles by remember { mutableStateOf(false) }
     
-    // SMB download states
-    var smbDownloadsInProgress by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var smbDownloadedFiles by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // Network download states
+    var networkDownloadsInProgress by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var networkDownloadedFiles by remember { mutableStateOf<Set<String>>(emptySet()) }
     val romDownloader = viewModel.romDownloader
     
     // Load files from Local and SMB sources
@@ -130,7 +130,7 @@ fun CatalogScreen(
             localFiles = allLocalFiles
             
             // Load network files (SMB/SFTP/WebDAV)
-            val allSmbFiles = mutableListOf<Pair<RomSource, SmbFile>>()
+            val allNetworkFiles = mutableListOf<Pair<RomSource, NetworkFile>>()
             sources.filter { it.type == SourceType.SMB }.forEach { source ->
                 try {
                     val uri = URI(source.path)
@@ -159,9 +159,9 @@ fun CatalogScreen(
                     result.onSuccess { files ->
                         Log.d("CatalogScreen", "Network (${protocol.name}) found ${files.size} files")
                         files.forEach { file ->
-                            val smbLikeFile = toSmbLikeFile(file)
-                            if (smbLikeFile != null) {
-                                allSmbFiles.add(source to smbLikeFile)
+                            val networkFile = toNetworkFile(file)
+                            if (networkFile != null) {
+                                allNetworkFiles.add(source to networkFile)
                             }
                         }
                     }.onFailure { e ->
@@ -171,7 +171,7 @@ fun CatalogScreen(
                     Log.e("CatalogScreen", "Network scan exception: ${e.message}", e)
                 }
             }
-            smbFiles = allSmbFiles
+            networkFiles = allNetworkFiles
             
             isLoadingExternalFiles = false
             shouldReloadLocalFiles = false
@@ -181,7 +181,7 @@ fun CatalogScreen(
     // Derived: should show only Archive.org packs or filter by source type
     val showArchiveOrgContent = selectedSourceType == null || selectedSourceType == SourceType.ARCHIVE_ORG
     val showLocalContent = selectedSourceType == null || selectedSourceType == SourceType.LOCAL
-    val showSmbContent = selectedSourceType == null || selectedSourceType == SourceType.SMB
+    val showNetworkContent = selectedSourceType == null || selectedSourceType == SourceType.SMB
     
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -383,7 +383,7 @@ fun CatalogScreen(
             HorizontalDivider()
             
             // Contenido principal - filtrado por tipo de fuente
-            val hasLocalOrSmbContent = localFiles.isNotEmpty() || smbFiles.isNotEmpty()
+            val hasLocalOrNetworkContent = localFiles.isNotEmpty() || networkFiles.isNotEmpty()
             val isLoadingAny = uiState.isLoading || isLoadingExternalFiles
             
             when {
@@ -453,8 +453,8 @@ fun CatalogScreen(
                             }
                         }
                         
-                        // SMB files (only if showing SMB content)
-                        if (showSmbContent && smbFiles.isNotEmpty()) {
+                        // Network files (only if showing network content)
+                        if (showNetworkContent && networkFiles.isNotEmpty()) {
                             item {
                                 Text(
                                     stringResource(R.string.catalog_section_smb_nas),
@@ -464,34 +464,34 @@ fun CatalogScreen(
                                 )
                             }
                             // Filter SMB files by search query
-                            val filteredSmbFiles = if (uiState.searchQuery.isNotEmpty()) {
-                                smbFiles.filter { (_, file) -> 
+                            val filteredNetworkFiles = if (uiState.searchQuery.isNotEmpty()) {
+                                networkFiles.filter { (_, file) -> 
                                     file.name.contains(uiState.searchQuery, ignoreCase = true)
                                 }
                             } else {
-                                smbFiles
+                                networkFiles
                             }
-                            items(filteredSmbFiles) { (source, file) ->
-                                val isDownloading = file.path in smbDownloadsInProgress
-                                val isDownloaded = file.path in smbDownloadedFiles || 
+                            items(filteredNetworkFiles) { (source, file) ->
+                                val isDownloading = file.path in networkDownloadsInProgress
+                                val isDownloaded = file.path in networkDownloadedFiles || 
                                     romDownloader.isFileInRomsDir(file.name)
                                 
-                                SmbFileCard(
+                                NetworkFileCard(
                                     file = file,
                                     sourceName = source.name,
                                     isDownloading = isDownloading,
                                     isDownloaded = isDownloaded,
                                     onDownload = {
                                         if (!isDownloading) {
-                                            smbDownloadsInProgress = smbDownloadsInProgress + file.path
+                                            networkDownloadsInProgress = networkDownloadsInProgress + file.path
                                             coroutineScope.launch {
                                                 try {
-                                                    romDownloader.downloadFromSmbSource(file, source)
-                                                    smbDownloadedFiles = smbDownloadedFiles + file.path
+                                                    romDownloader.downloadFromNetworkSource(file, source)
+                                                    networkDownloadedFiles = networkDownloadedFiles + file.path
                                                 } catch (e: Exception) {
                                                     Log.e("CatalogScreen", "Download failed", e)
                                                 } finally {
-                                                    smbDownloadsInProgress = smbDownloadsInProgress - file.path
+                                                    networkDownloadsInProgress = networkDownloadsInProgress - file.path
                                                 }
                                             }
                                         }
@@ -501,10 +501,10 @@ fun CatalogScreen(
                         }
                         
                         // Empty state
-                        if ((selectedSourceType == null && uiState.filteredPacks.isEmpty() && localFiles.isEmpty() && smbFiles.isEmpty()) ||
+                        if ((selectedSourceType == null && uiState.filteredPacks.isEmpty() && localFiles.isEmpty() && networkFiles.isEmpty()) ||
                             (selectedSourceType == SourceType.ARCHIVE_ORG && uiState.filteredPacks.isEmpty()) ||
                             (selectedSourceType == SourceType.LOCAL && localFiles.isEmpty()) ||
-                            (selectedSourceType == SourceType.SMB && smbFiles.isEmpty())) {
+                            (selectedSourceType == SourceType.SMB && networkFiles.isEmpty())) {
                             item {
                                 EmptyContent()
                             }
@@ -692,12 +692,12 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
     return "$scheme://$server$normalizedPath"
 }
 
-private fun toSmbLikeFile(file: NetworkClient.NetworkScannedFile): SmbFile? {
+private fun toNetworkFile(file: NetworkClient.NetworkScannedFile): NetworkFile? {
     val extension = file.name.substringAfterLast('.', "").lowercase()
     if (extension !in NETWORK_ROM_EXTENSIONS) return null
 
     val metadata = RomMetadataExtractor.extractMetadata(file.relativePath, file.name, extension)
-    return SmbFile(
+    return NetworkFile(
         name = file.name,
         cleanName = metadata.cleanName,
         path = file.path,
@@ -1239,8 +1239,8 @@ private fun LocalFileCard(
 }
 
 @Composable
-private fun SmbFileCard(
-    file: SmbFile,
+private fun NetworkFileCard(
+    file: NetworkFile,
     sourceName: String,
     isDownloading: Boolean = false,
     isDownloaded: Boolean = false,

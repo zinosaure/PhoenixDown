@@ -204,7 +204,7 @@ class SmbClient {
         share: String,
         path: String = "",
         credentials: SmbCredentials? = null
-    ): Result<List<SmbFile>> = withContext(Dispatchers.IO) {
+    ): Result<List<NetworkFile>> = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "Connecting to SMB: server=$server, share=$share, path=$path")
             
@@ -222,7 +222,7 @@ class SmbClient {
             val diskShare = session.connectShare(share) as DiskShare
             
             val smbPath = path.removePrefix("/").replace("/", "\\")
-            val files = mutableListOf<SmbFile>()
+            val files = mutableListOf<NetworkFile>()
             
             // Start scanning from the given path with full recursion
             scanDirectory(diskShare, smbPath, files, "", 0)
@@ -243,7 +243,7 @@ class SmbClient {
     private fun scanDirectory(
         diskShare: DiskShare,
         path: String,
-        files: MutableList<SmbFile>,
+        files: MutableList<NetworkFile>,
         relativePath: String,
         depth: Int
     ) {
@@ -273,7 +273,7 @@ class SmbClient {
                         // Extract metadata from path and filename
                         val metadata = RomMetadataExtractor.extractMetadata(currentRelativePath, name, extension)
                         
-                        files.add(SmbFile(
+                        files.add(NetworkFile(
                             name = name,
                             cleanName = metadata.cleanName,
                             path = fullSmbPath,
@@ -487,7 +487,7 @@ data class NetworkDirectoryEntry(
 /**
  * Represents a file on an SMB share with extracted metadata
  */
-data class SmbFile(
+data class NetworkFile(
     val name: String,
     val cleanName: String,
     val path: String,

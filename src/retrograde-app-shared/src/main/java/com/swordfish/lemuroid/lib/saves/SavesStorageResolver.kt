@@ -4,10 +4,10 @@ import android.content.Context
 import android.net.Uri
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 
@@ -19,7 +19,7 @@ import com.swordfish.lemuroid.lib.storage.source.SourceType
  *  - `"content://…"`       → [SafSavesStorage]  (SAF folder chosen by the user)
  *  - `"smb://…"`           → [SmbSavesStorage]  (SMB share)
  *  - `"sftp://…"`          → [SftpSavesStorage] (SFTP server)
- *  - anything else         → [LocalSavesStorage] (graceful fallback for old RomSource IDs)
+    *  - network (profile-based) → [SmbSavesStorage] / [SftpSavesStorage] / [WebDavSavesStorage]
  *
  * [resolve] is called on every save/state operation so that a preference change is
  * immediately effective without requiring a restart.
@@ -28,9 +28,9 @@ class SavesStorageResolver(
     private val context: Context,
     private val directoriesManager: DirectoriesManager,
 ) {
-    private val profileRepository by lazy { SmbLoginProfileRepository(context) }
+    private val profileRepository by lazy { NetworkLoginProfileRepository(context) }
 
-    private fun resolveProfile(profileKey: String): SmbLoginProfile? {
+    private fun resolveProfile(profileKey: String): NetworkLoginProfile? {
         val prefs = SharedPreferencesHelper.getSharedPreferences(context)
         val profileId = prefs.getString(profileKey, "")?.takeIf { it.isNotBlank() } ?: return null
         return profileRepository.getProfiles().firstOrNull { it.id == profileId }
@@ -85,7 +85,21 @@ class SavesStorageResolver(
                         )
                     }
 
-                    else -> LocalSavesStorage(directoriesManager)
+                    NetworkProtocol.WEBDAV -> {
+                        val davUri = normalizeUriForProtocol(loc, NetworkProtocol.WEBDAV)
+                        WebDavSavesStorage(
+                            RomSource(type = SourceType.SMB, name = "Saves", path = davUri, id = "_save", credentials = credentials),
+                            useSsl = true,
+                        )
+                    }
+
+                    NetworkProtocol.WEBDAV_HTTP -> {
+                        val davUri = normalizeUriForProtocol(loc, NetworkProtocol.WEBDAV_HTTP)
+                        WebDavSavesStorage(
+                            RomSource(type = SourceType.SMB, name = "Saves", path = davUri, id = "_save", credentials = credentials),
+                            useSsl = false,
+                        )
+                    }
                 }
             }
         }

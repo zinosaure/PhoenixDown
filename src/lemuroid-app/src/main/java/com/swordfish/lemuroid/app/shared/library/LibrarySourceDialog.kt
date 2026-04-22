@@ -33,7 +33,7 @@ fun LibrarySourceDialog(
     onTestConnection: (server: String, path: String, username: String?, password: String?) -> Unit,
     connectionTestResult: ConnectionTestState = ConnectionTestState.Idle
 ) {
-    var showSmbForm by remember { mutableStateOf(false) }
+    var showNetworkForm by remember { mutableStateOf(false) }
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -42,7 +42,7 @@ fun LibrarySourceDialog(
                 .wrapContentHeight(),
             shape = MaterialTheme.shapes.extraLarge
         ) {
-            if (!showSmbForm) {
+            if (!showNetworkForm) {
                 // Source type selection
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -91,7 +91,7 @@ fun LibrarySourceDialog(
                         
                         // SMB/NAS button
                         OutlinedCard(
-                            onClick = { showSmbForm = true },
+                            onClick = { showNetworkForm = true },
                             modifier = Modifier.size(120.dp)
                         ) {
                             Column(
@@ -127,7 +127,7 @@ fun LibrarySourceDialog(
                 // SMB configuration form - matching SourceDialogs.kt structure
                 SmbLibraryConfigForm(
                     onDismiss = onDismiss,
-                    onBack = { showSmbForm = false },
+                    onBack = { showNetworkForm = false },
                     onSave = onSmbSelected,
                     onTestConnection = onTestConnection,
                     connectionTestResult = connectionTestResult

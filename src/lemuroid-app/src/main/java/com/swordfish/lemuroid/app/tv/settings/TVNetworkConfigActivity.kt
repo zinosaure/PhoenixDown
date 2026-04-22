@@ -15,9 +15,9 @@ import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkClient
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.smb.SmbClient
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * TV-optimized Activity for configuring SMB library source.
+ * TV-optimized Activity for configuring a network library source.
  * Uses standard Android EditText layout for reliable input handling.
  */
 class TVNetworkConfigActivity : FragmentActivity() {
@@ -44,7 +44,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
     private lateinit var statusText: TextView
     private lateinit var testButton: Button
 
-    private val networkLoginProfileRepository by lazy { SmbLoginProfileRepository(this) }
+    private val networkLoginProfileRepository by lazy { NetworkLoginProfileRepository(this) }
     private val networkClient by lazy { NetworkClient(com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient()) }
     private var selectedProtocol: NetworkProtocol = NetworkProtocol.SMB
 
@@ -268,7 +268,7 @@ class TVNetworkConfigActivity : FragmentActivity() {
             .show()
     }
 
-    private fun applyProfile(profile: SmbLoginProfile) {
+    private fun applyProfile(profile: NetworkLoginProfile) {
         val (host, port) = splitHostAndPort(profile.server)
         serverInput.setText(host)
         portInput.setText(port)
@@ -343,8 +343,8 @@ class TVNetworkConfigActivity : FragmentActivity() {
             val existing = networkLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
             val profileName = existing?.name ?: server.substringBefore(':').ifBlank { server }
             networkLoginProfileRepository.addOrUpdateProfile(
-                SmbLoginProfile(
-                    id = existing?.id ?: SmbLoginProfile(name = profileName, server = server).id,
+                NetworkLoginProfile(
+                    id = existing?.id ?: NetworkLoginProfile(name = profileName, server = server).id,
                     name = profileName,
                     protocol = selectedProtocol,
                     server = server,

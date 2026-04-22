@@ -28,9 +28,9 @@ import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -322,18 +322,18 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     private fun refreshNetworkLoginProfilesSection() {
         val category = findPreference<androidx.preference.PreferenceCategory>("pref_category_tv_network_logins") ?: return
         val ctx = requireContext()
-        val repo = SmbLoginProfileRepository(ctx)
+        val repo = NetworkLoginProfileRepository(ctx)
         seedExistingNetworkLoginProfiles(repo)
         val profiles = repo.getProfiles()
 
         val keysToRemove = (0 until category.preferenceCount)
             .mapNotNull { category.getPreference(it).key }
-            .filter { it.startsWith("dyn_smb_login_") || it == "dyn_add_smb_login" }
+            .filter { it.startsWith("dyn_network_login_") || it == "dyn_add_network_login" }
         keysToRemove.forEach { key -> category.findPreference<androidx.preference.Preference>(key)?.let { category.removePreference(it) } }
 
         profiles.forEachIndexed { index, profile ->
             val pref = androidx.preference.Preference(ctx).apply {
-                key = "dyn_smb_login_$index"
+                key = "dyn_network_login_$index"
                 title = profile.name
                 val protocolName = ctx.getString(
                     when (profile.protocol) {
@@ -358,7 +358,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         }
 
         val addPref = androidx.preference.Preference(ctx).apply {
-            key = "dyn_add_smb_login"
+            key = "dyn_add_network_login"
             title = getString(R.string.settings_network_login_add_action)
             summary = getString(R.string.settings_network_logins_empty)
             isIconSpaceReserved = false
@@ -370,7 +370,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         category.addPreference(addPref)
     }
 
-    private fun showNetworkLoginProfileDialog(profile: SmbLoginProfile) {
+    private fun showNetworkLoginProfileDialog(profile: NetworkLoginProfile) {
         val ctx = requireContext()
         android.app.AlertDialog.Builder(ctx)
             .setTitle(profile.name)
@@ -378,7 +378,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 when (which) {
                     0 -> launchNetworkProfileConfigActivity(profile.id)
                     1 -> {
-                        SmbLoginProfileRepository(ctx).removeProfile(profile.id)
+                        NetworkLoginProfileRepository(ctx).removeProfile(profile.id)
                         refreshNetworkLoginProfilesSection()
                     }
                 }
@@ -395,7 +395,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         )
     }
 
-    private fun seedExistingNetworkLoginProfiles(repo: SmbLoginProfileRepository) {
+    private fun seedExistingNetworkLoginProfiles(repo: NetworkLoginProfileRepository) {
         // Profiles are managed explicitly by the network manager.
     }
 

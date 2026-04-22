@@ -17,7 +17,7 @@ enum class NetworkProtocol {
     WEBDAV_HTTP,
 }
 
-data class SmbLoginProfile(
+data class NetworkLoginProfile(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val protocol: NetworkProtocol = NetworkProtocol.SMB,
@@ -26,7 +26,7 @@ data class SmbLoginProfile(
     val password: String = "",
 ) {
     companion object {
-        fun listFromJson(json: String): List<SmbLoginProfile> = runCatching {
+        fun listFromJson(json: String): List<NetworkLoginProfile> = runCatching {
             val array = JSONArray(json)
             (0 until array.length()).mapNotNull { index ->
                 val obj = array.getJSONObject(index)
@@ -35,7 +35,7 @@ data class SmbLoginProfile(
                 if (server.isBlank() || name.isBlank()) {
                     null
                 } else {
-                    SmbLoginProfile(
+                    NetworkLoginProfile(
                         id = obj.optString("id", UUID.randomUUID().toString()),
                         name = name,
                         protocol = runCatching {
@@ -49,7 +49,7 @@ data class SmbLoginProfile(
             }
         }.getOrDefault(emptyList())
 
-        fun listToJson(profiles: List<SmbLoginProfile>): String {
+        fun listToJson(profiles: List<NetworkLoginProfile>): String {
             val array = JSONArray()
             profiles.forEach { profile ->
                 array.put(
@@ -68,19 +68,19 @@ data class SmbLoginProfile(
     }
 }
 
-class SmbLoginProfileRepository(context: Context) {
+class NetworkLoginProfileRepository(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun getProfiles(): List<SmbLoginProfile> {
+    fun getProfiles(): List<NetworkLoginProfile> {
         val json = prefs.getString(KEY_PROFILES, null) ?: return emptyList()
-        return SmbLoginProfile.listFromJson(json)
+        return NetworkLoginProfile.listFromJson(json)
     }
 
-    fun profilesFlow(): Flow<List<SmbLoginProfile>> =
+    fun profilesFlow(): Flow<List<NetworkLoginProfile>> =
         bus.map { getProfiles() }.distinctUntilChanged()
 
-    fun addOrUpdateProfile(profile: SmbLoginProfile) {
+    fun addOrUpdateProfile(profile: NetworkLoginProfile) {
         val normalized = profile.copy(
             name = profile.name.trim(),
             server = profile.server.trim(),
@@ -127,7 +127,7 @@ class SmbLoginProfileRepository(context: Context) {
                 password = credentials?.password.orEmpty(),
             )
         } else {
-            SmbLoginProfile(
+            NetworkLoginProfile(
                 name = normalizedServer.substringBefore(':').ifBlank { normalizedServer },
                 protocol = protocol,
                 server = normalizedServer,
@@ -144,13 +144,13 @@ class SmbLoginProfileRepository(context: Context) {
         save(profiles)
     }
 
-    private fun save(profiles: List<SmbLoginProfile>) {
-        prefs.edit().putString(KEY_PROFILES, SmbLoginProfile.listToJson(profiles)).apply()
+    private fun save(profiles: List<NetworkLoginProfile>) {
+        prefs.edit().putString(KEY_PROFILES, NetworkLoginProfile.listToJson(profiles)).apply()
         bus.tryEmit(Unit)
     }
 
     companion object {
-        private const val PREFS_NAME = "smb_login_profiles"
+        private const val PREFS_NAME = "network_login_profiles"
         private const val KEY_PROFILES = "profiles"
         private val bus = MutableSharedFlow<Unit>(replay = 1).also { it.tryEmit(Unit) }
     }

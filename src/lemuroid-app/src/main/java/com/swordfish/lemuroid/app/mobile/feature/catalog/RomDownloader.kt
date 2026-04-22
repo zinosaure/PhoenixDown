@@ -14,7 +14,7 @@ import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import com.swordfish.lemuroid.common.kotlin.calculateCrc32
 import com.swordfish.lemuroid.lib.library.metadata.GameMetadataProvider
@@ -247,9 +247,9 @@ class RomDownloader(
         // V8.5 FIX: Check SMB cache instead of returning false
         if (libraryDestination != null) {
             val key = "${systemId}/${fileName}".lowercase()
-            val result = synchronized(smbLibraryCache) {
-                val found = smbLibraryCache.contains(key)
-                Log.d(TAG, "V8.5 isFileDownloaded: key='$key', cacheSize=${smbLibraryCache.size}, cacheLoaded=$smbLibraryCacheLoaded, found=$found")
+            val result = synchronized(networkLibraryCache) {
+                val found = networkLibraryCache.contains(key)
+                Log.d(TAG, "V8.5 isFileDownloaded: key='$key', cacheSize=${networkLibraryCache.size}, cacheLoaded=$networkLibraryCacheLoaded, found=$found")
                 found
             }
             return result
@@ -432,32 +432,32 @@ class RomDownloader(
         downloadJobs[downloadId] = job
     }
 
-    // SMB Configuration (Library Destination)
+    // Network configuration (library destination)
     // V8.4: SmbClient is now internal to RomDownloader (not passed from ViewModel)
     // This prevents the client from being destroyed when ViewModel is recreated.
     private val smbClient = SmbClient()
     private val networkClient = NetworkClient(smbClient)
     private var libraryDestination: RomSource? = null
     
-    // V8.5: Cache of files in SMB library (set of "systemId/fileName" keys)
-    private val smbLibraryCache = mutableSetOf<String>()
-    private var smbLibraryCacheLoaded = false
+    // V8.5: Cache of files in network library (set of "systemId/fileName" keys)
+    private val networkLibraryCache = mutableSetOf<String>()
+    private var networkLibraryCacheLoaded = false
     
     fun setLibraryDestination(destination: RomSource?) {
         this.libraryDestination = destination
         // V8.5: Trigger cache refresh when destination is set
         if (destination != null) {
             coroutineScope.launch {
-                refreshSmbLibraryCache()
+                refreshNetworkLibraryCache()
             }
         }
     }
     
     /**
-     * V8.5: Scans SMB library and populates the cache.
+     * V8.5: Scans the network library and populates the cache.
      * Called once when setLibraryDestination is set.
      */
-    suspend fun refreshSmbLibraryCache() {
+    suspend fun refreshNetworkLibraryCache() {
         val dest = libraryDestination ?: return
         Log.d(TAG, "V8.5: Refreshing network library cache...")
         
@@ -484,8 +484,8 @@ class RomDownloader(
             val result = networkClient.listFiles(protocol, server, path, dest.credentials)
 
             result.onSuccess { files ->
-                synchronized(smbLibraryCache) {
-                    smbLibraryCache.clear()
+                synchronized(networkLibraryCache) {
+                    networkLibraryCache.clear()
                     files.forEach { file ->
                         val extension = file.name.substringAfterLast('.', "").lowercase()
                         val metadata = RomMetadataExtractor.extractMetadata(file.relativePath, file.name, extension)
@@ -494,10 +494,10 @@ class RomDownloader(
                         } else {
                             file.name
                         }
-                        smbLibraryCache.add(key.lowercase())
+                        networkLibraryCache.add(key.lowercase())
                     }
-                    smbLibraryCacheLoaded = true
-                    Log.d(TAG, "V8.5: Network library cache loaded with ${smbLibraryCache.size} files")
+                    networkLibraryCacheLoaded = true
+                    Log.d(TAG, "V8.5: Network library cache loaded with ${networkLibraryCache.size} files")
                 }
             }
             result.onFailure { e ->
@@ -509,18 +509,18 @@ class RomDownloader(
     }
     
     /**
-     * V8.5: Adds a file to the SMB cache after successful download.
+     * V8.5: Adds a file to the network cache after successful download.
      */
-    private fun addToSmbLibraryCache(systemId: String?, fileName: String) {
+    private fun addToNetworkLibraryCache(systemId: String?, fileName: String) {
         val key = if (!systemId.isNullOrBlank()) {
             "${systemId}/${fileName}"
         } else {
             fileName
         }
-        synchronized(smbLibraryCache) {
-            smbLibraryCache.add(key.lowercase())
+        synchronized(networkLibraryCache) {
+            networkLibraryCache.add(key.lowercase())
         }
-        Log.d(TAG, "V8.5: Added to SMB cache: $key")
+        Log.d(TAG, "V8.5: Added to network cache: $key")
     }
 
     private suspend fun performSmartDownload(downloadId: String, pack: ArchiveOrgClient.RomPack, file: ArchiveOrgClient.DownloadableFile) {
@@ -606,7 +606,7 @@ class RomDownloader(
             
             // V8.5: Add to SMB cache so isFileDownloaded returns true immediately
             if (libraryDestination != null) {
-                addToSmbLibraryCache(detectedSystemId, file.name)
+                addToNetworkLibraryCache(detectedSystemId, file.name)
             }
             
             showNotification("Download Complete", "${file.name} added to $detectedSystemId ($modeLabel)")
@@ -717,10 +717,10 @@ class RomDownloader(
     // --- V8.1: Centralized Architecture (The "Single Key") ---
 
     /**
-     * Downloads a file from an SMB Source and saves it to the configured Library Destination (SMB or Local).
-     * Reuses the exact same logic as Cloud downloads for saving.
+     * Downloads a file from a network source and saves it to the configured library destination.
+     * Reuses the exact same logic as cloud downloads for saving.
      */
-    suspend fun downloadFromSmbSource(file: com.swordfish.lemuroid.app.mobile.feature.catalog.SmbFile, source: RomSource) {
+    suspend fun downloadFromNetworkSource(file: NetworkFile, source: RomSource) {
         val downloadId = file.path // Use path as ID
         
         // Register download state logic here if we want UI feedback
@@ -729,35 +729,26 @@ class RomDownloader(
         // For V8.1 scope, we focus on the transport + save logic.
         
         val tempFile = java.io.File(context.cacheDir, "transfer_${System.currentTimeMillis()}_${file.name}")
-        val smbClientForSource = SmbClient() // Client for source
 
         try {
-             Log.d("ANTIGRAVITY", "Starting SMB Source Download: ${file.name}")
+             Log.d("ANTIGRAVITY", "Starting network source download: ${file.name}")
              
             // 1. Download Source -> Temp
-            val smbPath = source.path.removePrefix("smb://")
-            val slashIndex = smbPath.indexOf('/')
-            if (slashIndex > 0) {
-                val server = smbPath.substring(0, slashIndex)
-                val remaining = smbPath.substring(slashIndex)
-                val pathParts = remaining.removePrefix("/").split("/", limit = 2)
-                val share = pathParts.getOrNull(0) ?: throw IOException("Invalid Source Share")
-                
-                tempFile.outputStream().use { outputStream ->
-                    smbClientForSource.downloadFile(
-                        server = server,
-                        share = share,
-                        remotePath = file.path,
-                        outputStream = outputStream,
-                        credentials = source.credentials
-                    ).getOrThrow()
-                }
-            } else {
-                throw IOException("Invalid Source Path")
+            val sourceUri = URI(source.path)
+            val protocol = when (sourceUri.scheme?.lowercase()) {
+                "sftp" -> NetworkProtocol.SFTP
+                "davs" -> NetworkProtocol.WEBDAV
+                "dav" -> NetworkProtocol.WEBDAV_HTTP
+                else -> NetworkProtocol.SMB
             }
+            val host = sourceUri.host.orEmpty()
+            if (host.isBlank()) throw IOException("Invalid source host")
+            val server = if (sourceUri.port > 0) "$host:${sourceUri.port}" else host
+            val fileBytes = networkClient.readFileBytes(protocol, server, file.path, source.credentials).getOrThrow()
+            tempFile.outputStream().use { it.write(fileBytes) }
 
             // 2. Smart Detection (Optional but recommended - reusing Cloud logic)
-            // For now, we trust the folder structure of the SMB source, but we calculate CRC just in case
+            // For now, we trust the folder structure of the network source, but we calculate CRC just in case
             // Metadata provider usage could be added here similar to performSmartDownload
             
             // 3. Move to Final Destination (Reuse Centralized Logic)
@@ -765,12 +756,12 @@ class RomDownloader(
             val destPath = result.first
             val modeLabel = result.second
             
-            Log.d("ANTIGRAVITY", "SMB Source Download Complete -> $destPath ($modeLabel)")
+            Log.d("ANTIGRAVITY", "Network source download complete -> $destPath ($modeLabel)")
             showNotification("Download Complete", "${file.name} added to ${file.system ?: "Library"} ($modeLabel)")
             LibraryIndexScheduler.scheduleLibrarySync(context)
 
         } catch (e: Exception) {
-            Log.e("ANTIGRAVITY", "SMB Download Failed: ${e.message}", e)
+            Log.e("ANTIGRAVITY", "Network download failed: ${e.message}", e)
             showNotification("Download Failed", e.message ?: "Unknown error")
             throw e // Rethrow so UI knows
         } finally {

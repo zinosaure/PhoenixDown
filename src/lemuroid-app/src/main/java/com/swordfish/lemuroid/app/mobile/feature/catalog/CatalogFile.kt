@@ -19,8 +19,8 @@ data class CatalogFile(
     val archiveOrgPack: ArchiveOrgClient.RomPack? = null,
     val archiveOrgFile: ArchiveOrgClient.DownloadableFile? = null,
     val localUri: Uri? = null,
-    val smbPath: String? = null,
-    val smbSource: RomSource? = null
+    val networkPath: String? = null,
+    val networkSource: RomSource? = null
 ) {
     val sizeFormatted: String
         get() = when {
@@ -60,8 +60,8 @@ data class CatalogFile(
             localUri = file.uri
         )
         
-        fun fromSmb(
-            file: SmbFile,
+        fun fromNetwork(
+            file: NetworkFile,
             source: RomSource,
             downloadState: DownloadState
         ) = CatalogFile(
@@ -71,8 +71,8 @@ data class CatalogFile(
             size = file.size,
             extension = file.extension,
             downloadState = downloadState,
-            smbPath = file.path,
-            smbSource = source
+            networkPath = file.path,
+            networkSource = source
         )
     }
 }

@@ -5,11 +5,10 @@ import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 
 /**
- * Manages ROM sources: Archive.org (cloud), Local folders, and SMB/NAS shares
+ * Manages ROM sources: Archive.org (cloud), local folders, and network shares
  */
 class SourceManager(private val context: Context) {
     
@@ -31,7 +30,7 @@ class SourceManager(private val context: Context) {
     }
     
     /**
-     * Get only custom sources (Local + SMB)
+     * Get only custom sources (local + network)
      */
     fun getCustomSources(): List<RomSource> {
         val json = prefs.getString(KEY_SOURCES, null) ?: return emptyList()

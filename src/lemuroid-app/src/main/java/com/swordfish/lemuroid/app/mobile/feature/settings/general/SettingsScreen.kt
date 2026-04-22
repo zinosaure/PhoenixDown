@@ -87,9 +87,9 @@ import com.swordfish.lemuroid.app.utils.android.settings.intPreferenceState
 import com.swordfish.lemuroid.app.utils.android.stringListResource
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import kotlinx.coroutines.launch
@@ -338,7 +338,7 @@ private fun RomsSettings(
 ) {
     val context = LocalContext.current
     val allSources by viewModel.sources.collectAsState()
-    val smbLoginProfiles by viewModel.smbLoginProfiles.collectAsState()
+    val networkLoginProfiles by viewModel.networkLoginProfiles.collectAsState()
     val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
     val saveLocationUri by viewModel.saveLocationUri.collectAsState()
@@ -351,19 +351,19 @@ private fun RomsSettings(
     val downloadLocationProfileId by viewModel.downloadLocationProfileId.collectAsState()
 
     var pendingDeleteSource by remember { mutableStateOf<RomSource?>(null) }
-    var editingSmbSource by remember { mutableStateOf<RomSource?>(null) }
-    var showAddSmbDialog by remember { mutableStateOf(false) }
+    var editingNetworkSource by remember { mutableStateOf<RomSource?>(null) }
+    var showAddNetworkDialog by remember { mutableStateOf(false) }
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
-    var editingSmbLoginProfile by remember { mutableStateOf<SmbLoginProfile?>(null) }
-    var showAddSmbLoginDialog by remember { mutableStateOf(false) }
-    var pendingDeleteSmbLoginProfile by remember { mutableStateOf<SmbLoginProfile?>(null) }
+    var editingNetworkLoginProfile by remember { mutableStateOf<NetworkLoginProfile?>(null) }
+    var showAddNetworkLoginDialog by remember { mutableStateOf(false) }
+    var pendingDeleteNetworkLoginProfile by remember { mutableStateOf<NetworkLoginProfile?>(null) }
 
-    // Dialogs to choose save/download location type (local vs SMB)
+    // Dialogs to choose save/download location type (local vs network)
     var showSavePickerDialog by remember { mutableStateOf(false) }
     var showDownloadPickerDialog by remember { mutableStateOf(false) }
-    var showSaveSmbDialog by remember { mutableStateOf(false) }
-    var showDownloadSmbDialog by remember { mutableStateOf(false) }
+    var showSaveNetworkDialog by remember { mutableStateOf(false) }
+    var showDownloadNetworkDialog by remember { mutableStateOf(false) }
 
     // State machine for platform hint
     var pendingSourceForPlatform by remember { mutableStateOf<RomSource?>(null) }
@@ -437,15 +437,15 @@ private fun RomsSettings(
         )
     }
 
-    // Dialog ajout SMB (bibliothèque)
-    if (showAddSmbDialog) {
-        Dialog(onDismissRequest = { showAddSmbDialog = false }) {
+    // Dialog ajout réseau (bibliothèque)
+    if (showAddNetworkDialog) {
+        Dialog(onDismissRequest = { showAddNetworkDialog = false }) {
             Card {
                 NetworkConfigForm(
-                    onDismiss = { showAddSmbDialog = false },
-                    onBack = { showAddSmbDialog = false },
+                    onDismiss = { showAddNetworkDialog = false },
+                    onBack = { showAddNetworkDialog = false },
                     editSource = null,
-                    savedProfiles = smbLoginProfiles,
+                    savedProfiles = networkLoginProfiles,
                     onSave = { name, protocol, server, path, credentials, profileId ->
                         pendingSourceForPlatform = RomSource(
                             type = SourceType.SMB,
@@ -455,25 +455,25 @@ private fun RomsSettings(
                             networkProfileId = profileId,
                         )
                         pendingSourceIsEdit = false
-                        showAddSmbDialog = false
+                        showAddNetworkDialog = false
                     },
                 )
             }
         }
     }
 
-    // Dialog édition SMB (bibliothèque)
-    if (editingSmbSource != null) {
-        Dialog(onDismissRequest = { editingSmbSource = null }) {
+    // Dialog édition réseau (bibliothèque)
+    if (editingNetworkSource != null) {
+        Dialog(onDismissRequest = { editingNetworkSource = null }) {
             Card {
                 NetworkConfigForm(
-                    onDismiss = { editingSmbSource = null },
-                    onBack = { editingSmbSource = null },
-                    editSource = editingSmbSource,
-                    preferredProfileId = editingSmbSource?.networkProfileId,
-                    savedProfiles = smbLoginProfiles,
+                    onDismiss = { editingNetworkSource = null },
+                    onBack = { editingNetworkSource = null },
+                    editSource = editingNetworkSource,
+                    preferredProfileId = editingNetworkSource?.networkProfileId,
+                    savedProfiles = networkLoginProfiles,
                     onSave = { name, protocol, server, path, credentials, profileId ->
-                        editingSmbSource?.let { src ->
+                        editingNetworkSource?.let { src ->
                             pendingSourceForPlatform = RomSource(
                                 type = SourceType.SMB,
                                 name = name,
@@ -484,14 +484,14 @@ private fun RomsSettings(
                             ).copy(id = src.id)
                             pendingSourceIsEdit = true
                         }
-                        editingSmbSource = null
+                        editingNetworkSource = null
                     },
                 )
             }
         }
     }
 
-    // Dialog choix type source (local vs SMB)
+    // Dialog choix type source (local vs réseau)
     if (showAddTypeDialog) {
         AlertDialog(
             onDismissRequest = { showAddTypeDialog = false },
@@ -508,7 +508,7 @@ private fun RomsSettings(
                         }
                     }
                     TextButton(
-                        onClick = { showAddTypeDialog = false; showAddSmbDialog = true },
+                        onClick = { showAddTypeDialog = false; showAddNetworkDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -545,7 +545,7 @@ private fun RomsSettings(
                         }
                     }
                     TextButton(
-                        onClick = { showSavePickerDialog = false; showSaveSmbDialog = true },
+                        onClick = { showSavePickerDialog = false; showSaveNetworkDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -582,7 +582,7 @@ private fun RomsSettings(
                         }
                     }
                     TextButton(
-                        onClick = { showDownloadPickerDialog = false; showDownloadSmbDialog = true },
+                        onClick = { showDownloadPickerDialog = false; showDownloadNetworkDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -597,13 +597,13 @@ private fun RomsSettings(
         )
     }
 
-    // SMB form — emplacement des sauvegardes
-    if (showSaveSmbDialog) {
-        Dialog(onDismissRequest = { showSaveSmbDialog = false }) {
+    // Formulaire réseau — emplacement des sauvegardes
+    if (showSaveNetworkDialog) {
+        Dialog(onDismissRequest = { showSaveNetworkDialog = false }) {
             Card {
                 NetworkConfigForm(
-                    onDismiss = { showSaveSmbDialog = false },
-                    onBack = { showSaveSmbDialog = false },
+                    onDismiss = { showSaveNetworkDialog = false },
+                    onBack = { showSaveNetworkDialog = false },
                     editSource = if (isNetworkLocationUri(saveLocationUri)) {
                         RomSource(
                             type = SourceType.SMB,
@@ -618,7 +618,7 @@ private fun RomsSettings(
                     preferredProfileId = saveLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,
                     fixedDisplayName = "Sauvegardes",
-                    savedProfiles = smbLoginProfiles,
+                    savedProfiles = networkLoginProfiles,
                     onSave = { _, protocol, server, path, credentials, profileId ->
                         viewModel.setSaveLocation(
                             buildNetworkLocationUri(protocol, server, path),
@@ -626,20 +626,20 @@ private fun RomsSettings(
                             credentials?.password ?: "",
                             profileId,
                         )
-                        showSaveSmbDialog = false
+                        showSaveNetworkDialog = false
                     },
                 )
             }
         }
     }
 
-    // SMB form — emplacement des téléchargements
-    if (showDownloadSmbDialog) {
-        Dialog(onDismissRequest = { showDownloadSmbDialog = false }) {
+    // Formulaire réseau — emplacement des téléchargements
+    if (showDownloadNetworkDialog) {
+        Dialog(onDismissRequest = { showDownloadNetworkDialog = false }) {
             Card {
                 NetworkConfigForm(
-                    onDismiss = { showDownloadSmbDialog = false },
-                    onBack = { showDownloadSmbDialog = false },
+                    onDismiss = { showDownloadNetworkDialog = false },
+                    onBack = { showDownloadNetworkDialog = false },
                     editSource = if (isNetworkLocationUri(downloadSourceId)) {
                         RomSource(
                             type = SourceType.SMB,
@@ -654,7 +654,7 @@ private fun RomsSettings(
                     preferredProfileId = downloadLocationProfileId.ifBlank { null },
                     showDisplayNameField = false,
                     fixedDisplayName = "Téléchargements",
-                    savedProfiles = smbLoginProfiles,
+                    savedProfiles = networkLoginProfiles,
                     onSave = { _, protocol, server, path, credentials, profileId ->
                         viewModel.setDownloadSourceId(
                             buildNetworkLocationUri(protocol, server, path),
@@ -662,7 +662,7 @@ private fun RomsSettings(
                             credentials?.password ?: "",
                             profileId,
                         )
-                        showDownloadSmbDialog = false
+                        showDownloadNetworkDialog = false
                     },
                 )
             }
@@ -686,12 +686,12 @@ private fun RomsSettings(
         )
     }
 
-    if (showAddSmbLoginDialog || editingSmbLoginProfile != null) {
-        val initialProfile = editingSmbLoginProfile
+    if (showAddNetworkLoginDialog || editingNetworkLoginProfile != null) {
+        val initialProfile = editingNetworkLoginProfile
         AlertDialog(
             onDismissRequest = {
-                showAddSmbLoginDialog = false
-                editingSmbLoginProfile = null
+                showAddNetworkLoginDialog = false
+                editingNetworkLoginProfile = null
             },
             title = {
                 Text(
@@ -701,16 +701,16 @@ private fun RomsSettings(
                 )
             },
             text = {
-                SmbLoginProfileForm(
+                NetworkLoginProfileForm(
                     initialProfile = initialProfile,
                     onCancel = {
-                        showAddSmbLoginDialog = false
-                        editingSmbLoginProfile = null
+                        showAddNetworkLoginDialog = false
+                        editingNetworkLoginProfile = null
                     },
                     onSave = { profile ->
-                        viewModel.addOrUpdateSmbLoginProfile(profile)
-                        showAddSmbLoginDialog = false
-                        editingSmbLoginProfile = null
+                        viewModel.addOrUpdateNetworkLoginProfile(profile)
+                        showAddNetworkLoginDialog = false
+                        editingNetworkLoginProfile = null
                     },
                 )
             },
@@ -719,21 +719,21 @@ private fun RomsSettings(
         )
     }
 
-    if (pendingDeleteSmbLoginProfile != null) {
+    if (pendingDeleteNetworkLoginProfile != null) {
         AlertDialog(
-            onDismissRequest = { pendingDeleteSmbLoginProfile = null },
+            onDismissRequest = { pendingDeleteNetworkLoginProfile = null },
             title = { Text(stringResource(R.string.settings_network_login_remove_title)) },
-            text = { Text(stringResource(R.string.settings_network_login_remove_message, pendingDeleteSmbLoginProfile?.name ?: "")) },
+            text = { Text(stringResource(R.string.settings_network_login_remove_message, pendingDeleteNetworkLoginProfile?.name ?: "")) },
             confirmButton = {
                 TextButton(onClick = {
-                    pendingDeleteSmbLoginProfile?.let { viewModel.removeSmbLoginProfile(it.id) }
-                    pendingDeleteSmbLoginProfile = null
+                    pendingDeleteNetworkLoginProfile?.let { viewModel.removeNetworkLoginProfile(it.id) }
+                    pendingDeleteNetworkLoginProfile = null
                 }) {
                     Text(stringResource(R.string.game_context_menu_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteSmbLoginProfile = null }) {
+                TextButton(onClick = { pendingDeleteNetworkLoginProfile = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
@@ -762,7 +762,7 @@ private fun RomsSettings(
                                     if (source.path.startsWith("content://")) Uri.parse(source.path) else null,
                                 )
                             }
-                            SourceType.SMB -> editingSmbSource = source
+                            SourceType.SMB -> editingNetworkSource = source
                             else -> Unit
                         }
                     },
@@ -812,7 +812,7 @@ private fun RomsSettings(
     }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_network_logins)) }) {
-        if (smbLoginProfiles.isEmpty()) {
+        if (networkLoginProfiles.isEmpty()) {
             Text(
                 text = stringResource(R.string.settings_network_logins_empty),
                 style = MaterialTheme.typography.bodySmall,
@@ -820,11 +820,11 @@ private fun RomsSettings(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
             )
         } else {
-            smbLoginProfiles.forEachIndexed { index, profile ->
-                SmbLoginProfileRow(
+            networkLoginProfiles.forEachIndexed { index, profile ->
+                NetworkLoginProfileRow(
                     profile = profile,
-                    onEdit = { editingSmbLoginProfile = profile },
-                    onDelete = { pendingDeleteSmbLoginProfile = profile },
+                    onEdit = { editingNetworkLoginProfile = profile },
+                    onDelete = { pendingDeleteNetworkLoginProfile = profile },
                 )
             }
         }
@@ -835,7 +835,7 @@ private fun RomsSettings(
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         ) {
             Button(
-                onClick = { showAddSmbLoginDialog = true },
+                onClick = { showAddNetworkLoginDialog = true },
                 enabled = !indexingInProgress,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -857,7 +857,7 @@ private fun RomsSettings(
             onDelete = if (saveLocationUri.isNotBlank()) { { viewModel.setSaveLocation("") } } else null,
             onClick = {
                 when {
-                    isNetworkLocationUri(saveLocationUri) -> showSaveSmbDialog = true
+                    isNetworkLocationUri(saveLocationUri) -> showSaveNetworkDialog = true
                     saveLocationUri.isNotBlank() -> saveLocationPickerLauncher.launch(Uri.parse(saveLocationUri))
                     else -> showSavePickerDialog = true
                 }
@@ -873,7 +873,7 @@ private fun RomsSettings(
             onDelete = if (downloadSourceId.isNotBlank()) { { viewModel.setDownloadSourceId("") } } else null,
             onClick = {
                 when {
-                    isNetworkLocationUri(downloadSourceId) -> showDownloadSmbDialog = true
+                    isNetworkLocationUri(downloadSourceId) -> showDownloadNetworkDialog = true
                     downloadSourceId.isNotBlank() -> downloadLocationPickerLauncher.launch(Uri.parse(downloadSourceId))
                     else -> showDownloadPickerDialog = true
                 }
@@ -895,8 +895,8 @@ private fun RomsSettings(
 }
 
 @Composable
-private fun SmbLoginProfileRow(
-    profile: SmbLoginProfile,
+private fun NetworkLoginProfileRow(
+    profile: NetworkLoginProfile,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -955,10 +955,10 @@ private fun SmbLoginProfileRow(
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun SmbLoginProfileForm(
-    initialProfile: SmbLoginProfile?,
+private fun NetworkLoginProfileForm(
+    initialProfile: NetworkLoginProfile?,
     onCancel: () -> Unit,
-    onSave: (SmbLoginProfile) -> Unit,
+    onSave: (NetworkLoginProfile) -> Unit,
 ) {
     var name by remember(initialProfile) { mutableStateOf(initialProfile?.name ?: "") }
     var server by remember(initialProfile) { mutableStateOf(initialProfile?.server?.substringBeforeLast(':', initialProfile.server) ?: "") }
@@ -1193,7 +1193,7 @@ private fun SmbLoginProfileForm(
                     val trimmedServer = server.trim()
                     val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
                     onSave(
-                        (initialProfile ?: SmbLoginProfile(name = "", server = "")).copy(
+                        (initialProfile ?: NetworkLoginProfile(name = "", server = "")).copy(
                             name = name.trim().ifBlank { trimmedServer.substringBefore(':').ifBlank { trimmedServer } },
                             server = serverAddress,
                             protocol = protocol,

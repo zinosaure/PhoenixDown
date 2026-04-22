@@ -14,23 +14,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.res.stringResource
-import com.swordfish.lemuroid.R
 import kotlinx.coroutines.launch
 import java.net.URI
 
 /**
- * Dialog to add a new source (Local or SMB)
+ * Dialog to add a new source (local or network)
  */
 @Composable
 fun AddSourceDialog(
@@ -38,7 +38,7 @@ fun AddSourceDialog(
     onAddLocal: () -> Unit,
                 onAddNetwork: (name: String, selectedProtocol: NetworkProtocol, server: String, share: String, path: String, credentials: NetworkCredentials?, profileId: String) -> Unit
 ) {
-    var showSmbForm by remember { mutableStateOf(false) }
+    var showNetworkForm by remember { mutableStateOf(false) }
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -47,7 +47,7 @@ fun AddSourceDialog(
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            if (!showSmbForm) {
+            if (!showNetworkForm) {
                 // Source type selection
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -75,11 +75,11 @@ fun AddSourceDialog(
                             }
                         )
                         
-                        // SMB/NAS button
+                        // Network source button
                         SourceTypeButton(
                             icon = Icons.Default.Dns,
                             label = stringResource(R.string.sources_add_network),
-                            onClick = { showSmbForm = true }
+                            onClick = { showNetworkForm = true }
                         )
                     }
                     
@@ -98,7 +98,7 @@ fun AddSourceDialog(
                         onAddNetwork(name, selectedProtocol, server, "", path, credentials, selectedProfileId)
                         onDismiss()
                     },
-                    onBack = { showSmbForm = false },
+                    onBack = { showNetworkForm = false },
                     editSource = null
                 )
             }
@@ -148,7 +148,7 @@ fun NetworkConfigForm(
     editSource: RomSource?,
     showDisplayNameField: Boolean = true,
     fixedDisplayName: String? = null,
-    savedProfiles: List<SmbLoginProfile> = emptyList(),
+    savedProfiles: List<NetworkLoginProfile> = emptyList(),
     preferredProfileId: String? = null,
     excludedProfileProtocols: Set<NetworkProtocol> = emptySet(),
 ) {
@@ -165,7 +165,7 @@ fun NetworkConfigForm(
     val availableProfiles = savedProfiles.filter { it.protocol !in excludedProfileProtocols }
     val selectedProfile = availableProfiles.firstOrNull { it.id == selectedProfileId }
 
-    fun applyProfile(profile: SmbLoginProfile) {
+    fun applyProfile(profile: NetworkLoginProfile) {
         selectedProfileId = profile.id
         connectionTestState = ConnectionTestState.Idle
     }
@@ -460,7 +460,7 @@ private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unkn
         else -> message
     }
 }
-private fun SmbLoginProfile.toCredentials(): NetworkCredentials? =
+private fun NetworkLoginProfile.toCredentials(): NetworkCredentials? =
     if (username.isNotBlank()) {
         NetworkCredentials(username, password)
     } else {
@@ -514,8 +514,8 @@ fun ConnectionTestStatus(
 }
 
 @Composable
-private fun SmbPathBrowserDialog(
-    profile: SmbLoginProfile,
+private fun NetworkPathBrowserDialog(
+    profile: NetworkLoginProfile,
     initialPath: String,
     networkClient: NetworkClient,
     onDismiss: () -> Unit,

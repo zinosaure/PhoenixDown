@@ -11,9 +11,9 @@ import com.swordfish.lemuroid.app.shared.settings.SettingsInteractor
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.NetworkLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.RomSource
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -55,16 +55,16 @@ class SettingsViewModel(
     val directoryScanInProgress = PendingOperationsMonitor(context).isDirectoryScanInProgress()
 
     private val sourceRepository = SourceRepository(context)
-    private val smbLoginProfileRepository = SmbLoginProfileRepository(context)
+    private val networkLoginProfileRepository = NetworkLoginProfileRepository(context)
 
     /** Live list of user-configured ROM sources, auto-updated via in-process SharedFlow. */
     val sources: StateFlow<List<RomSource>> = sourceRepository.sourcesFlow()
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), sourceRepository.getSources())
 
-    val smbLoginProfiles: StateFlow<List<SmbLoginProfile>> = smbLoginProfileRepository.profilesFlow()
+    val networkLoginProfiles: StateFlow<List<NetworkLoginProfile>> = networkLoginProfileRepository.profilesFlow()
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), smbLoginProfileRepository.getProfiles())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), networkLoginProfileRepository.getProfiles())
 
     fun addSource(source: RomSource) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -172,15 +172,15 @@ class SettingsViewModel(
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_NETWORK_PROFILE_ID, "").set(profileId.orEmpty())
     }
 
-    fun addOrUpdateSmbLoginProfile(profile: SmbLoginProfile) {
+    fun addOrUpdateNetworkLoginProfile(profile: NetworkLoginProfile) {
         viewModelScope.launch(Dispatchers.IO) {
-            smbLoginProfileRepository.addOrUpdateProfile(profile)
+            networkLoginProfileRepository.addOrUpdateProfile(profile)
         }
     }
 
-    fun removeSmbLoginProfile(id: String) {
+    fun removeNetworkLoginProfile(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            smbLoginProfileRepository.removeProfile(id)
+            networkLoginProfileRepository.removeProfile(id)
         }
     }
 }

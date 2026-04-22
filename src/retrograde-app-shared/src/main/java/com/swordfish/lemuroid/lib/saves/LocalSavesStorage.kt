@@ -25,7 +25,7 @@ class LocalSavesStorage(private val directoriesManager: DirectoriesManager) : Sa
         return when (parts[0]) {
             "states" -> File(statesDir(), parts.getOrElse(1) { "" })
             "previews" -> File(statsPreviewDir(), parts.getOrElse(1) { "" })
-            else -> File(savesDir(), savePath)
+            else -> File(savesDir(), parts.getOrElse(1) { "" })
         }
     }
 
@@ -34,7 +34,7 @@ class LocalSavesStorage(private val directoriesManager: DirectoriesManager) : Sa
         return when (parts[0]) {
             "states" -> File(legacyStatesDir(), parts.getOrElse(1) { "" })
             "previews" -> File(legacyStatesPreviewDir(), parts.getOrElse(1) { "" })
-            else -> File(legacySavesDir(), savePath)
+            else -> File(legacySavesDir(), parts.getOrElse(1) { "" })
         }
     }
 
