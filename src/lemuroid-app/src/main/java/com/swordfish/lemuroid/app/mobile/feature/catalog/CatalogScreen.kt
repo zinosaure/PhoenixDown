@@ -29,6 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.res.stringResource
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import kotlinx.coroutines.launch
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
+import java.net.URI
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +107,7 @@ fun CatalogScreen(
     // Load files from Local and SMB sources
     val localScanner = remember { LocalFolderScanner(context) }
     val smbClient = remember { SmbClient() }
+    val networkClient = remember { NetworkClient(smbClient) }
     val coroutineScope = rememberCoroutineScope()
     
     LaunchedEffect(sources, shouldReloadLocalFiles) {
@@ -126,40 +129,52 @@ fun CatalogScreen(
             }
             localFiles = allLocalFiles
             
-            // Load SMB files
+            // Load network files (SMB/SFTP/WebDAV)
             val allSmbFiles = mutableListOf<Pair<RomSource, SmbFile>>()
             sources.filter { it.type == SourceType.SMB }.forEach { source ->
                 try {
-                    // Parse SMB path: smb://server/sharename/optional/subpath
-                    // El path ya incluye el sharename como primera parte
-                    val smbPath = source.path.removePrefix("smb://")
-                    val slashIndex = smbPath.indexOf('/')
-                    if (slashIndex <= 0) {
-                        Log.w("CatalogScreen", "Invalid SMB path: ${source.path}")
-                        return@forEach
+                    val uri = URI(source.path)
+                    val protocol = when (uri.scheme?.lowercase()) {
+                        "sftp" -> NetworkProtocol.SFTP
+                        "webdav" -> NetworkProtocol.WEBDAV
+                        else -> NetworkProtocol.SMB
                     }
-                    
-                    val server = smbPath.substring(0, slashIndex)
-                    val fullPath = smbPath.substring(slashIndex) // /sharename/subpath
-                    
-                    // Extraer sharename (primera parte del path) y subpath (resto)
-                    val pathParts = fullPath.removePrefix("/").split("/", limit = 2)
-                    val share = pathParts.getOrNull(0) ?: return@forEach
-                    val subPath = if (pathParts.size > 1) pathParts[1] else ""
-                    
-                    Log.d("CatalogScreen", "SMB: server=$server, share=$share, subPath=$subPath")
-                    
-                    val result = smbClient.listFiles(server, share, subPath, source.credentials)
+
+                    val server = when (protocol) {
+                        NetworkProtocol.SMB, NetworkProtocol.SFTP -> {
+                            val host = uri.host.orEmpty()
+                            if (host.isBlank()) {
+                                Log.w("CatalogScreen", "Invalid network host: ${source.path}")
+                                return@forEach
+                            }
+                            val port = uri.port
+                            if (port > 0) "$host:$port" else host
+                        }
+                        NetworkProtocol.WEBDAV -> {
+                            val authority = uri.authority.orEmpty()
+                            if (authority.isBlank()) {
+                                Log.w("CatalogScreen", "Invalid WebDAV authority: ${source.path}")
+                                return@forEach
+                            }
+                            authority
+                        }
+                    }
+
+                    val networkPath = uri.path ?: "/"
+                    val result = networkClient.listFiles(protocol, server, networkPath, source.credentials)
                     result.onSuccess { files ->
-                        Log.d("CatalogScreen", "SMB found ${files.size} files")
+                        Log.d("CatalogScreen", "Network (${protocol.name}) found ${files.size} files")
                         files.forEach { file ->
-                            allSmbFiles.add(source to file)
+                            val smbLikeFile = toSmbLikeFile(file)
+                            if (smbLikeFile != null) {
+                                allSmbFiles.add(source to smbLikeFile)
+                            }
                         }
                     }.onFailure { e ->
-                        Log.e("CatalogScreen", "SMB error: ${e.message}")
+                        Log.e("CatalogScreen", "Network scan error (${protocol.name}): ${e.message}")
                     }
                 } catch (e: Exception) {
-                    Log.e("CatalogScreen", "SMB exception: ${e.message}", e)
+                    Log.e("CatalogScreen", "Network scan exception: ${e.message}", e)
                 }
             }
             smbFiles = allSmbFiles
@@ -548,8 +563,13 @@ fun CatalogScreen(
                 folderPickerLauncher.launch(null)
                 showAddSourceDialog = false
             },
-            onAddSmb = { name, server, _, path, credentials ->
-                val newSource = RomSource.smb(name, server, path, credentials)
+            onAddNetwork = { name, selectedProtocol, server, _, path, credentials ->
+                val newSource = RomSource(
+                    type = SourceType.SMB,
+                    name = name,
+                    path = buildNetworkLocationUri(selectedProtocol, server, path),
+                    credentials = credentials,
+                )
                 sourceManager.addSource(newSource)
                 sources = sourceManager.getSources()
                 shouldReloadLocalFiles = true
@@ -665,6 +685,45 @@ fun CatalogScreen(
         }
     }
 }
+
+private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
+    val normalizedPath = if (path.startsWith("/")) path else "/$path"
+    val scheme = when (protocol) {
+        NetworkProtocol.SMB -> "smb"
+        NetworkProtocol.SFTP -> "sftp"
+        NetworkProtocol.WEBDAV -> "webdav"
+    }
+    return "$scheme://$server$normalizedPath"
+}
+
+private fun toSmbLikeFile(file: NetworkClient.NetworkScannedFile): SmbFile? {
+    val extension = file.name.substringAfterLast('.', "").lowercase()
+    if (extension !in NETWORK_ROM_EXTENSIONS) return null
+
+    val metadata = RomMetadataExtractor.extractMetadata(file.relativePath, file.name, extension)
+    return SmbFile(
+        name = file.name,
+        cleanName = metadata.cleanName,
+        path = file.path,
+        relativePath = file.relativePath,
+        size = file.size,
+        extension = extension,
+        system = metadata.system,
+        region = metadata.region,
+        flag = metadata.flag,
+    )
+}
+
+private val NETWORK_ROM_EXTENSIONS = setOf(
+    "zip", "7z", "rar",
+    "nes", "fds", "unf",
+    "sfc", "smc", "fig", "swc",
+    "n64", "z64", "v64",
+    "gb", "gbc", "gba", "nds", "dsi",
+    "md", "gen", "smd", "gg", "sms", "sg",
+    "cue", "bin", "iso", "chd", "pbp",
+    "pce", "sgx", "a26", "a78", "lnx", "ngp", "ngc", "ws", "wsc", "col", "vec", "int",
+)
 
 @Composable
 private fun LoadingContent() {

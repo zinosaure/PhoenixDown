@@ -26,11 +26,18 @@
             android:summary="@string/settings_desc_download_location"
             app:iconSpaceReserved="false"/>
 
+        <Preference
+            android:key="pref_key_tv_remote_rw_hint"
+            android:title="@string/settings_title_note"
+            android:summary="@string/settings_remote_rw_hint"
+            android:selectable="false"
+            app:iconSpaceReserved="false"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:key="pref_category_tv_smb_logins"
-        android:title="@string/settings_category_smb_logins"
+        android:key="pref_category_tv_network_logins"
+        android:title="@string/settings_category_network_logins"
         app:iconSpaceReserved="false" />
 
     <PreferenceCategory

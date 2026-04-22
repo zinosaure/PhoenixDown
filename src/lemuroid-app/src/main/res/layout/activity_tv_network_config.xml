@@ -14,7 +14,7 @@
 
         <!-- Title -->
         <TextView
-            android:id="@+id/smb_title_text"
+            android:id="@+id/network_title_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/smb_library_title"
@@ -24,7 +24,7 @@
             android:layout_marginBottom="4dp" />
 
         <TextView
-            android:id="@+id/smb_description_text"
+            android:id="@+id/network_description_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/smb_library_description"
@@ -33,10 +33,10 @@
             android:layout_marginBottom="24dp" />
 
             <Button
-                android:id="@+id/smb_saved_login_button"
+                android:id="@+id/network_saved_login_button"
                 android:layout_width="wrap_content"
                 android:layout_height="44dp"
-                android:text="@string/sources_smb_saved_profile_pick"
+                android:text="@string/sources_network_saved_profile_pick"
                 android:textColor="@android:color/white"
                 android:background="#555555"
                 android:paddingHorizontal="20dp"
@@ -52,7 +52,7 @@
             android:padding="20dp">
 
             <TextView
-                android:id="@+id/smb_protocol_label"
+                android:id="@+id/network_protocol_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/network_protocol_label"
@@ -61,7 +61,7 @@
                 android:visibility="gone" />
 
             <Spinner
-                android:id="@+id/smb_protocol_spinner"
+                android:id="@+id/network_protocol_spinner"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:layout_marginBottom="12dp"
@@ -91,7 +91,7 @@
                         android:textSize="13sp" />
 
                     <EditText
-                        android:id="@+id/smb_server_input"
+                        android:id="@+id/network_server_input"
                         android:layout_width="match_parent"
                         android:layout_height="44dp"
                         android:hint="@string/sources_smb_server_placeholder"
@@ -120,7 +120,7 @@
                         android:textSize="13sp" />
 
                     <EditText
-                        android:id="@+id/smb_port_input"
+                        android:id="@+id/network_port_input"
                         android:layout_width="match_parent"
                         android:layout_height="44dp"
                         android:hint="@string/sources_smb_port_placeholder"
@@ -137,7 +137,7 @@
 
             <!-- Path -->
             <TextView
-                android:id="@+id/smb_path_label"
+                android:id="@+id/network_path_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/smb_library_path"
@@ -145,7 +145,7 @@
                 android:textSize="13sp" />
 
             <EditText
-                android:id="@+id/smb_path_input"
+                android:id="@+id/network_path_input"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:hint="@string/sources_smb_path_placeholder"
@@ -168,7 +168,7 @@
                 android:textSize="13sp" />
 
             <EditText
-                android:id="@+id/smb_username_input"
+                android:id="@+id/network_username_input"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:hint="@string/sources_smb_username"
@@ -191,7 +191,7 @@
                 android:textSize="13sp" />
 
             <EditText
-                android:id="@+id/smb_password_input"
+                android:id="@+id/network_password_input"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
                 android:hint="@string/sources_smb_password"
@@ -207,7 +207,7 @@
 
             <!-- Status -->
             <TextView
-                android:id="@+id/smb_status_text"
+                android:id="@+id/network_status_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@android:color/white"
@@ -223,7 +223,7 @@
                 android:gravity="end">
 
                 <Button
-                    android:id="@+id/smb_cancel_button"
+                    android:id="@+id/network_cancel_button"
                     android:layout_width="wrap_content"
                     android:layout_height="44dp"
                     android:text="@string/sources_cancel"
@@ -234,7 +234,7 @@
                     android:layout_marginEnd="8dp" />
 
                 <Button
-                    android:id="@+id/smb_test_button"
+                    android:id="@+id/network_test_button"
                     android:layout_width="wrap_content"
                     android:layout_height="44dp"
                     android:text="@string/smb_library_test_connection"
@@ -245,7 +245,7 @@
                     android:layout_marginEnd="8dp" />
 
                 <Button
-                    android:id="@+id/smb_save_button"
+                    android:id="@+id/network_save_button"
                     android:layout_width="wrap_content"
                     android:layout_height="44dp"
                     android:text="@string/sources_save"

@@ -510,16 +510,29 @@ class LemuroidLibrary(
     }
 
     private fun matchesPathSegment(path: String?, systemId: String): Boolean {
-        if (path.isNullOrBlank()) {
+        val pathForFiltering = sanitizePathForFiltering(path)
+        if (pathForFiltering.isBlank()) {
             return false
         }
 
-        val lowerPath = path.lowercase(Locale.getDefault())
+        val lowerPath = pathForFiltering.lowercase(Locale.getDefault())
         if (lowerPath.contains(systemId)) {
             return true
         }
 
         return FOLDER_ALIASES[systemId].orEmpty().any { lowerPath.contains(it) }
+    }
+
+    private fun sanitizePathForFiltering(path: String?): String {
+        if (path.isNullOrBlank()) return ""
+
+        val trimmed = path.trim()
+        val parsed = runCatching { Uri.parse(trimmed) }.getOrNull()
+        return when {
+            parsed == null -> trimmed
+            parsed.scheme.isNullOrBlank() -> trimmed
+            else -> parsed.path.orEmpty()
+        }
     }
 
     private fun convertGameMetadataToGame(

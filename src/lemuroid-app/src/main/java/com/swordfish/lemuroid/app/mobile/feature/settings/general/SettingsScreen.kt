@@ -70,7 +70,7 @@ import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestState
 import com.swordfish.lemuroid.app.mobile.feature.catalog.ConnectionTestStatus
 import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkClient
 import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient
-import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
+import com.swordfish.lemuroid.app.mobile.feature.catalog.NetworkConfigForm
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
@@ -90,7 +90,7 @@ import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.CompositionLocalProvider
@@ -435,13 +435,19 @@ private fun RomsSettings(
     if (showAddSmbDialog) {
         Dialog(onDismissRequest = { showAddSmbDialog = false }) {
             Card {
-                SmbConfigForm(
+                NetworkConfigForm(
                     onDismiss = { showAddSmbDialog = false },
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
                     savedProfiles = smbLoginProfiles,
-                    onSave = { name, server, path, credentials ->
-                        pendingSourceForPlatform = RomSource.smb(name, server, path, credentials)
+                    excludedProfileProtocols = setOf(NetworkProtocol.SFTP),
+                    onSave = { name, protocol, server, path, credentials ->
+                        pendingSourceForPlatform = RomSource(
+                            type = SourceType.SMB,
+                            name = name,
+                            path = buildNetworkLocationUri(protocol, server, path),
+                            credentials = credentials,
+                        )
                         pendingSourceIsEdit = false
                         showAddSmbDialog = false
                     },
@@ -454,14 +460,21 @@ private fun RomsSettings(
     if (editingSmbSource != null) {
         Dialog(onDismissRequest = { editingSmbSource = null }) {
             Card {
-                SmbConfigForm(
+                NetworkConfigForm(
                     onDismiss = { editingSmbSource = null },
                     onBack = { editingSmbSource = null },
                     editSource = editingSmbSource,
                     savedProfiles = smbLoginProfiles,
-                    onSave = { name, server, path, credentials ->
+                    excludedProfileProtocols = setOf(NetworkProtocol.SFTP),
+                    onSave = { name, protocol, server, path, credentials ->
                         editingSmbSource?.let { src ->
-                            pendingSourceForPlatform = src.copy(name = name, path = "smb://$server$path", credentials = credentials)
+                            pendingSourceForPlatform = RomSource(
+                                type = SourceType.SMB,
+                                name = name,
+                                path = buildNetworkLocationUri(protocol, server, path),
+                                credentials = credentials,
+                                platformHint = src.platformHint,
+                            ).copy(id = src.id)
                             pendingSourceIsEdit = true
                         }
                         editingSmbSource = null
@@ -581,19 +594,18 @@ private fun RomsSettings(
     if (showSaveSmbDialog) {
         Dialog(onDismissRequest = { showSaveSmbDialog = false }) {
             Card {
-                SmbConfigForm(
+                NetworkConfigForm(
                     onDismiss = { showSaveSmbDialog = false },
                     onBack = { showSaveSmbDialog = false },
-                    editSource = if (saveLocationUri.startsWith("smb://")) {
+                    editSource = if (isNetworkLocationUri(saveLocationUri)) {
                         RomSource(type = SourceType.SMB, name = "Sauvegardes", path = saveLocationUri, id = "_save")
                     } else null,
                     showDisplayNameField = false,
                     fixedDisplayName = "Sauvegardes",
                     savedProfiles = smbLoginProfiles,
-                    onSave = { _, server, path, credentials ->
-                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+                    onSave = { _, protocol, server, path, credentials ->
                         viewModel.setSaveLocation(
-                            "smb://$server$normalizedPath",
+                            buildNetworkLocationUri(protocol, server, path),
                             credentials?.username ?: "",
                             credentials?.password ?: "",
                         )
@@ -608,19 +620,18 @@ private fun RomsSettings(
     if (showDownloadSmbDialog) {
         Dialog(onDismissRequest = { showDownloadSmbDialog = false }) {
             Card {
-                SmbConfigForm(
+                NetworkConfigForm(
                     onDismiss = { showDownloadSmbDialog = false },
                     onBack = { showDownloadSmbDialog = false },
-                    editSource = if (downloadSourceId.startsWith("smb://")) {
+                    editSource = if (isNetworkLocationUri(downloadSourceId)) {
                         RomSource(type = SourceType.SMB, name = "Téléchargements", path = downloadSourceId, id = "_dl")
                     } else null,
                     showDisplayNameField = false,
                     fixedDisplayName = "Téléchargements",
                     savedProfiles = smbLoginProfiles,
-                    onSave = { _, server, path, credentials ->
-                        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+                    onSave = { _, protocol, server, path, credentials ->
                         viewModel.setDownloadSourceId(
-                            "smb://$server$normalizedPath",
+                            buildNetworkLocationUri(protocol, server, path),
                             credentials?.username ?: "",
                             credentials?.password ?: "",
                         )
@@ -658,7 +669,7 @@ private fun RomsSettings(
             title = {
                 Text(
                     stringResource(
-                        if (initialProfile == null) R.string.settings_smb_login_add_title else R.string.settings_smb_login_edit_title,
+                        if (initialProfile == null) R.string.settings_network_login_add_title else R.string.settings_network_login_edit_title,
                     ),
                 )
             },
@@ -684,8 +695,8 @@ private fun RomsSettings(
     if (pendingDeleteSmbLoginProfile != null) {
         AlertDialog(
             onDismissRequest = { pendingDeleteSmbLoginProfile = null },
-            title = { Text(stringResource(R.string.settings_smb_login_remove_title)) },
-            text = { Text(stringResource(R.string.settings_smb_login_remove_message, pendingDeleteSmbLoginProfile?.name ?: "")) },
+            title = { Text(stringResource(R.string.settings_network_login_remove_title)) },
+            text = { Text(stringResource(R.string.settings_network_login_remove_message, pendingDeleteSmbLoginProfile?.name ?: "")) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingDeleteSmbLoginProfile?.let { viewModel.removeSmbLoginProfile(it.id) }
@@ -773,10 +784,10 @@ private fun RomsSettings(
         }
     }
 
-    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_smb_logins)) }) {
+    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_network_logins)) }) {
         if (smbLoginProfiles.isEmpty()) {
             Text(
-                text = stringResource(R.string.settings_smb_logins_empty),
+                text = stringResource(R.string.settings_network_logins_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
@@ -801,7 +812,7 @@ private fun RomsSettings(
                 enabled = !indexingInProgress,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.settings_smb_login_add_action))
+                Text(stringResource(R.string.settings_network_login_add_action))
             }
         }
     }
@@ -819,7 +830,7 @@ private fun RomsSettings(
             onDelete = if (saveLocationUri.isNotBlank()) { { viewModel.setSaveLocation("") } } else null,
             onClick = {
                 when {
-                    saveLocationUri.startsWith("smb://") -> showSaveSmbDialog = true
+                    isNetworkLocationUri(saveLocationUri) -> showSaveSmbDialog = true
                     saveLocationUri.isNotBlank() -> saveLocationPickerLauncher.launch(Uri.parse(saveLocationUri))
                     else -> showSavePickerDialog = true
                 }
@@ -835,7 +846,7 @@ private fun RomsSettings(
             onDelete = if (downloadSourceId.isNotBlank()) { { viewModel.setDownloadSourceId("") } } else null,
             onClick = {
                 when {
-                    downloadSourceId.startsWith("smb://") -> showDownloadSmbDialog = true
+                    isNetworkLocationUri(downloadSourceId) -> showDownloadSmbDialog = true
                     downloadSourceId.isNotBlank() -> downloadLocationPickerLauncher.launch(Uri.parse(downloadSourceId))
                     else -> showDownloadPickerDialog = true
                 }
@@ -846,6 +857,12 @@ private fun RomsSettings(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 16.dp),
+        )
+        Text(
+            text = stringResource(R.string.settings_remote_rw_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp),
         )
     }
 }
@@ -1069,7 +1086,7 @@ private fun SmbLoginProfileForm(
                 scope.launch {
                     val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
                     val credentials = if (!isAnonymous && username.isNotBlank()) {
-                        SmbCredentials(username.trim(), password)
+                        NetworkCredentials(username.trim(), password)
                     } else {
                         null
                     }
@@ -1226,7 +1243,7 @@ private fun StorageLocationRow(
 /** Converts a raw URI string to a human-readable path for display. */
 private fun uriToReadablePath(context: android.content.Context, uri: String): String {
     if (uri.isBlank()) return ""
-    if (uri.startsWith("smb://")) return uri
+    if (isNetworkLocationUri(uri)) return uri
     if (uri.startsWith("content://")) {
         return runCatching {
             val docId = DocumentsContract.getTreeDocumentId(Uri.parse(uri))
@@ -1237,6 +1254,21 @@ private fun uriToReadablePath(context: android.content.Context, uri: String): St
         }.getOrElse { Uri.decode(uri) }
     }
     return uri
+}
+
+private fun isNetworkLocationUri(uri: String): Boolean {
+    val lower = uri.lowercase()
+    return lower.startsWith("smb://") || lower.startsWith("sftp://") || lower.startsWith("webdav://")
+}
+
+private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
+    val normalizedPath = if (path.startsWith("/")) path else "/$path"
+    val scheme = when (protocol) {
+        NetworkProtocol.SMB -> "smb"
+        NetworkProtocol.SFTP -> "sftp"
+        NetworkProtocol.WEBDAV -> "webdav"
+    }
+    return "$scheme://$server$normalizedPath"
 }
 
 @Composable

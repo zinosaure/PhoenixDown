@@ -21,12 +21,13 @@ import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.swordfish.lemuroid.R
 import kotlinx.coroutines.launch
+import java.net.URI
 
 /**
  * Dialog to add a new source (Local or SMB)
@@ -35,7 +36,7 @@ import kotlinx.coroutines.launch
 fun AddSourceDialog(
     onDismiss: () -> Unit,
     onAddLocal: () -> Unit,
-    onAddSmb: (name: String, server: String, share: String, path: String, credentials: SmbCredentials?) -> Unit
+                onAddNetwork: (name: String, selectedProtocol: NetworkProtocol, server: String, share: String, path: String, credentials: NetworkCredentials?) -> Unit
 ) {
     var showSmbForm by remember { mutableStateOf(false) }
     
@@ -89,11 +90,11 @@ fun AddSourceDialog(
                     }
                 }
             } else {
-                // SMB configuration form
-                SmbConfigForm(
+                // Network configuration form
+                NetworkConfigForm(
                     onDismiss = onDismiss,
-                    onSave = { name, server, path, credentials ->
-                        onAddSmb(name, server, "", path, credentials)
+                    onSave = { name, selectedProtocol, server, path, credentials ->
+                        onAddNetwork(name, selectedProtocol, server, "", path, credentials)
                         onDismiss()
                     },
                     onBack = { showSmbForm = false },
@@ -139,14 +140,15 @@ private fun SourceTypeButton(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SmbConfigForm(
+fun NetworkConfigForm(
     onDismiss: () -> Unit,
-    onSave: (name: String, server: String, path: String, credentials: SmbCredentials?) -> Unit,
+    onSave: (name: String, protocol: NetworkProtocol, server: String, path: String, credentials: NetworkCredentials?) -> Unit,
     onBack: () -> Unit,
     editSource: RomSource?,
     showDisplayNameField: Boolean = true,
     fixedDisplayName: String? = null,
     savedProfiles: List<SmbLoginProfile> = emptyList(),
+    excludedProfileProtocols: Set<NetworkProtocol> = emptySet(),
 ) {
     val context = LocalContext.current
     var name by remember { mutableStateOf(fixedDisplayName ?: editSource?.name ?: "") }
@@ -158,21 +160,25 @@ fun SmbConfigForm(
     val scope = rememberCoroutineScope()
     val smbClient = remember { SmbClient() }
     val networkClient = remember { NetworkClient(smbClient) }
-    val selectedProfile = savedProfiles.firstOrNull { it.id == selectedProfileId }
+    val availableProfiles = savedProfiles.filter { it.protocol !in excludedProfileProtocols }
+    val selectedProfile = availableProfiles.firstOrNull { it.id == selectedProfileId }
 
     fun applyProfile(profile: SmbLoginProfile) {
         selectedProfileId = profile.id
         connectionTestState = ConnectionTestState.Idle
     }
 
-    LaunchedEffect(editSource) {
-        editSource?.path?.let { smbPath ->
-            val withoutScheme = smbPath.removePrefix("smb://")
-            val slashIndex = withoutScheme.indexOf('/')
-            if (slashIndex > 0) {
-                val serverPart = withoutScheme.substring(0, slashIndex)
-                path = withoutScheme.substring(slashIndex).ifBlank { "/" }
-                val matchedProfile = savedProfiles.firstOrNull {
+    LaunchedEffect(editSource, availableProfiles) {
+        editSource?.path?.let { sourcePath ->
+            val parsedUri = runCatching { URI(sourcePath) }.getOrNull()
+            if (parsedUri != null) {
+                val serverPart = buildString {
+                    append(parsedUri.host ?: parsedUri.authority.orEmpty())
+                    if (parsedUri.port > 0) append(":${parsedUri.port}")
+                }
+                path = parsedUri.path?.ifBlank { "/" } ?: "/"
+
+                val matchedProfile = availableProfiles.firstOrNull {
                     it.server.equals(serverPart, ignoreCase = true) &&
                         it.username == (editSource.credentials?.username ?: "") &&
                         it.password == (editSource.credentials?.password ?: "")
@@ -180,6 +186,7 @@ fun SmbConfigForm(
                 selectedProfileId = matchedProfile?.id
             } else {
                 path = "/"
+                selectedProfileId = null
             }
         }
     }
@@ -216,7 +223,7 @@ fun SmbConfigForm(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        if (savedProfiles.isEmpty()) {
+        if (availableProfiles.isEmpty()) {
             Text(
                 text = stringResource(R.string.sources_network_profile_required),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -228,7 +235,7 @@ fun SmbConfigForm(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = selectedProfile?.name ?: stringResource(R.string.sources_smb_saved_profile_pick),
+                        text = selectedProfile?.name ?: stringResource(R.string.sources_network_saved_profile_pick),
                     )
                     selectedProfile?.let { profile ->
                         val protocolName = context.getString(
@@ -253,7 +260,7 @@ fun SmbConfigForm(
         OutlinedTextField(
             value = path,
             onValueChange = {
-                path = normalizePath(it)
+                path = it
                 connectionTestState = ConnectionTestState.Idle
             },
             label = { Text(stringResource(R.string.sources_smb_path)) },
@@ -353,7 +360,7 @@ fun SmbConfigForm(
                     val profile = selectedProfile ?: return@Button
                     val displayName = (fixedDisplayName ?: name).ifBlank { "${profile.name} $path" }
                     val normalizedPath = if (path.startsWith("/")) path else "/$path"
-                    onSave(displayName, profile.server, normalizedPath, profile.toCredentials())
+                    onSave(displayName, profile.protocol, profile.server, normalizedPath, profile.toCredentials())
                 },
                 modifier = Modifier.weight(7f),
                 enabled = selectedProfile != null && path.removePrefix("/").isNotBlank() && (!showDisplayNameField || name.isNotBlank()),
@@ -366,10 +373,10 @@ fun SmbConfigForm(
     if (showSavedProfilesDialog) {
         AlertDialog(
             onDismissRequest = { showSavedProfilesDialog = false },
-            title = { Text(stringResource(R.string.sources_smb_saved_profile_title)) },
+            title = { Text(stringResource(R.string.sources_network_saved_profile_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    savedProfiles.forEach { profile ->
+                    availableProfiles.forEach { profile ->
                         TextButton(
                             onClick = {
                                 applyProfile(profile)
@@ -428,9 +435,9 @@ private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unkn
         else -> message
     }
 }
-private fun SmbLoginProfile.toCredentials(): SmbCredentials? =
+private fun SmbLoginProfile.toCredentials(): NetworkCredentials? =
     if (username.isNotBlank()) {
-        SmbCredentials(username, password)
+        NetworkCredentials(username, password)
     } else {
         null
     }
@@ -441,6 +448,15 @@ private fun normalizePath(path: String): String {
     return if (value.startsWith('/')) value else "/$value"
 }
 
+private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
+    val normalizedPath = if (path.startsWith("/")) path else "/$path"
+    val scheme = when (protocol) {
+        NetworkProtocol.SMB -> "smb"
+        NetworkProtocol.SFTP -> "sftp"
+        NetworkProtocol.WEBDAV -> "webdav"
+    }
+    return "$scheme://$server$normalizedPath"
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionTestStatus(
@@ -484,7 +500,7 @@ private fun SmbPathBrowserDialog(
     var currentPath by remember(profile.id, initialPath) {
         mutableStateOf(initialPath.takeIf { it.startsWith("/") && it.length > 1 } ?: "/")
     }
-    var entries by remember(profile.id, currentPath) { mutableStateOf<List<SmbDirectoryEntry>>(emptyList()) }
+    var entries by remember(profile.id, currentPath) { mutableStateOf<List<NetworkDirectoryEntry>>(emptyList()) }
     var isLoading by remember(profile.id, currentPath) { mutableStateOf(true) }
     var loadError by remember(profile.id, currentPath) { mutableStateOf<String?>(null) }
     var autoResetToRootDone by remember(profile.id) { mutableStateOf(false) }
@@ -636,12 +652,12 @@ fun ManageSourcesDialog(
         ) {
             if (editingSource != null && editingSource!!.type == SourceType.SMB) {
                 // Show edit form for SMB
-                SmbConfigForm(
+                NetworkConfigForm(
                     onDismiss = { editingSource = null },
-                    onSave = { name, server, path, credentials ->
+                    onSave = { name, protocol, server, path, credentials ->
                         val updatedSource = editingSource!!.copy(
                             name = name,
-                            path = "smb://$server$path",
+                            path = buildNetworkLocationUri(protocol, server, path),
                             credentials = credentials
                         )
                         onEdit(updatedSource)

@@ -71,6 +71,11 @@
             android:process=":game"
             android:theme="@style/LemuroidMaterialTheme.Game" />
 
+        <activity
+            android:name="com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuActivity"
+            android:process=":game"
+            android:theme="@style/LemuroidMaterialTheme" />
+
         <service
             android:name=".app.mobile.feature.game.GameService"
             android:foregroundServiceType="dataSync"
@@ -80,11 +85,6 @@
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
-
-        <activity
-            android:name="com.swordfish.lemuroid.app.mobile.feature.gamemenu.GameMenuActivity"
-            android:process=":game"
-            android:theme="@style/LemuroidMaterialTheme.Menu" />
 
         <activity
             android:name="com.swordfish.lemuroid.app.mobile.feature.input.GamePadBindingActivity"
@@ -177,8 +177,8 @@
             android:theme="@style/LemuroidLeanbackTheme" />
 
         <activity
-            android:name=".app.tv.settings.TVSmbConfigActivity"
-            android:label="@string/smb_library_title"
+            android:name=".app.tv.settings.TVNetworkConfigActivity"
+            android:label="@string/tv_network_profile_title"
             android:theme="@style/LemuroidLeanbackTheme" />
 
         <activity

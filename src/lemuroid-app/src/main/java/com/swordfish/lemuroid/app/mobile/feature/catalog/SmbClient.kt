@@ -140,7 +140,7 @@ class SmbClient {
     suspend fun listShares(
         server: String,
         credentials: SmbCredentials? = null,
-    ): Result<List<SmbDirectoryEntry>> = withContext(Dispatchers.IO) {
+    ): Result<List<NetworkDirectoryEntry>> = withContext(Dispatchers.IO) {
         runCatching {
             val endpoint = parseEndpoint(server)
             val rootUrl = "smb://${endpoint.host}:${endpoint.port}/"
@@ -153,7 +153,7 @@ class SmbClient {
                     if (name.isBlank() || name.endsWith("$")) {
                         null
                     } else {
-                        SmbDirectoryEntry(name = name, path = "/$name")
+                        NetworkDirectoryEntry(name = name, path = "/$name")
                     }
                 }
                 .sortedBy { it.name.lowercase() }
@@ -179,7 +179,7 @@ class SmbClient {
         share: String,
         path: String = "",
         credentials: SmbCredentials? = null,
-    ): Result<List<SmbDirectoryEntry>> = withContext(Dispatchers.IO) {
+    ): Result<List<NetworkDirectoryEntry>> = withContext(Dispatchers.IO) {
         withDiskShare(server, share, credentials) { diskShare ->
             val smbPath = path.removePrefix("/").replace("/", "\\")
             diskShare.list(smbPath)
@@ -190,7 +190,7 @@ class SmbClient {
                 }
                 .map { entry ->
                     val fullPath = if (path.isBlank() || path == "/") "/$share/${entry.fileName}" else "$path/${entry.fileName}"
-                    SmbDirectoryEntry(name = entry.fileName, path = fullPath)
+                    NetworkDirectoryEntry(name = entry.fileName, path = fullPath)
                 }
                 .sortedBy { it.name.lowercase() }
         }
@@ -479,7 +479,7 @@ class SmbClient {
     }
 }
 
-data class SmbDirectoryEntry(
+data class NetworkDirectoryEntry(
     val name: String,
     val path: String,
 )

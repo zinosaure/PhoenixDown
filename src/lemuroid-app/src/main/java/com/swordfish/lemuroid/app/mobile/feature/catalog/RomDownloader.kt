@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.RomSource
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
@@ -32,6 +33,7 @@ import java.io.File
 
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -434,6 +436,7 @@ class RomDownloader(
     // V8.4: SmbClient is now internal to RomDownloader (not passed from ViewModel)
     // This prevents the client from being destroyed when ViewModel is recreated.
     private val smbClient = SmbClient()
+    private val networkClient = NetworkClient(smbClient)
     private var libraryDestination: RomSource? = null
     
     // V8.5: Cache of files in SMB library (set of "systemId/fileName" keys)
@@ -456,47 +459,51 @@ class RomDownloader(
      */
     suspend fun refreshSmbLibraryCache() {
         val dest = libraryDestination ?: return
-        Log.d(TAG, "V8.5: Refreshing SMB library cache...")
+        Log.d(TAG, "V8.5: Refreshing network library cache...")
         
         try {
-            val smbPath = dest.path.removePrefix("smb://")
-            val slashIndex = smbPath.indexOf('/')
-            if (slashIndex > 0) {
-                val server = smbPath.substring(0, slashIndex)
-                val remaining = smbPath.substring(slashIndex)
-                val pathParts = remaining.removePrefix("/").split("/", limit = 2)
-                val share = pathParts.getOrNull(0) ?: return
-                val subPath = if (pathParts.size > 1) pathParts[1] else ""
-                
-                val result = smbClient.listFiles(
-                    server = server,
-                    share = share,
-                    path = subPath,
-                    credentials = dest.credentials
-                )
-                
-                result.onSuccess { files ->
-                    synchronized(smbLibraryCache) {
-                        smbLibraryCache.clear()
-                        files.forEach { file ->
-                            // Store as "systemId/fileName" or just "fileName" if no system
-                            val key = if (!file.system.isNullOrBlank()) {
-                                "${file.system}/${file.name}"
-                            } else {
-                                file.name
-                            }
-                            smbLibraryCache.add(key.lowercase())
-                        }
-                        smbLibraryCacheLoaded = true
-                        Log.d(TAG, "V8.5: SMB library cache loaded with ${smbLibraryCache.size} files")
-                    }
+            val uri = URI(dest.path)
+            val protocol = when (uri.scheme?.lowercase()) {
+                "sftp" -> NetworkProtocol.SFTP
+                "webdav" -> NetworkProtocol.WEBDAV
+                else -> NetworkProtocol.SMB
+            }
+
+            val server = when (protocol) {
+                NetworkProtocol.SMB, NetworkProtocol.SFTP -> {
+                    val host = uri.host.orEmpty()
+                    if (host.isBlank()) return
+                    val port = uri.port
+                    if (port > 0) "$host:$port" else host
                 }
-                result.onFailure { e ->
-                    Log.e(TAG, "V8.5: Failed to refresh SMB cache: ${e.message}")
+                NetworkProtocol.WEBDAV -> uri.authority.orEmpty().ifBlank { return }
+            }
+
+            val path = uri.path ?: "/"
+            val result = networkClient.listFiles(protocol, server, path, dest.credentials)
+
+            result.onSuccess { files ->
+                synchronized(smbLibraryCache) {
+                    smbLibraryCache.clear()
+                    files.forEach { file ->
+                        val extension = file.name.substringAfterLast('.', "").lowercase()
+                        val metadata = RomMetadataExtractor.extractMetadata(file.relativePath, file.name, extension)
+                        val key = if (!metadata.system.isNullOrBlank()) {
+                            "${metadata.system}/${file.name}"
+                        } else {
+                            file.name
+                        }
+                        smbLibraryCache.add(key.lowercase())
+                    }
+                    smbLibraryCacheLoaded = true
+                    Log.d(TAG, "V8.5: Network library cache loaded with ${smbLibraryCache.size} files")
                 }
             }
+            result.onFailure { e ->
+                Log.e(TAG, "V8.5: Failed to refresh network cache: ${e.message}")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "V8.5: Error refreshing SMB cache", e)
+            Log.e(TAG, "V8.5: Error refreshing network cache", e)
         }
     }
     

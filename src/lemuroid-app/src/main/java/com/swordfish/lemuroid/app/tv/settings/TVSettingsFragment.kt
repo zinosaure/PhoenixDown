@@ -191,14 +191,14 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         refreshSourcesSection()
         refreshStorageLocationSummaries()
-        refreshSmbLoginProfilesSection()
+        refreshNetworkLoginProfilesSection()
     }
 
     override fun onResume() {
         super.onResume()
         refreshSaveSyncScreen()
         refreshSourcesSection()
-        refreshSmbLoginProfilesSection()
+        refreshNetworkLoginProfilesSection()
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
             refreshMetadataSummary()
@@ -265,9 +265,9 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                             .setItems(arrayOf(getString(R.string.sources_edit), getString(R.string.sources_delete))) { _, which ->
                                 when (which) {
                                     0 -> {
-                                        val intent = android.content.Intent(ctx, TVSmbConfigActivity::class.java).apply {
-                                            putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_EDIT_SOURCE)
-                                            putExtra(TVSmbConfigActivity.EXTRA_SOURCE_ID, source.id)
+                                        val intent = android.content.Intent(ctx, TVNetworkConfigActivity::class.java).apply {
+                                            putExtra(TVNetworkConfigActivity.EXTRA_MODE, TVNetworkConfigActivity.MODE_EDIT_SOURCE)
+                                            putExtra(TVNetworkConfigActivity.EXTRA_SOURCE_ID, source.id)
                                         }
                                         startActivity(intent)
                                     }
@@ -319,11 +319,11 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
         category.addPreference(addPref)
     }
 
-    private fun refreshSmbLoginProfilesSection() {
-        val category = findPreference<androidx.preference.PreferenceCategory>("pref_category_tv_smb_logins") ?: return
+    private fun refreshNetworkLoginProfilesSection() {
+        val category = findPreference<androidx.preference.PreferenceCategory>("pref_category_tv_network_logins") ?: return
         val ctx = requireContext()
         val repo = SmbLoginProfileRepository(ctx)
-        seedExistingSmbLoginProfiles(repo)
+        seedExistingNetworkLoginProfiles(repo)
         val profiles = repo.getProfiles()
 
         val keysToRemove = (0 until category.preferenceCount)
@@ -349,7 +349,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                 }
                 isIconSpaceReserved = false
                 setOnPreferenceClickListener {
-                    showSmbLoginProfileDialog(profile)
+                    showNetworkLoginProfileDialog(profile)
                     true
                 }
             }
@@ -358,27 +358,27 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         val addPref = androidx.preference.Preference(ctx).apply {
             key = "dyn_add_smb_login"
-            title = getString(R.string.settings_smb_login_add_action)
-            summary = getString(R.string.settings_smb_logins_empty)
+            title = getString(R.string.settings_network_login_add_action)
+            summary = getString(R.string.settings_network_logins_empty)
             isIconSpaceReserved = false
             setOnPreferenceClickListener {
-                launchSmbProfileConfigActivity(null)
+                launchNetworkProfileConfigActivity(null)
                 true
             }
         }
         category.addPreference(addPref)
     }
 
-    private fun showSmbLoginProfileDialog(profile: SmbLoginProfile) {
+    private fun showNetworkLoginProfileDialog(profile: SmbLoginProfile) {
         val ctx = requireContext()
         android.app.AlertDialog.Builder(ctx)
             .setTitle(profile.name)
             .setItems(arrayOf(getString(R.string.sources_edit), getString(R.string.sources_delete))) { _, which ->
                 when (which) {
-                    0 -> launchSmbProfileConfigActivity(profile.id)
+                    0 -> launchNetworkProfileConfigActivity(profile.id)
                     1 -> {
                         SmbLoginProfileRepository(ctx).removeProfile(profile.id)
-                        refreshSmbLoginProfilesSection()
+                        refreshNetworkLoginProfilesSection()
                     }
                 }
             }
@@ -386,15 +386,15 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             .show()
     }
 
-    private fun launchSmbProfileConfigActivity(profileId: String?) {
+    private fun launchNetworkProfileConfigActivity(profileId: String?) {
         startActivity(
-            Intent(requireContext(), TVSmbConfigActivity::class.java)
-                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_PROFILE)
-                .putExtra(TVSmbConfigActivity.EXTRA_PROFILE_ID, profileId),
+            Intent(requireContext(), TVNetworkConfigActivity::class.java)
+                .putExtra(TVNetworkConfigActivity.EXTRA_MODE, TVNetworkConfigActivity.MODE_PROFILE)
+                .putExtra(TVNetworkConfigActivity.EXTRA_PROFILE_ID, profileId),
         )
     }
 
-    private fun seedExistingSmbLoginProfiles(repo: SmbLoginProfileRepository) {
+    private fun seedExistingNetworkLoginProfiles(repo: SmbLoginProfileRepository) {
         val ctx = requireContext()
         val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
         com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
@@ -546,8 +546,8 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun showDownloadSmbInputDialog() {
         startActivity(
-            Intent(requireContext(), TVSmbConfigActivity::class.java)
-                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_DOWNLOAD),
+            Intent(requireContext(), TVNetworkConfigActivity::class.java)
+                .putExtra(TVNetworkConfigActivity.EXTRA_MODE, TVNetworkConfigActivity.MODE_DOWNLOAD),
         )
     }
 
@@ -586,8 +586,8 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
     private fun showSaveSmbInputDialog() {
         startActivity(
-            Intent(requireContext(), TVSmbConfigActivity::class.java)
-                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_SAVE),
+            Intent(requireContext(), TVNetworkConfigActivity::class.java)
+                .putExtra(TVNetworkConfigActivity.EXTRA_MODE, TVNetworkConfigActivity.MODE_SAVE),
         )
     }
 
@@ -620,8 +620,8 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     
     private fun launchSmbConfigActivity() {
         // Launch SMB configuration activity
-        val intent = android.content.Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.TVSmbConfigActivity::class.java)
-            .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_LIBRARY)
+        val intent = android.content.Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.TVNetworkConfigActivity::class.java)
+            .putExtra(TVNetworkConfigActivity.EXTRA_MODE, TVNetworkConfigActivity.MODE_LIBRARY)
         startActivity(intent)
     }
 

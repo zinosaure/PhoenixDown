@@ -1,5 +1,6 @@
 package com.swordfish.lemuroid.app.tv.settings
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -17,7 +18,7 @@ import com.swordfish.lemuroid.lib.storage.smb.SmbClient
 import com.swordfish.lemuroid.lib.storage.source.NetworkProtocol
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
-import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as NetworkCredentials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,7 +28,7 @@ import kotlinx.coroutines.withContext
  * TV-optimized Activity for configuring SMB library source.
  * Uses standard Android EditText layout for reliable input handling.
  */
-class TVSmbConfigActivity : FragmentActivity() {
+class TVNetworkConfigActivity : FragmentActivity() {
     private lateinit var titleText: TextView
     private lateinit var descriptionText: TextView
     private lateinit var pathLabel: TextView
@@ -43,7 +44,7 @@ class TVSmbConfigActivity : FragmentActivity() {
     private lateinit var statusText: TextView
     private lateinit var testButton: Button
 
-    private val smbLoginProfileRepository by lazy { SmbLoginProfileRepository(this) }
+    private val networkLoginProfileRepository by lazy { SmbLoginProfileRepository(this) }
     private val networkClient by lazy { NetworkClient(com.swordfish.lemuroid.app.mobile.feature.catalog.SmbClient()) }
     private var selectedProtocol: NetworkProtocol = NetworkProtocol.SMB
 
@@ -61,22 +62,22 @@ class TVSmbConfigActivity : FragmentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_tv_smb_config)
+        setContentView(R.layout.activity_tv_network_config)
         
         // Find views
-        titleText = findViewById(R.id.smb_title_text)
-        descriptionText = findViewById(R.id.smb_description_text)
-        pathLabel = findViewById(R.id.smb_path_label)
-        savedLoginButton = findViewById(R.id.smb_saved_login_button)
-        protocolLabel = findViewById(R.id.smb_protocol_label)
-        protocolSpinner = findViewById(R.id.smb_protocol_spinner)
-        serverInput = findViewById(R.id.smb_server_input)
-        portInput = findViewById(R.id.smb_port_input)
-        pathInput = findViewById(R.id.smb_path_input)
-        usernameInput = findViewById(R.id.smb_username_input)
-        passwordInput = findViewById(R.id.smb_password_input)
-        statusText = findViewById(R.id.smb_status_text)
-        testButton = findViewById(R.id.smb_test_button)
+        titleText = findViewById(R.id.network_title_text)
+        descriptionText = findViewById(R.id.network_description_text)
+        pathLabel = findViewById(R.id.network_path_label)
+        savedLoginButton = findViewById(R.id.network_saved_login_button)
+        protocolLabel = findViewById(R.id.network_protocol_label)
+        protocolSpinner = findViewById(R.id.network_protocol_spinner)
+        serverInput = findViewById(R.id.network_server_input)
+        portInput = findViewById(R.id.network_port_input)
+        pathInput = findViewById(R.id.network_path_input)
+        usernameInput = findViewById(R.id.network_username_input)
+        passwordInput = findViewById(R.id.network_password_input)
+        statusText = findViewById(R.id.network_status_text)
+        testButton = findViewById(R.id.network_test_button)
 
         configureTextsForMode()
         configureVisibilityForMode()
@@ -88,28 +89,28 @@ class TVSmbConfigActivity : FragmentActivity() {
         // Set up buttons
         savedLoginButton.setOnClickListener { showSavedLoginPicker() }
         testButton.setOnClickListener { testConnection() }
-        findViewById<Button>(R.id.smb_save_button).setOnClickListener { saveAndFinish() }
-        findViewById<Button>(R.id.smb_cancel_button).setOnClickListener { finish() }
+        findViewById<Button>(R.id.network_save_button).setOnClickListener { saveAndFinish() }
+        findViewById<Button>(R.id.network_cancel_button).setOnClickListener { finish() }
         
         // Request focus on first input
         serverInput.requestFocus()
     }
     
-    private val KEY_RAW_PATH = "smb_library_raw_path_ui_v2"
+    private val KEY_RAW_PATH = "network_library_raw_path_ui_v2"
 
     private fun configureTextsForMode() {
         when (mode) {
             MODE_SAVE -> {
-                titleText.setText(R.string.tv_smb_save_title)
-                descriptionText.setText(R.string.tv_smb_save_description)
+                titleText.setText(R.string.tv_network_save_title)
+                descriptionText.setText(R.string.tv_network_save_description)
             }
             MODE_DOWNLOAD -> {
-                titleText.setText(R.string.tv_smb_download_title)
-                descriptionText.setText(R.string.tv_smb_download_description)
+                titleText.setText(R.string.tv_network_download_title)
+                descriptionText.setText(R.string.tv_network_download_description)
             }
             MODE_PROFILE -> {
-                titleText.setText(R.string.tv_smb_profile_title)
-                descriptionText.setText(R.string.tv_smb_profile_description)
+                titleText.setText(R.string.tv_network_profile_title)
+                descriptionText.setText(R.string.tv_network_profile_description)
             }
             MODE_EDIT_SOURCE -> {
                 titleText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_title)
@@ -161,26 +162,28 @@ class TVSmbConfigActivity : FragmentActivity() {
         when (mode) {
             MODE_SAVE -> {
                 val current = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
-                val (server, fullPath) = parseSmbUri(current)
-                val (host, port) = splitHostAndPort(server)
+                val parsed = parseNetworkUri(current)
+                selectedProtocol = parsed.protocol
+                val (host, port) = splitHostAndPort(parsed.server)
                 serverInput.setText(host)
                 portInput.setText(port)
-                pathInput.setText(fullPath)
+                pathInput.setText(normalizePath(parsed.path))
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, ""))
             }
             MODE_DOWNLOAD -> {
                 val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
-                val (server, fullPath) = parseSmbUri(current)
-                val (host, port) = splitHostAndPort(server)
+                val parsed = parseNetworkUri(current)
+                selectedProtocol = parsed.protocol
+                val (host, port) = splitHostAndPort(parsed.server)
                 serverInput.setText(host)
                 portInput.setText(port)
-                pathInput.setText(fullPath)
+                pathInput.setText(normalizePath(parsed.path))
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, ""))
             }
             MODE_PROFILE -> {
-                val profile = smbLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
+                val profile = networkLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
                 val (host, port) = splitHostAndPort(profile?.server.orEmpty())
                 serverInput.setText(host)
                 portInput.setText(port)
@@ -199,11 +202,12 @@ class TVSmbConfigActivity : FragmentActivity() {
                 val source = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
                     .getCustomSources().firstOrNull { it.id == sourceId }
                 if (source != null) {
-                    val (server, fullPath) = parseSmbUri(source.path)
-                    val (host, port) = splitHostAndPort(server)
+                    val parsed = parseNetworkUri(source.path)
+                    selectedProtocol = parsed.protocol
+                    val (host, port) = splitHostAndPort(parsed.server)
                     serverInput.setText(host)
                     portInput.setText(port)
-                    pathInput.setText(fullPath)
+                    pathInput.setText(normalizePath(parsed.path))
                     usernameInput.setText(source.credentials?.username.orEmpty())
                     passwordInput.setText(source.credentials?.password.orEmpty())
                 }
@@ -216,12 +220,12 @@ class TVSmbConfigActivity : FragmentActivity() {
 
                 val rawPath = prefs.getString(KEY_RAW_PATH, null)
                 if (rawPath != null) {
-                    pathInput.setText(rawPath)
+                    pathInput.setText(normalizePath(rawPath))
                 } else {
                     val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
                     val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
                     val fullPath = if (!share.isNullOrBlank()) "/$share$path" else path
-                    pathInput.setText(fullPath)
+                    pathInput.setText(normalizePath(fullPath))
                 }
 
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, ""))
@@ -232,9 +236,9 @@ class TVSmbConfigActivity : FragmentActivity() {
 
     private fun showSavedLoginPicker() {
         seedExistingProfiles()
-        val profiles = smbLoginProfileRepository.getProfiles()
+        val profiles = networkLoginProfileRepository.getProfiles()
         if (profiles.isEmpty()) {
-            Toast.makeText(this, getString(R.string.tv_smb_saved_login_empty), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.tv_network_saved_login_empty), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -254,7 +258,7 @@ class TVSmbConfigActivity : FragmentActivity() {
         }.toTypedArray()
 
         android.app.AlertDialog.Builder(this)
-            .setTitle(R.string.sources_smb_saved_profile_title)
+            .setTitle(R.string.sources_network_saved_profile_title)
             .setItems(labels) { _, which ->
                 applyProfile(profiles[which])
             }
@@ -281,12 +285,12 @@ class TVSmbConfigActivity : FragmentActivity() {
 
     private fun testConnection() {
         val server = buildServerAddress()
-        val path = pathInput.text.toString().trim()
+        val path = normalizePath(pathInput.text.toString().trim())
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
         
         if (server.isBlank() || (mode != MODE_PROFILE && path.isBlank())) {
-            statusText.text = getString(R.string.tv_smb_enter_server_and_path)
+            statusText.text = getString(R.string.tv_network_enter_server_and_path)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
             return
@@ -298,21 +302,21 @@ class TVSmbConfigActivity : FragmentActivity() {
         
         CoroutineScope(Dispatchers.IO).launch {
             val credentials = if (username.isNotBlank()) {
-                SmbCredentials(username, password)
+                NetworkCredentials(username, password)
             } else null
 
             val effectivePath = if (mode == MODE_PROFILE) "/" else path
-            val protocol = if (mode == MODE_PROFILE) selectedProtocol else NetworkProtocol.SMB
+            val protocol = selectedProtocol
 
             val result = networkClient.testConnection(protocol, server, effectivePath, credentials)
             
             withContext(Dispatchers.Main) {
                 if (result.isSuccess) {
-                    statusText.text = getString(R.string.tv_smb_connection_success)
+                    statusText.text = getString(R.string.tv_network_connection_success)
                     statusText.setTextColor(getColor(android.R.color.holo_green_light))
                 } else {
-                    val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
-                    statusText.text = getString(R.string.tv_smb_connection_failed, errorMsg)
+                    val errorMsg = toFriendlyNetworkError(result.exceptionOrNull()?.message, protocol)
+                    statusText.text = getString(R.string.tv_network_connection_failed, errorMsg)
                     statusText.setTextColor(getColor(android.R.color.holo_red_light))
                 }
             }
@@ -327,15 +331,15 @@ class TVSmbConfigActivity : FragmentActivity() {
 
         if (mode == MODE_PROFILE) {
             if (server.isBlank()) {
-                statusText.text = getString(R.string.tv_smb_enter_server_and_path)
+                statusText.text = getString(R.string.tv_network_enter_server_and_path)
                 statusText.setTextColor(getColor(android.R.color.holo_red_light))
                 statusText.visibility = View.VISIBLE
                 return
             }
 
-            val existing = smbLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
+            val existing = networkLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
             val profileName = existing?.name ?: server.substringBefore(':').ifBlank { server }
-            smbLoginProfileRepository.addOrUpdateProfile(
+            networkLoginProfileRepository.addOrUpdateProfile(
                 SmbLoginProfile(
                     id = existing?.id ?: SmbLoginProfile(name = profileName, server = server).id,
                     name = profileName,
@@ -345,7 +349,7 @@ class TVSmbConfigActivity : FragmentActivity() {
                     password = password,
                 ),
             )
-            Toast.makeText(this, getString(R.string.tv_smb_profile_configured_successfully), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.tv_network_profile_configured_successfully), Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -353,14 +357,15 @@ class TVSmbConfigActivity : FragmentActivity() {
         android.util.Log.e("ANTIGRAVITY", "UI Save: User Input Path: '$fullPath'")
         
         if (server.isBlank() || fullPath.isBlank()) {
-            statusText.text = getString(R.string.tv_smb_enter_server_and_path)
+            statusText.text = getString(R.string.tv_network_enter_server_and_path)
             statusText.setTextColor(getColor(android.R.color.holo_red_light))
             statusText.visibility = View.VISIBLE
             return
         }
         
-        // Parse share name from path (first segment after /)
-        // e.g., "/almacen/juegos/roms" -> share="almacen", path="/juegos/roms"
+        val networkUri = buildNetworkLocationUri(selectedProtocol, server, fullPath)
+
+        // Parse SMB share only for legacy SMB library mode.
         val pathSegments = fullPath.removePrefix("/").split("/")
         val shareName = pathSegments.firstOrNull() ?: ""
         val subPath = if (pathSegments.size > 1) {
@@ -369,24 +374,15 @@ class TVSmbConfigActivity : FragmentActivity() {
             ""
         }
         
-        android.util.Log.e("ANTIGRAVITY", "UI Parse: Share='$shareName', SubPath='$subPath'")
-        
-        if (shareName.isBlank()) {
-            statusText.text = getString(R.string.tv_smb_path_must_start_with_share)
-            statusText.setTextColor(getColor(android.R.color.holo_red_light))
-            statusText.visibility = View.VISIBLE
-            return
-        }
-        
         if (mode == MODE_EDIT_SOURCE) {
             val repo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
             val existing = repo.getCustomSources().firstOrNull { it.id == sourceId }
             if (existing != null) {
-                val credentials = if (username.isNotBlank()) SmbCredentials(username, password) else null
-                repo.updateSource(existing.copy(path = "smb://$server$fullPath", credentials = credentials))
+                val credentials = if (username.isNotBlank()) NetworkCredentials(username, password) else null
+                repo.updateSource(existing.copy(path = networkUri, credentials = credentials))
                 rememberLogin(server, username, password)
                 com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(this)
-                Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.tv_network_configured_successfully), Toast.LENGTH_SHORT).show()
             }
             finish()
             return
@@ -396,25 +392,32 @@ class TVSmbConfigActivity : FragmentActivity() {
         when (mode) {
             MODE_SAVE -> {
                 prefs.edit().apply {
-                    putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "smb://$server$fullPath")
+                    putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, networkUri)
                     putString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, username)
                     putString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, password)
                     apply()
                 }
                 rememberLogin(server, username, password)
-                Toast.makeText(this, getString(R.string.tv_smb_save_configured_successfully), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.tv_network_save_configured_successfully), Toast.LENGTH_SHORT).show()
             }
             MODE_DOWNLOAD -> {
                 prefs.edit().apply {
-                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "smb://$server$fullPath")
+                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, networkUri)
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, username)
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, password)
                     apply()
                 }
                 rememberLogin(server, username, password)
-                Toast.makeText(this, getString(R.string.tv_smb_download_configured_successfully), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.tv_network_download_configured_successfully), Toast.LENGTH_SHORT).show()
             }
             else -> {
+                if (shareName.isBlank()) {
+                    statusText.text = getString(R.string.tv_network_path_must_start_with_share)
+                    statusText.setTextColor(getColor(android.R.color.holo_red_light))
+                    statusText.visibility = View.VISIBLE
+                    return
+                }
+
                 prefs.edit().apply {
                     putString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "smb")
                     putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, server)
@@ -428,16 +431,16 @@ class TVSmbConfigActivity : FragmentActivity() {
 
                 rememberLogin(server, username, password)
                 LibraryIndexScheduler.scheduleLibrarySync(this)
-                Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.tv_network_configured_successfully), Toast.LENGTH_SHORT).show()
             }
         }
         finish()
     }
 
     private fun rememberLogin(server: String, username: String, password: String) {
-        smbLoginProfileRepository.rememberConnection(
+        networkLoginProfileRepository.rememberConnection(
             server,
-            if (username.isNotBlank()) SmbCredentials(username, password) else null,
+            if (username.isNotBlank()) NetworkCredentials(username, password) else null,
             protocol = selectedProtocol,
         )
     }
@@ -448,8 +451,14 @@ class TVSmbConfigActivity : FragmentActivity() {
         sourceRepo.getCustomSources()
             .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
             .forEach { source ->
-                val authority = runCatching { android.net.Uri.parse(source.path).authority }.getOrNull().orEmpty()
-                smbLoginProfileRepository.rememberConnection(authority, source.credentials)
+                val parsed = parseNetworkUri(source.path)
+                if (parsed.server.isNotBlank()) {
+                    networkLoginProfileRepository.rememberConnection(
+                        parsed.server,
+                        source.credentials,
+                        protocol = parsed.protocol,
+                    )
+                }
             }
 
         rememberLoginFromUri(
@@ -465,12 +474,12 @@ class TVSmbConfigActivity : FragmentActivity() {
     }
 
     private fun rememberLoginFromUri(uri: String, username: String, password: String) {
-        if (!uri.startsWith("smb://")) return
-        val authority = runCatching { android.net.Uri.parse(uri).authority }.getOrNull().orEmpty()
-        smbLoginProfileRepository.rememberConnection(
-            authority,
-            if (username.isNotBlank()) SmbCredentials(username, password) else null,
-            protocol = NetworkProtocol.SMB,
+        val parsed = parseNetworkUri(uri)
+        if (parsed.server.isBlank()) return
+        networkLoginProfileRepository.rememberConnection(
+            parsed.server,
+            if (username.isNotBlank()) NetworkCredentials(username, password) else null,
+            protocol = parsed.protocol,
         )
     }
 
@@ -479,18 +488,45 @@ class TVSmbConfigActivity : FragmentActivity() {
         return if (path.startsWith("/")) path else "/$path"
     }
 
-    private fun parseSmbUri(uri: String): Pair<String, String> {
-        if (!uri.startsWith("smb://")) {
-            return "" to ""
+    private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol): String {
+        val message = raw?.trim().orEmpty()
+        if (message.isBlank()) return getString(R.string.sources_network_test_unknown_error)
+
+        val lower = message.lowercase()
+        return when {
+            lower.contains("requires username/password") || lower.contains("auth fail") || lower.contains("authentication") ->
+                "Identifiants invalides ou manquants pour ${protocol.name}."
+            lower.contains("missing smb share name") ->
+                "Aucun partage SMB n'est sélectionné. Vérifiez le chemin (ex: /games/roms)."
+            lower.contains("status_bad_network_name") || lower.contains("bad_network_name") ->
+                "Partage SMB introuvable. Vérifiez le nom du partage au début du chemin."
+            lower.contains("timeout") ->
+                "Connexion expirée. Vérifiez l'adresse serveur, le port et le réseau."
+            else -> message
+        }
+    }
+
+    private fun parseNetworkUri(uri: String): ParsedNetworkUri {
+        if (!isNetworkUri(uri)) {
+            return ParsedNetworkUri(NetworkProtocol.SMB, "", "")
         }
 
-        val withoutScheme = uri.removePrefix("smb://")
-        val slashIndex = withoutScheme.indexOf('/')
-        return if (slashIndex > 0) {
-            withoutScheme.substring(0, slashIndex) to withoutScheme.substring(slashIndex)
-        } else {
-            withoutScheme to ""
+        val parsed = runCatching { Uri.parse(uri) }.getOrNull()
+            ?: return ParsedNetworkUri(NetworkProtocol.SMB, "", "")
+
+        val protocol = when (parsed.scheme?.lowercase()) {
+            "sftp" -> NetworkProtocol.SFTP
+            "webdav" -> NetworkProtocol.WEBDAV
+            else -> NetworkProtocol.SMB
         }
+        val authority = parsed.authority.orEmpty()
+        val path = parsed.path.orEmpty()
+        return ParsedNetworkUri(protocol, authority, path)
+    }
+
+    private fun isNetworkUri(uri: String): Boolean {
+        val lower = uri.lowercase()
+        return lower.startsWith("smb://") || lower.startsWith("sftp://") || lower.startsWith("webdav://")
     }
 
     private fun buildServerAddress(): String {
@@ -527,6 +563,22 @@ class TVSmbConfigActivity : FragmentActivity() {
             raw to ""
         }
     }
+
+    private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
+        val normalizedPath = if (path.startsWith("/")) path else "/$path"
+        val scheme = when (protocol) {
+            NetworkProtocol.SMB -> "smb"
+            NetworkProtocol.SFTP -> "sftp"
+            NetworkProtocol.WEBDAV -> "webdav"
+        }
+        return "$scheme://$server$normalizedPath"
+    }
+
+    private data class ParsedNetworkUri(
+        val protocol: NetworkProtocol,
+        val server: String,
+        val path: String,
+    )
 
     companion object {
         const val EXTRA_MODE = "mode"
