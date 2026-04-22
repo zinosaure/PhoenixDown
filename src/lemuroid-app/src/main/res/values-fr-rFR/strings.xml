@@ -113,9 +113,9 @@
     <string name="home_microphone_title">Activer le microphone</string>
     <string name="home_microphone_message">Les jeux Nintendo DS peuvent utiliser le microphone pour fournir certaines fonctionnalités.</string>
     <string name="home_microphone_action">Activer</string>
-    <string name="home_empty_title">Sélectionnez le dossier contenant les ROMs</string>
-    <string name="home_empty_message">Lemuroid a besoin de scanner un répertoire contenant des ROMs.\nCela peut prendre quelques minutes.</string>
-    <string name="home_empty_action">Sélectionner un dossier</string>
+    <string name="home_empty_title">Ajoutez vos bibliothèques de jeux</string>
+    <string name="home_empty_message">Allez dans les réglages pour ajouter les dossiers ou bibliothèques SMB qui contiennent vos jeux.</string>
+    <string name="home_empty_action">Ouvrir les réglages</string>
     <string name="home_notification_desmume_deprecated_title">DeSmuME prend bientôt sa retraite</string>
     <string name="home_notification_desmume_deprecated_message">Sauvegardez dans le jeu, basculez sur melonDS, et votre progression sera transférée. Sauvegardez les états restent liés à DeSmuME.</string>
     <string name="home_notification_desmume_deprecated_action">Basculer vers melonDS</string>
@@ -248,7 +248,7 @@
     <string name="settings_title_save_location">Emplacement des sauvegardes</string>
     <string name="settings_save_location_default">Stockage interne (défaut)</string>
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
-    <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
+    <string name="settings_download_location_default">Stockage interne (Téléchargements)</string>
     <string name="settings_picker_local_folder">Dossier local</string>
     <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
     <string name="settings_picker_reset">Réinitialiser (défaut)</string>

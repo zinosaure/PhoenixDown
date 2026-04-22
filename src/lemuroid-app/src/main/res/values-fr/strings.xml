@@ -7,7 +7,7 @@
     <string name="settings_save_location_default">Stockage interne (défaut)</string>
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
-    <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
+    <string name="settings_download_location_default">Stockage interne (Téléchargements)</string>
     <string name="settings_download_location_library_hint">Pour apparaître dans la bibliothèque, les téléchargements doivent être enregistrés dans un dossier inclus dans la Bibliothèque de jeux.</string>
     <string name="settings_picker_local_folder">Dossier local</string>
     <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>

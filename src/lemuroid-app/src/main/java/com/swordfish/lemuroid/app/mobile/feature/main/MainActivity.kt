@@ -358,6 +358,7 @@ class MainActivity : RetrogradeComponentActivity(), BusyActivity {
                             viewMode = viewMode,
                             onGameClick = onGameClick,
                             onGameLongClick = onGameLongClick,
+                            onOpenSettings = { navController.navigateToRoute(MainRoute.SETTINGS) },
                             onOpenCoreSelection = { navController.navigateToRoute(MainRoute.SETTINGS_CORES_SELECTION) },
                             onDeleteGames = { games -> gamesToDelete = games },
                         )

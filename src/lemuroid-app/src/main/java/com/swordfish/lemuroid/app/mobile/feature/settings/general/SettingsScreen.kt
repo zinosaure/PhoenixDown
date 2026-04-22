@@ -687,7 +687,10 @@ private fun RomsSettings(
     }
 
     // ── Card 2 : Emplacement de stockage ──────────────────────────────────
-    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) }) {
+    LemuroidCardSettingsGroup(
+        title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) },
+        modifier = Modifier.padding(bottom = 16.dp),
+    ) {
         // ── Dossier des sauvegardes ────────────────────────────────────
         val saveDisplayPath = uriToReadablePath(context, saveLocationUri)
             .ifEmpty { stringResource(R.string.settings_save_location_default) }

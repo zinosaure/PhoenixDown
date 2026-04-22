@@ -65,6 +65,7 @@ fun HomeScreen(
     viewMode: HomeViewMode = HomeViewMode.CAROUSEL,
     onGameClick: (Game) -> Unit,
     onGameLongClick: (Game) -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenCoreSelection: () -> Unit,
     onDeleteGames: (List<Game>) -> Unit = {},
 ) {
@@ -123,7 +124,7 @@ fun HomeScreen(
             permissionsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         },
         onEnableMicrophoneClicked = { permissionsLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-        onSetDirectoryClicked = { viewModel.changeLocalStorageFolder(context) },
+        onOpenLibrarySettingsClicked = onOpenSettings,
         onToggleSelectionMode = {
             isSelectionMode = !isSelectionMode
             if (!isSelectionMode) {
@@ -155,7 +156,7 @@ private fun HomeScreenContent(
     onOpenCoreSelection: () -> Unit,
     onEnableNotificationsClicked: () -> Unit,
     onEnableMicrophoneClicked: () -> Unit,
-    onSetDirectoryClicked: () -> Unit,
+    onOpenLibrarySettingsClicked: () -> Unit,
     onToggleSelectionMode: () -> Unit,
     onConfirmDelete: () -> Unit,
     onCancelSelection: () -> Unit,
@@ -204,7 +205,7 @@ private fun HomeScreenContent(
                         onOpenCoreSelection = onOpenCoreSelection,
                         onEnableNotificationsClicked = onEnableNotificationsClicked,
                         onEnableMicrophoneClicked = onEnableMicrophoneClicked,
-                        onSetDirectoryClicked = onSetDirectoryClicked,
+                        onOpenLibrarySettingsClicked = onOpenLibrarySettingsClicked,
                         onConfirmDelete = onConfirmDelete,
                         onCancelSelection = onCancelSelection,
                     )
@@ -257,7 +258,7 @@ private fun ListViewContent(
     onOpenCoreSelection: () -> Unit,
     onEnableNotificationsClicked: () -> Unit,
     onEnableMicrophoneClicked: () -> Unit,
-    onSetDirectoryClicked: () -> Unit,
+    onOpenLibrarySettingsClicked: () -> Unit,
     onConfirmDelete: () -> Unit,
     onCancelSelection: () -> Unit,
 ) {
@@ -281,7 +282,7 @@ private fun ListViewContent(
                 titleId = R.string.home_empty_title,
                 messageId = R.string.home_empty_message,
                 actionId = R.string.home_empty_action,
-                onAction = onSetDirectoryClicked,
+                onAction = onOpenLibrarySettingsClicked,
                 enabled = !state.indexInProgress,
             )
         }

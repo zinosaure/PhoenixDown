@@ -494,8 +494,9 @@ class LemuroidLibrary(
         path: String?,
         extension: String,
     ): String? {
-        return GameSystem.all()
+        return SORTED_SYSTEM_IDS_BY_LENGTH
             .asSequence()
+            .map { GameSystem.findById(it) }
             .filter { it.scanOptions.scanByPathAndSupportedExtensions }
             .filter { it.supportedExtensions.contains(extension) }
             .map { it.id.dbname }
@@ -503,9 +504,8 @@ class LemuroidLibrary(
     }
 
     private fun findSystemIdInPath(path: String?): String? {
-        return GameSystem.all()
+        return SORTED_SYSTEM_IDS_BY_LENGTH
             .asSequence()
-            .map { it.id.dbname }
             .firstOrNull { matchesPathSegment(path, it) }
     }
 
@@ -641,6 +641,9 @@ class LemuroidLibrary(
         const val MAX_TIME = 5000
 
         private val SUPPORTED_EXTENSIONS = GameSystem.getSupportedExtensions().map { it.lowercase(Locale.US) }.toSet()
+        private val SORTED_SYSTEM_IDS_BY_LENGTH = GameSystem.all()
+            .map { it.id.dbname }
+            .sortedByDescending { it.length }
 
         private val FOLDER_ALIASES = mapOf(
             "md" to listOf("genesis", "megadrive", "mega drive", "mega-drive"),
