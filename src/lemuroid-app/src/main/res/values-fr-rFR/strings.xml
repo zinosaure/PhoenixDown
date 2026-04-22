@@ -250,6 +250,6 @@
     <string name="settings_title_download_location">Emplacement des téléchargements</string>
     <string name="settings_download_location_default">Stockage interne (Téléchargements)</string>
     <string name="settings_picker_local_folder">Dossier local</string>
-    <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
+    <string name="settings_picker_smb_server">Partage réseau</string>
     <string name="settings_picker_reset">Réinitialiser (défaut)</string>
 </resources>

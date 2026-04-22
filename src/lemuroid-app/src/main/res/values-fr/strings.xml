@@ -27,7 +27,7 @@
     <string name="sources_finish">Terminer</string>
     <string name="sources_network_profile_required">Créez une connexion réseau dans le Gestionnaire Réseaux avant de rajouter un dossier réseau.</string>
     <string name="sources_network_path_default">/</string>
-    <string name="sources_network_path_hint">Choisissez le dossier sur le partage réseau.</string>
+    <string name="sources_network_path_hint">Entrez un chemin réseau commençant par / (exemple : /games/roms).</string>
     <string name="sources_network_path_hint_smb_only">Exploration disponible uniquement pour les connexions SMB pour le moment.</string>
     <string name="sources_network_browse_path">Parcourir les dossiers réseau</string>
     <string name="sources_network_share_name">Nom du partage</string>

@@ -153,7 +153,6 @@ fun SmbConfigForm(
     var path by remember { mutableStateOf("/") }
     var selectedProfileId by remember { mutableStateOf<String?>(null) }
     var showSavedProfilesDialog by remember { mutableStateOf(false) }
-    var showPathBrowserDialog by remember { mutableStateOf(false) }
     var connectionTestState by remember { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
     var testMessageDialog by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -251,42 +250,20 @@ fun SmbConfigForm(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        val canBrowsePath = selectedProfile != null && selectedProfile.protocol == NetworkProtocol.SMB
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(enabled = canBrowsePath) {
-                    showPathBrowserDialog = true
-                },
-        ) {
-            OutlinedTextField(
-                value = path,
-                onValueChange = {},
-                label = { Text(stringResource(R.string.sources_smb_path)) },
-                placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                readOnly = true,
-                trailingIcon = {
-                    IconButton(
-                        enabled = canBrowsePath,
-                        onClick = { showPathBrowserDialog = true },
-                    ) {
-                        Icon(Icons.Default.FolderOpen, contentDescription = null)
-                    }
-                },
-                supportingText = {
-                    Text(
-                        if (selectedProfile?.protocol == NetworkProtocol.SMB) {
-                            stringResource(R.string.sources_network_path_hint)
-                        } else {
-                            stringResource(R.string.sources_network_path_hint_smb_only)
-                        },
-                    )
-                },
-            )
-        }
+        OutlinedTextField(
+            value = path,
+            onValueChange = {
+                path = normalizePath(it)
+                connectionTestState = ConnectionTestState.Idle
+            },
+            label = { Text(stringResource(R.string.sources_smb_path)) },
+            placeholder = { Text(stringResource(R.string.sources_network_path_default)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            supportingText = {
+                Text(stringResource(R.string.sources_network_path_hint))
+            },
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -432,19 +409,6 @@ fun SmbConfigForm(
         )
     }
 
-    if (showPathBrowserDialog && selectedProfile != null) {
-        SmbPathBrowserDialog(
-            profile = selectedProfile,
-            initialPath = path,
-            networkClient = networkClient,
-            onDismiss = { showPathBrowserDialog = false },
-            onSelect = {
-                path = it
-                connectionTestState = ConnectionTestState.Idle
-                showPathBrowserDialog = false
-            },
-        )
-    }
 }
 
 private fun toFriendlyNetworkError(raw: String?, protocol: NetworkProtocol, unknownError: String): String {

@@ -420,7 +420,7 @@
     <string name="sources_finish">Finish</string>
     <string name="sources_network_profile_required">Create a network login in the Network manager before adding a network folder.</string>
     <string name="sources_network_path_default">/</string>
-    <string name="sources_network_path_hint">Choose the folder on the network share.</string>
+    <string name="sources_network_path_hint">Enter a network path starting with / (example: /games/roms).</string>
     <string name="sources_network_path_hint_smb_only">Browsing is available for SMB connections only for now.</string>
     <string name="sources_network_browse_path">Browse network folders</string>
     <string name="sources_network_share_name">Share name</string>
