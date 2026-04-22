@@ -14,6 +14,7 @@
 
         <!-- Title -->
         <TextView
+            android:id="@+id/smb_title_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/smb_library_title"
@@ -23,6 +24,7 @@
             android:layout_marginBottom="4dp" />
 
         <TextView
+            android:id="@+id/smb_description_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/smb_library_description"

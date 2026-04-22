@@ -252,19 +252,19 @@
     <string name="settings_source_remove_confirm_message">Remove \"%s\" from your library sources?</string>
 
     <!-- Storage locations section -->
-    <string name="settings_category_storage_locations">Emplacements de stockage</string>
-    <string name="settings_category_library">Bibliothèque de jeux</string>
-    <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
-    <string name="settings_title_save_location">Emplacement des sauvegardes</string>
-    <string name="settings_desc_save_location">Où stocker les fichiers de sauvegardes (états et SRAM)</string>
-    <string name="settings_save_location_default">Stockage interne (défaut)</string>
-    <string name="settings_title_download_location">Emplacement des téléchargements</string>
-    <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
-    <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
-    <string name="settings_download_location_library_hint">Pour que les téléchargements apparaissent dans la bibliothèque, ce dossier doit être inclus dans la Bibliothèque de jeux.</string>
-    <string name="settings_picker_local_folder">Dossier local</string>
-    <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
-    <string name="settings_picker_reset">Réinitialiser (défaut)</string>
+    <string name="settings_category_storage_locations">Storage locations</string>
+    <string name="settings_category_library">Game library</string>
+    <string name="settings_library_empty">No folder configured. Press + to add one.</string>
+    <string name="settings_title_save_location">Save location</string>
+    <string name="settings_desc_save_location">Where save files (states and SRAM) are stored</string>
+    <string name="settings_save_location_default">Internal storage (default)</string>
+    <string name="settings_title_download_location">Download location</string>
+    <string name="settings_desc_download_location">Where downloaded ROMs are stored</string>
+    <string name="settings_download_location_default">Android /Downloads (default)</string>
+    <string name="settings_download_location_library_hint">To appear in the library, downloads must be saved inside a folder included in the Game library.</string>
+    <string name="settings_picker_local_folder">Local folder</string>
+    <string name="settings_picker_smb_server">SMB server (network)</string>
+    <string name="settings_picker_reset">Reset (default)</string>
     <!-- Platform hint dialog -->
     <string name="settings_platform_dialog_title">Plateforme du dossier</string>
     <string name="settings_platform_dialog_desc">Choisissez la console associée à ce dossier. Recommandé si les jeux sont en .zip ou dans un dossier mixte.</string>
@@ -412,6 +412,12 @@
     <string name="tv_smb_connection_failed">Error: %1$s</string>
     <string name="tv_smb_path_must_start_with_share">The path must start with /ShareName</string>
     <string name="tv_smb_configured_successfully">SMB configured successfully</string>
+    <string name="tv_smb_save_title">Save location (SMB)</string>
+    <string name="tv_smb_save_description">Configure the network folder used to store saves and states.</string>
+    <string name="tv_smb_download_title">Download location (SMB)</string>
+    <string name="tv_smb_download_description">Configure the network folder used to store downloaded ROMs.</string>
+    <string name="tv_smb_save_configured_successfully">SMB save location configured successfully</string>
+    <string name="tv_smb_download_configured_successfully">SMB download location configured successfully</string>
 
     <!-- Catalog screen -->
     <string name="catalog_filter_cloud">Archive.org</string>

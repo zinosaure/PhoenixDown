@@ -22,6 +22,8 @@ import kotlinx.coroutines.withContext
  * Uses standard Android EditText layout for reliable input handling.
  */
 class TVSmbConfigActivity : FragmentActivity() {
+    private lateinit var titleText: TextView
+    private lateinit var descriptionText: TextView
     
     private lateinit var serverInput: EditText
     private lateinit var portInput: EditText
@@ -29,18 +31,26 @@ class TVSmbConfigActivity : FragmentActivity() {
     private lateinit var usernameInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var statusText: TextView
+
+    private val mode: String by lazy {
+        intent.getStringExtra(EXTRA_MODE) ?: MODE_LIBRARY
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tv_smb_config)
         
         // Find views
+        titleText = findViewById(R.id.smb_title_text)
+        descriptionText = findViewById(R.id.smb_description_text)
         serverInput = findViewById(R.id.smb_server_input)
         portInput = findViewById(R.id.smb_port_input)
         pathInput = findViewById(R.id.smb_path_input)
         usernameInput = findViewById(R.id.smb_username_input)
         passwordInput = findViewById(R.id.smb_password_input)
         statusText = findViewById(R.id.smb_status_text)
+
+        configureTextsForMode()
         
         // Load existing values
         loadExistingConfig()
@@ -56,30 +66,67 @@ class TVSmbConfigActivity : FragmentActivity() {
     
     private val KEY_RAW_PATH = "smb_library_raw_path_ui_v2"
 
+    private fun configureTextsForMode() {
+        when (mode) {
+            MODE_SAVE -> {
+                titleText.setText(R.string.tv_smb_save_title)
+                descriptionText.setText(R.string.tv_smb_save_description)
+            }
+            MODE_DOWNLOAD -> {
+                titleText.setText(R.string.tv_smb_download_title)
+                descriptionText.setText(R.string.tv_smb_download_description)
+            }
+            else -> {
+                titleText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_title)
+                descriptionText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_description)
+            }
+        }
+    }
+
     private fun loadExistingConfig() {
         val prefs = SharedPreferencesHelper.getSharedPreferences(this)
-        val savedServer = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
-        val (host, port) = splitHostAndPort(savedServer)
-        serverInput.setText(host)
-        portInput.setText(port)
-        
-        // V2 Strategy: Try to load the RAW path specifically saved for UI to prevent degradation
-        val rawPath = prefs.getString(KEY_RAW_PATH, null)
-        
-        if (rawPath != null) {
-            android.util.Log.e("ANTIGRAVITY", "UI Load: Found RAW path: '$rawPath'")
-            pathInput.setText(rawPath)
-        } else {
-            // Fallback: Reconstruct full path for display: /Share/Path
-            val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
-            val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
-            val fullPath = if (!share.isNullOrBlank()) "/$share$path" else path
-            android.util.Log.e("ANTIGRAVITY", "UI Load: Reconstructed path: '$fullPath' (Share='$share')")
-            pathInput.setText(fullPath)
+
+        when (mode) {
+            MODE_SAVE -> {
+                val current = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
+                val (server, fullPath) = parseSmbUri(current)
+                val (host, port) = splitHostAndPort(server)
+                serverInput.setText(host)
+                portInput.setText(port)
+                pathInput.setText(fullPath)
+                usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, ""))
+                passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, ""))
+            }
+            MODE_DOWNLOAD -> {
+                val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
+                val (server, fullPath) = parseSmbUri(current)
+                val (host, port) = splitHostAndPort(server)
+                serverInput.setText(host)
+                portInput.setText(port)
+                pathInput.setText(fullPath)
+                usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, ""))
+                passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, ""))
+            }
+            else -> {
+                val savedServer = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
+                val (host, port) = splitHostAndPort(savedServer)
+                serverInput.setText(host)
+                portInput.setText(port)
+
+                val rawPath = prefs.getString(KEY_RAW_PATH, null)
+                if (rawPath != null) {
+                    pathInput.setText(rawPath)
+                } else {
+                    val share = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, "")
+                    val path = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, "") ?: ""
+                    val fullPath = if (!share.isNullOrBlank()) "/$share$path" else path
+                    pathInput.setText(fullPath)
+                }
+
+                usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, ""))
+                passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, ""))
+            }
         }
-        
-        usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, ""))
-        passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, ""))
     }
 
     private fun testConnection() {
@@ -125,7 +172,7 @@ class TVSmbConfigActivity : FragmentActivity() {
 
     private fun saveAndFinish() {
         val server = buildServerAddress()
-        val fullPath = pathInput.text.toString().trim()
+        val fullPath = normalizePath(pathInput.text.toString().trim())
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
         
@@ -158,25 +205,61 @@ class TVSmbConfigActivity : FragmentActivity() {
         }
         
         val prefs = SharedPreferencesHelper.getSharedPreferences(this)
-        prefs.edit().apply {
-            putString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "smb")
-            putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, server)
-            putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, shareName)
-            putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, subPath)
-            putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, username.takeIf { it.isNotBlank() })
-            putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, password.takeIf { it.isNotBlank() })
-            
-            // Save RAW path for UI persistence
-            putString(KEY_RAW_PATH, fullPath)
-            
-            apply()
+        when (mode) {
+            MODE_SAVE -> {
+                prefs.edit().apply {
+                    putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "smb://$server$fullPath")
+                    putString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, username)
+                    putString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, password)
+                    apply()
+                }
+                Toast.makeText(this, getString(R.string.tv_smb_save_configured_successfully), Toast.LENGTH_SHORT).show()
+            }
+            MODE_DOWNLOAD -> {
+                prefs.edit().apply {
+                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "smb://$server$fullPath")
+                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, username)
+                    putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, password)
+                    apply()
+                }
+                Toast.makeText(this, getString(R.string.tv_smb_download_configured_successfully), Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                prefs.edit().apply {
+                    putString(SharedPreferencesHelper.KEY_LIBRARY_TYPE, "smb")
+                    putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, server)
+                    putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SHARE, shareName)
+                    putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PATH, subPath)
+                    putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_USERNAME, username.takeIf { it.isNotBlank() })
+                    putString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, password.takeIf { it.isNotBlank() })
+                    putString(KEY_RAW_PATH, fullPath)
+                    apply()
+                }
+
+                LibraryIndexScheduler.scheduleLibrarySync(this)
+                Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
+            }
         }
-        
-        // Trigger library rescan
-        LibraryIndexScheduler.scheduleLibrarySync(this)
-        
-        Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun normalizePath(path: String): String {
+        if (path.isBlank()) return path
+        return if (path.startsWith("/")) path else "/$path"
+    }
+
+    private fun parseSmbUri(uri: String): Pair<String, String> {
+        if (!uri.startsWith("smb://")) {
+            return "" to ""
+        }
+
+        val withoutScheme = uri.removePrefix("smb://")
+        val slashIndex = withoutScheme.indexOf('/')
+        return if (slashIndex > 0) {
+            withoutScheme.substring(0, slashIndex) to withoutScheme.substring(slashIndex)
+        } else {
+            withoutScheme to ""
+        }
     }
 
     private fun buildServerAddress(): String {
@@ -212,5 +295,12 @@ class TVSmbConfigActivity : FragmentActivity() {
         } else {
             raw to ""
         }
+    }
+
+    companion object {
+        const val EXTRA_MODE = "mode"
+        const val MODE_LIBRARY = "library"
+        const val MODE_SAVE = "save"
+        const val MODE_DOWNLOAD = "download"
     }
 }

@@ -383,7 +383,11 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                     1 -> showDownloadSmbInputDialog()
                     2 -> {
                         SharedPreferencesHelper.getSharedPreferences(ctx)
-                            .edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "").apply()
+                            .edit()
+                            .putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "")
+                            .putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "")
+                            .putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "")
+                            .apply()
                         findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary =
                             getString(R.string.settings_download_location_default)
                     }
@@ -394,31 +398,10 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     private fun showDownloadSmbInputDialog() {
-        val ctx = requireContext()
-        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
-        val current = prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: ""
-        val editText = android.widget.EditText(ctx).apply {
-            hint = "smb://serveur/partage/chemin"
-            setText(if (current.startsWith("smb://")) current else "")
-            setSingleLine()
-        }
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val container = android.widget.FrameLayout(ctx).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(editText)
-        }
-        android.app.AlertDialog.Builder(ctx)
-            .setTitle(R.string.settings_picker_smb_server)
-            .setView(container)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                val smbUri = editText.text.toString().trim()
-                if (smbUri.startsWith("smb://")) {
-                    prefs.edit().putString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, smbUri).apply()
-                    findPreference<androidx.preference.Preference>("pref_key_tv_download_location")?.summary = smbUri
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        startActivity(
+            Intent(requireContext(), TVSmbConfigActivity::class.java)
+                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_DOWNLOAD),
+        )
     }
 
     private fun showSaveLocationDialog() {
@@ -440,7 +423,11 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
                     1 -> showSaveSmbInputDialog()
                     2 -> {
                         SharedPreferencesHelper.getSharedPreferences(ctx)
-                            .edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "").apply()
+                            .edit()
+                            .putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "")
+                            .putString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "")
+                            .putString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "")
+                            .apply()
                         findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary =
                             getString(R.string.settings_save_location_default)
                     }
@@ -451,31 +438,10 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     }
 
     private fun showSaveSmbInputDialog() {
-        val ctx = requireContext()
-        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
-        val current = prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: ""
-        val editText = android.widget.EditText(ctx).apply {
-            hint = "smb://serveur/partage/chemin"
-            setText(if (current.startsWith("smb://")) current else "")
-            setSingleLine()
-        }
-        val padding = (16 * resources.displayMetrics.density).toInt()
-        val container = android.widget.FrameLayout(ctx).apply {
-            setPadding(padding, 0, padding, 0)
-            addView(editText)
-        }
-        android.app.AlertDialog.Builder(ctx)
-            .setTitle(R.string.settings_picker_smb_server)
-            .setView(container)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                val smbUri = editText.text.toString().trim()
-                if (smbUri.startsWith("smb://")) {
-                    prefs.edit().putString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, smbUri).apply()
-                    findPreference<androidx.preference.Preference>("pref_key_tv_save_location")?.summary = smbUri
-                }
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        startActivity(
+            Intent(requireContext(), TVSmbConfigActivity::class.java)
+                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_SAVE),
+        )
     }
 
     private fun launchFolderPicker() {
@@ -508,6 +474,7 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
     private fun launchSmbConfigActivity() {
         // Launch SMB configuration activity
         val intent = android.content.Intent(requireContext(), com.swordfish.lemuroid.app.tv.settings.TVSmbConfigActivity::class.java)
+            .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_LIBRARY)
         startActivity(intent)
     }
 

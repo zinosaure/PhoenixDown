@@ -6,6 +6,7 @@ import com.hierynomus.msfscc.FileAttributes
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStream
 import java.util.EnumSet
+import java.util.concurrent.TimeUnit
 
 /**
  * Client for connecting to SMB/NAS shares and listing/downloading ROMs.
@@ -23,6 +25,8 @@ class SmbClient {
     companion object {
         private const val TAG = "SmbClient"
         private const val MAX_DEPTH = 10 // Recursive search up to 10 levels deep
+        private const val SMB_OPERATION_TIMEOUT_SECONDS = 60L
+        private const val SMB_SOCKET_TIMEOUT_SECONDS = 120L
         
         // ROM file extensions to look for
         val ROM_EXTENSIONS = setOf(
@@ -66,6 +70,14 @@ class SmbClient {
             Endpoint(value, 445)
         }
     }
+
+    private fun createClient(): SMBClient {
+        val config = SmbConfig.builder()
+            .withTimeout(SMB_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .withSoTimeout(SMB_SOCKET_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
+        return SMBClient(config)
+    }
     
     /**
      * List all files in an SMB share recursively (raw listing, no metadata extraction)
@@ -80,7 +92,7 @@ class SmbClient {
             Log.d(TAG, "Connecting to SMB: server=$server, share=$share, path=$path")
             
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -169,7 +181,7 @@ class SmbClient {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -233,7 +245,7 @@ class SmbClient {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -296,7 +308,7 @@ class SmbClient {
     ): Result<SmbInputStream> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -343,7 +355,7 @@ class SmbClient {
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -381,7 +393,7 @@ class SmbClient {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
                 AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
@@ -413,7 +425,7 @@ class SmbClient {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
                 AuthenticationContext(credentials.username, credentials.password.toCharArray(), "")
@@ -463,7 +475,7 @@ class SmbClient {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {
@@ -522,7 +534,7 @@ class SmbClient {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val endpoint = parseEndpoint(server)
-            val client = SMBClient()
+            val client = createClient()
             val connection = client.connect(endpoint.host, endpoint.port)
             
             val authContext = if (credentials != null && credentials.username.isNotBlank()) {

@@ -1,0 +1,22 @@
+<resources>
+    <string name="settings_category_storage_locations">Emplacements de stockage</string>
+    <string name="settings_category_library">Bibliothèque de jeux</string>
+    <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
+    <string name="settings_title_save_location">Emplacement des sauvegardes</string>
+    <string name="settings_desc_save_location">Où stocker les fichiers de sauvegarde (états et SRAM)</string>
+    <string name="settings_save_location_default">Stockage interne (défaut)</string>
+    <string name="settings_title_download_location">Emplacement des téléchargements</string>
+    <string name="settings_desc_download_location">Où enregistrer les ROMs téléchargées</string>
+    <string name="settings_download_location_default">Android /Téléchargements (défaut)</string>
+    <string name="settings_download_location_library_hint">Pour apparaître dans la bibliothèque, les téléchargements doivent être enregistrés dans un dossier inclus dans la Bibliothèque de jeux.</string>
+    <string name="settings_picker_local_folder">Dossier local</string>
+    <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
+    <string name="settings_picker_reset">Réinitialiser (défaut)</string>
+
+    <string name="tv_smb_save_title">Emplacement des sauvegardes (SMB)</string>
+    <string name="tv_smb_save_description">Configurez le dossier réseau utilisé pour stocker les sauvegardes et états.</string>
+    <string name="tv_smb_download_title">Emplacement des téléchargements (SMB)</string>
+    <string name="tv_smb_download_description">Configurez le dossier réseau utilisé pour stocker les ROMs téléchargées.</string>
+    <string name="tv_smb_save_configured_successfully">Emplacement SMB des sauvegardes configuré avec succès</string>
+    <string name="tv_smb_download_configured_successfully">Emplacement SMB des téléchargements configuré avec succès</string>
+</resources>

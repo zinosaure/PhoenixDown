@@ -45,7 +45,11 @@ import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onCompletion
 import timber.log.Timber
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 class LemuroidLibrary(
     private val retrogradedb: RetrogradeDatabase,
@@ -84,10 +88,18 @@ class LemuroidLibrary(
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
     ): Flow<Unit> {
+        val stats = ProviderScanStats()
         return provider.listBaseStorageFiles()
             .flatMapConcat { StorageFilesMerger.mergeDataFiles(provider, it).asFlow() }
             .batchWithSizeAndTime(MAX_BUFFER_SIZE, MAX_TIME)
-            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata) }
+            .flatMapMerge { processBatch(it, provider, startedAtMs, gameMetadata, stats) }
+            .onCompletion {
+                Timber.i(
+                    "Scan summary for ${provider::class.java.simpleName}: added=${stats.addedGames.get()}, " +
+                        "platformMatched=${stats.matchedGames.get()} across ${stats.matchedSystems.size} systems, " +
+                        "unknown=${stats.unknownGames.get()}, ignoredUnsupported=${stats.ignoredFiles.get()}"
+                )
+            }
     }
 
     private suspend fun processBatch(
@@ -95,33 +107,55 @@ class LemuroidLibrary(
         provider: StorageProvider,
         startedAtMs: Long,
         gameMetadata: GameMetadataProvider,
+        stats: ProviderScanStats,
     ) = flow<Unit> {
-        val entries = batch.map { fetchEntriesFromDatabase(it) }
+        val entries =
+            batch
+                .map { classifyGroupedStorageFile(it) }
+                .onEach { classified ->
+                    when (classified.classification) {
+                        FileClassification.IGNORED -> stats.ignoredFiles.incrementAndGet()
+                        FileClassification.PRE_MATCHED -> {
+                            stats.matchedGames.incrementAndGet()
+                            classified.resolvedSystemId?.takeUnless { it == SystemID.UNKNOWN.dbname }?.let {
+                                stats.matchedSystems.add(it)
+                            }
+                        }
+                        FileClassification.FORCED_UNKNOWN -> stats.unknownGames.incrementAndGet()
+                        FileClassification.PASSTHROUGH -> Unit
+                    }
+                }
+                .filter { it.classification != FileClassification.IGNORED }
+                .map { fetchEntriesFromDatabase(it.file, it.resolvedSystemId) }
 
         val existingEntries = entries.filterIsInstance<ScanEntry.GameFile>()
         handleExistingEntries(existingEntries, startedAtMs)
 
         val newEntries =
             entries.filterIsInstance<ScanEntry.File>()
-                .map { buildEntryFromMetadata(it.file, provider, gameMetadata, startedAtMs) }
+                .map { buildEntryFromMetadata(it.file, provider, gameMetadata, startedAtMs, it.resolvedSystemId) }
 
-        handleNewEntries(newEntries, startedAtMs, provider)
+        handleNewEntries(newEntries, startedAtMs, provider, stats)
     }
 
-    private fun fetchEntriesFromDatabase(storageFile: GroupedStorageFiles): ScanEntry {
+    private fun fetchEntriesFromDatabase(
+        storageFile: GroupedStorageFiles,
+        resolvedSystemId: String?,
+    ): ScanEntry {
         Timber.d("Retrieving scan entry for uri: ${storageFile.primaryFile}")
         val game = retrogradedb.gameDao().selectByFileUri(storageFile.primaryFile.uri.toString())
-        return buildScanEntry(storageFile, game)
+        return buildScanEntry(storageFile, game, resolvedSystemId)
     }
 
     private fun buildScanEntry(
         storageFile: GroupedStorageFiles,
         game: Game?,
+        resolvedSystemId: String?,
     ): ScanEntry {
         return if (game != null) {
-            ScanEntry.GameFile(storageFile, game)
+            ScanEntry.GameFile(storageFile, game, resolvedSystemId)
         } else {
-            ScanEntry.File(storageFile)
+            ScanEntry.File(storageFile, resolvedSystemId)
         }
     }
 
@@ -141,7 +175,7 @@ class LemuroidLibrary(
             entries
                 .map { entry ->
                     val game = entry.game
-                    val forcedSystemId = sourceRepository
+                    val forcedSystemId = entry.resolvedSystemId ?: sourceRepository
                         .findSourceForUri(entry.file.primaryFile.uri.toString())
                         ?.platformHint
 
@@ -219,6 +253,7 @@ class LemuroidLibrary(
         entries: List<ScanEntry>,
         startedAtMs: Long,
         provider: StorageProvider,
+        stats: ProviderScanStats,
     ) {
         val gameFiles =
             entries
@@ -229,19 +264,35 @@ class LemuroidLibrary(
                 .filterIsInstance<ScanEntry.File>()
                 .flatMap { it.file.allFiles() }
 
-        handleNewGames(gameFiles, startedAtMs)
+        handleNewGames(gameFiles, startedAtMs, stats)
         handleUnknownFiles(provider, unknownFiles, startedAtMs)
     }
 
     private fun handleNewGames(
         pairs: List<ScanEntry.GameFile>,
         startedAtMs: Long,
+        stats: ProviderScanStats,
     ) {
         val games =
             pairs
                 .map { it.game }
 
         games.forEach { Timber.d("Insert: $it") }
+
+        stats.addedGames.addAndGet(games.size)
+
+        val insertedUnknown = games.count { it.systemId == SystemID.UNKNOWN.dbname }
+        val insertedMatched = games.size - insertedUnknown
+        if (insertedUnknown > 0) {
+            stats.unknownGames.addAndGet(insertedUnknown)
+        }
+        if (insertedMatched > 0) {
+            stats.matchedGames.addAndGet(insertedMatched)
+            games.asSequence()
+                .map { it.systemId }
+                .filter { it != SystemID.UNKNOWN.dbname }
+                .forEach { stats.matchedSystems.add(it) }
+        }
 
         val gameIds = retrogradedb.gameDao().insert(games)
         val dataFiles =
@@ -277,14 +328,18 @@ class LemuroidLibrary(
         provider: StorageProvider,
         metadataProvider: GameMetadataProvider,
         startedAtMs: Long,
+        resolvedSystemId: String? = null,
     ): ScanEntry {
-        val forcedSystemId = sourceRepository
+        val forcedSystemId = resolvedSystemId ?: sourceRepository
             .findSourceForUri(groupedStorageFile.primaryFile.uri.toString())
             ?.platformHint
 
-        val effectiveMetadataProvider = forcedSystemId
-            ?.let { ForcedSystemMetadataProvider(metadataProvider, it) }
-            ?: metadataProvider
+        val effectiveMetadataProvider =
+            if (!forcedSystemId.isNullOrBlank() && forcedSystemId != SystemID.UNKNOWN.dbname) {
+                ForcedSystemMetadataProvider(metadataProvider, forcedSystemId)
+            } else {
+                metadataProvider
+            }
 
         var game =
             sortedFilesForScanning(groupedStorageFile).asFlow()
@@ -324,11 +379,11 @@ class LemuroidLibrary(
                 } else {
                     Timber.d("Dedup: skipping '${game.title}' (${game.systemId}) — already indexed from ${existing.fileUri}")
                 }
-                return ScanEntry.File(groupedStorageFile)
+                return ScanEntry.File(groupedStorageFile, forcedSystemId)
             }
         }
 
-        return buildScanEntry(groupedStorageFile, game)
+        return buildScanEntry(groupedStorageFile, game, forcedSystemId)
     }
 
     /** Higher value = higher priority. LOCAL beats SMB. */
@@ -397,6 +452,74 @@ class LemuroidLibrary(
 
     private fun sortedFilesForScanning(groupedStorageFile: GroupedStorageFiles): List<BaseStorageFile> {
         return groupedStorageFile.dataFiles.sortedBy { it.name } + listOf(groupedStorageFile.primaryFile)
+    }
+
+    private fun classifyGroupedStorageFile(groupedStorageFile: GroupedStorageFiles): ClassifiedStorageFile {
+        val primaryFile = groupedStorageFile.primaryFile
+        val sourcePlatformHint = sourceRepository
+            .findSourceForUri(primaryFile.uri.toString())
+            ?.platformHint
+            ?.takeIf { it.isNotBlank() }
+
+        if (sourcePlatformHint != null) {
+            return ClassifiedStorageFile(groupedStorageFile, sourcePlatformHint, FileClassification.PRE_MATCHED)
+        }
+
+        val extension = primaryFile.extension.lowercase(Locale.US)
+        if (extension == "zip") {
+            val matchedSystemId = findSystemIdInPath(primaryFile.path)
+            return if (matchedSystemId != null) {
+                ClassifiedStorageFile(groupedStorageFile, matchedSystemId, FileClassification.PRE_MATCHED)
+            } else {
+                ClassifiedStorageFile(groupedStorageFile, SystemID.UNKNOWN.dbname, FileClassification.FORCED_UNKNOWN)
+            }
+        }
+
+        GameSystem.findByUniqueFileExtension(extension)?.let {
+            return ClassifiedStorageFile(groupedStorageFile, it.id.dbname, FileClassification.PRE_MATCHED)
+        }
+
+        findSystemIdForPathAndSupportedExtension(primaryFile.path, extension)?.let {
+            return ClassifiedStorageFile(groupedStorageFile, it, FileClassification.PRE_MATCHED)
+        }
+
+        return if (SUPPORTED_EXTENSIONS.contains(extension)) {
+            ClassifiedStorageFile(groupedStorageFile, null, FileClassification.PASSTHROUGH)
+        } else {
+            ClassifiedStorageFile(groupedStorageFile, null, FileClassification.IGNORED)
+        }
+    }
+
+    private fun findSystemIdForPathAndSupportedExtension(
+        path: String?,
+        extension: String,
+    ): String? {
+        return GameSystem.all()
+            .asSequence()
+            .filter { it.scanOptions.scanByPathAndSupportedExtensions }
+            .filter { it.supportedExtensions.contains(extension) }
+            .map { it.id.dbname }
+            .firstOrNull { matchesPathSegment(path, it) }
+    }
+
+    private fun findSystemIdInPath(path: String?): String? {
+        return GameSystem.all()
+            .asSequence()
+            .map { it.id.dbname }
+            .firstOrNull { matchesPathSegment(path, it) }
+    }
+
+    private fun matchesPathSegment(path: String?, systemId: String): Boolean {
+        if (path.isNullOrBlank()) {
+            return false
+        }
+
+        val lowerPath = path.lowercase(Locale.getDefault())
+        if (lowerPath.contains(systemId)) {
+            return true
+        }
+
+        return FOLDER_ALIASES[systemId].orEmpty().any { lowerPath.contains(it) }
     }
 
     private fun convertGameMetadataToGame(
@@ -479,14 +602,71 @@ class LemuroidLibrary(
     }
 
     private sealed class ScanEntry {
-        data class GameFile(val file: GroupedStorageFiles, val game: Game) : ScanEntry()
+        data class GameFile(
+            val file: GroupedStorageFiles,
+            val game: Game,
+            val resolvedSystemId: String?,
+        ) : ScanEntry()
 
-        data class File(val file: GroupedStorageFiles) : ScanEntry()
+        data class File(
+            val file: GroupedStorageFiles,
+            val resolvedSystemId: String?,
+        ) : ScanEntry()
+    }
+
+    private enum class FileClassification {
+        PRE_MATCHED,
+        FORCED_UNKNOWN,
+        PASSTHROUGH,
+        IGNORED,
+    }
+
+    private data class ClassifiedStorageFile(
+        val file: GroupedStorageFiles,
+        val resolvedSystemId: String?,
+        val classification: FileClassification,
+    )
+
+    private class ProviderScanStats {
+        val addedGames = AtomicInteger(0)
+        val matchedGames = AtomicInteger(0)
+        val unknownGames = AtomicInteger(0)
+        val ignoredFiles = AtomicInteger(0)
+        val matchedSystems = ConcurrentHashMap.newKeySet<String>()
     }
 
     companion object {
         // We batch database updates to avoid unnecessary UI updates.
         const val MAX_BUFFER_SIZE = 200
         const val MAX_TIME = 5000
+
+        private val SUPPORTED_EXTENSIONS = GameSystem.getSupportedExtensions().map { it.lowercase(Locale.US) }.toSet()
+
+        private val FOLDER_ALIASES = mapOf(
+            "md" to listOf("genesis", "megadrive", "mega drive", "mega-drive"),
+            "sms" to listOf("mastersystem", "master system", "master-system"),
+            "gg" to listOf("gamegear", "game gear", "game-gear"),
+            "pce" to listOf("pcengine", "pc engine", "pc-engine", "turbografx", "turbografx-16"),
+            "scd" to listOf("segacd", "sega cd", "sega-cd", "megacd", "mega cd", "mega-cd"),
+            "nes" to listOf("famicom", "nintendo"),
+            "snes" to listOf("superfamicom", "super famicom", "super-famicom", "supernintendo", "super nintendo"),
+            "gb" to listOf("gameboy", "game boy", "game-boy"),
+            "gbc" to listOf("gameboycolor", "gameboy color", "game boy color"),
+            "gba" to listOf("gameboyadvance", "gameboy advance", "game boy advance"),
+            "n64" to listOf("nintendo64", "nintendo 64", "nintendo-64"),
+            "nds" to listOf("nintendods", "nintendo ds", "ds"),
+            "psx" to listOf("playstation", "ps1", "psone", "ps one"),
+            "psp" to listOf("playstationportable", "playstation portable"),
+            "fbneo" to listOf("neogeo", "neo geo", "neo-geo", "arcade", "fba", "fbalpha"),
+            "mame2003plus" to listOf("mame", "mame2003"),
+            "atari2600" to listOf("atari 2600", "atari-2600", "2600"),
+            "atari7800" to listOf("atari 7800", "atari-7800", "7800"),
+            "lynx" to listOf("atarilynx", "atari lynx"),
+            "ngp" to listOf("neogeopocket", "neo geo pocket"),
+            "ngc" to listOf("neogeopocketcolor", "neo geo pocket color"),
+            "ws" to listOf("wonderswan"),
+            "wsc" to listOf("wonderswancolor", "wonderswan color"),
+            "3ds" to listOf("nintendo3ds", "nintendo 3ds"),
+        )
     }
 }
