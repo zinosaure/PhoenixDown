@@ -33,6 +33,7 @@ import com.swordfish.lemuroid.app.shared.game.ExternalGameLauncherActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.main.GameLaunchTaskHandler
+import com.swordfish.lemuroid.app.shared.storage.NetworkStorageProvider
 import com.swordfish.lemuroid.app.shared.rumble.RumbleManager
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.app.shared.settings.StorageFrameworkPickerLauncher
@@ -172,6 +173,15 @@ abstract class LemuroidApplicationModule {
             repo.migrateOldPrefsIfNeeded()
             return repo
         }
+
+        @Provides
+        @PerApp
+        @IntoSet
+        @JvmStatic
+        fun networkStorageProvider(
+            context: Context,
+            sourceRepository: SourceRepository,
+        ): StorageProvider = NetworkStorageProvider(context, sourceRepository)
 
         @Provides
         @PerApp

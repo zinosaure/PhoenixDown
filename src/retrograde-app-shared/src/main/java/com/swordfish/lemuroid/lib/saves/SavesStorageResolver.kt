@@ -15,6 +15,7 @@ import com.swordfish.lemuroid.lib.storage.source.SourceType
  *  - `""` (empty)          → [LocalSavesStorage] (default — internal app storage)
  *  - `"content://…"`       → [SafSavesStorage]  (SAF folder chosen by the user)
  *  - `"smb://…"`           → [SmbSavesStorage]  (SMB share)
+ *  - `"sftp://…"`          → [SftpSavesStorage] (SFTP server)
  *  - anything else         → [LocalSavesStorage] (graceful fallback for old RomSource IDs)
  *
  * [resolve] is called on every save/state operation so that a preference change is
@@ -38,6 +39,14 @@ class SavesStorageResolver(
                 val password = prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: ""
                 val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
                 SmbSavesStorage(
+                    RomSource(type = SourceType.SMB, name = "Saves", path = loc, id = "_save", credentials = credentials),
+                )
+            }
+            loc.startsWith("sftp://") -> {
+                val username = prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: ""
+                val password = prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: ""
+                val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
+                SftpSavesStorage(
                     RomSource(type = SourceType.SMB, name = "Saves", path = loc, id = "_save", credentials = credentials),
                 )
             }

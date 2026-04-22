@@ -13,6 +13,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.w3c.dom.Node
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.util.Properties
 import java.util.Vector
@@ -90,6 +91,28 @@ class NetworkClient(
         }
         NetworkProtocol.SFTP -> listSftpFiles(server, path, credentials)
         NetworkProtocol.WEBDAV -> listWebDavFiles(server, path, credentials)
+    }
+
+    suspend fun readFileBytes(
+        protocol: NetworkProtocol,
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<ByteArray> = when (protocol) {
+        NetworkProtocol.SMB -> readSmbFileBytes(server, path, credentials)
+        NetworkProtocol.SFTP -> readSftpFileBytes(server, path, credentials)
+        NetworkProtocol.WEBDAV -> readWebDavFileBytes(server, path, credentials)
+    }
+
+    suspend fun deleteFile(
+        protocol: NetworkProtocol,
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<Unit> = when (protocol) {
+        NetworkProtocol.SMB -> Result.failure(UnsupportedOperationException("SMB delete not supported by NetworkClient"))
+        NetworkProtocol.SFTP -> deleteSftpFile(server, path, credentials)
+        NetworkProtocol.WEBDAV -> deleteWebDavFile(server, path, credentials)
     }
 
     private suspend fun testSftpConnection(server: String, credentials: NetworkCredentials?): Result<Unit> = withContext(Dispatchers.IO) {
@@ -297,6 +320,110 @@ class NetworkClient(
             )
 
             files.sortedBy { it.name.lowercase() }
+        }
+    }
+
+    private suspend fun readSmbFileBytes(
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            val segments = path.removePrefix("/").split('/').filter { it.isNotBlank() }
+            val shareName = segments.firstOrNull() ?: throw IllegalArgumentException("Missing SMB share name")
+            val remotePath = segments.drop(1).joinToString("/")
+            val output = ByteArrayOutputStream()
+            smbClient.downloadFile(server, shareName, remotePath, output, credentials).getOrThrow()
+            output.toByteArray()
+        }
+    }
+
+    private suspend fun readSftpFileBytes(
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            val endpoint = parseEndpoint(server, 22)
+            val user = credentials?.username?.trim().orEmpty()
+            if (user.isBlank()) throw IllegalArgumentException("SFTP requires username/password")
+            val password = credentials?.password.orEmpty()
+            val output = ByteArrayOutputStream()
+            withSftpSession(endpoint.host, endpoint.port, user, password) { _, sftp ->
+                sftp.get(normalizeAbsolutePath(path), output)
+            }
+            output.toByteArray()
+        }
+    }
+
+    private suspend fun deleteSftpFile(
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val endpoint = parseEndpoint(server, 22)
+            val user = credentials?.username?.trim().orEmpty()
+            if (user.isBlank()) throw IllegalArgumentException("SFTP requires username/password")
+            val password = credentials?.password.orEmpty()
+            withSftpSession(endpoint.host, endpoint.port, user, password) { _, sftp ->
+                sftp.rm(normalizeAbsolutePath(path))
+            }
+        }
+    }
+
+    private suspend fun readWebDavFileBytes(
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<ByteArray> = withContext(Dispatchers.IO) {
+        runCatching {
+            val baseUrl = normalizeWebDavBaseUrl(server)
+            val fullUrl = joinUrl(baseUrl, path)
+            val request = Request.Builder()
+                .url(fullUrl)
+                .get()
+                .apply {
+                    val user = credentials?.username?.trim().orEmpty()
+                    if (user.isNotBlank()) {
+                        header("Authorization", Credentials.basic(user, credentials?.password.orEmpty()))
+                    }
+                }
+                .build()
+
+            buildWebDavClient().newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IllegalStateException("WebDAV request failed (${response.code})")
+                }
+                response.body?.bytes() ?: ByteArray(0)
+            }
+        }
+    }
+
+    private suspend fun deleteWebDavFile(
+        server: String,
+        path: String,
+        credentials: NetworkCredentials?,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val baseUrl = normalizeWebDavBaseUrl(server)
+            val fullUrl = joinUrl(baseUrl, path)
+            val request = Request.Builder()
+                .url(fullUrl)
+                .delete()
+                .apply {
+                    val user = credentials?.username?.trim().orEmpty()
+                    if (user.isNotBlank()) {
+                        header("Authorization", Credentials.basic(user, credentials?.password.orEmpty()))
+                    }
+                }
+                .build()
+
+            buildWebDavClient().newCall(request).execute().use { response ->
+                if (!response.isSuccessful && response.code != 404) {
+                    throw IllegalStateException("WebDAV request failed (${response.code})")
+                }
+            }
         }
     }
 

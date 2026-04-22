@@ -440,7 +440,6 @@ private fun RomsSettings(
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
                     savedProfiles = smbLoginProfiles,
-                    excludedProfileProtocols = setOf(NetworkProtocol.SFTP),
                     onSave = { name, protocol, server, path, credentials ->
                         pendingSourceForPlatform = RomSource(
                             type = SourceType.SMB,
@@ -465,7 +464,6 @@ private fun RomsSettings(
                     onBack = { editingSmbSource = null },
                     editSource = editingSmbSource,
                     savedProfiles = smbLoginProfiles,
-                    excludedProfileProtocols = setOf(NetworkProtocol.SFTP),
                     onSave = { name, protocol, server, path, credentials ->
                         editingSmbSource?.let { src ->
                             pendingSourceForPlatform = RomSource(

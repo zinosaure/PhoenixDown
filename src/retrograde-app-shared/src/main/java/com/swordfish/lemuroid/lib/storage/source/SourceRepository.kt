@@ -107,13 +107,15 @@ class SourceRepository(private val context: Context) {
     fun findSourceForUri(fileUri: String): RomSource? {
         val uri = try { Uri.parse(fileUri) } catch (_: Exception) { return null }
         return when (uri.scheme?.lowercase()) {
-            "smb" -> {
+            "smb", "sftp", "webdav" -> {
                 val host = uri.host ?: return null
                 val gamePath = (uri.path ?: "").replace('\\', '/')
+                val expectedScheme = uri.scheme?.lowercase()
                 getCustomSources()
                     .filter { it.type == SourceType.SMB }
                     .mapNotNull { src ->
                         val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
+                        if (srcUri.scheme?.lowercase() != expectedScheme) return@mapNotNull null
                         if (!srcUri.host.equals(host, ignoreCase = true)) return@mapNotNull null
                         val srcPath = (srcUri.path ?: "").replace('\\', '/')
                         if (gamePath.startsWith(srcPath)) src to srcPath.length else null

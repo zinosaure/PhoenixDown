@@ -52,6 +52,7 @@ dependencies {
     
     // SMB/NAS support for network storage
     implementation("com.hierynomus:smbj:0.12.2")
+    implementation("com.github.mwiede:jsch:0.2.20")
 
     kapt(deps.libs.androidx.room.compiler)
 }
