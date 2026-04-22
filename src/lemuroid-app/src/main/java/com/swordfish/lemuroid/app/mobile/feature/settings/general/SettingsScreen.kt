@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,10 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -612,7 +611,6 @@ private fun RomsSettings(
         } else {
             customSources.forEachIndexed { index, source ->
                 LibraryPathRow(
-                    priority = index + 1,
                     source = source,
                     onEdit = {
                         when (source.type) {
@@ -629,29 +627,48 @@ private fun RomsSettings(
                     onDelete = { pendingDeleteSource = source },
                     enabled = !indexingInProgress,
                 )
+                if (index < customSources.lastIndex) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
         }
 
-        // ── Ajouter un dossier ─────────────────────────────────────────
-        LemuroidSettingsMenuLink(
-            enabled = !indexingInProgress,
-            title = { Text(stringResource(R.string.settings_title_add_source)) },
-            action = { Icon(Icons.Default.Add, contentDescription = null) },
-            onClick = { showAddTypeDialog = true },
-        )
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        ) {
+            val spacing = 8.dp
+            val availableWidth = maxWidth - spacing
+            val addButtonWidth = availableWidth * (4f / 12f)
+            val rescanButtonWidth = availableWidth - addButtonWidth
 
-        // ── Bouton Rescan ──────────────────────────────────────────────
-        if (scanInProgress) {
-            Button(
-                onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            ) { Text(stringResource(R.string.stop)) }
-        } else {
-            Button(
-                onClick = { LibraryIndexScheduler.scheduleLibrarySync(context) },
-                enabled = !indexingInProgress,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            ) { Text(stringResource(R.string.rescan)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                Button(
+                    onClick = { showAddTypeDialog = true },
+                    enabled = !indexingInProgress,
+                    modifier = Modifier.width(addButtonWidth),
+                ) {
+                    Text("+")
+                }
+
+                if (scanInProgress) {
+                    Button(
+                        onClick = { LibraryIndexScheduler.cancelLibrarySync(context) },
+                        modifier = Modifier.width(rescanButtonWidth),
+                    ) {
+                        Text(stringResource(R.string.stop))
+                    }
+                } else {
+                    Button(
+                        onClick = { LibraryIndexScheduler.scheduleLibrarySync(context) },
+                        enabled = !indexingInProgress,
+                        modifier = Modifier.width(rescanButtonWidth),
+                    ) {
+                        Text(stringResource(R.string.rescan))
+                    }
+                }
+            }
         }
     }
 
@@ -660,34 +677,74 @@ private fun RomsSettings(
         // ── Dossier des sauvegardes ────────────────────────────────────
         val saveDisplayPath = uriToReadablePath(context, saveLocationUri)
             .ifEmpty { stringResource(R.string.settings_save_location_default) }
-        LemuroidSettingsMenuLink(
-            title = { Text(stringResource(R.string.settings_title_save_location)) },
-            subtitle = { Text(text = saveDisplayPath, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-            action = if (saveLocationUri.isNotBlank()) {
-                {
-                    IconButton(onClick = { viewModel.setSaveLocation("") }) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+        StorageLocationRow(
+            title = stringResource(R.string.settings_title_save_location),
+            subtitle = saveDisplayPath,
+            onDelete = if (saveLocationUri.isNotBlank()) { { viewModel.setSaveLocation("") } } else null,
+            onClick = {
+                when {
+                    saveLocationUri.startsWith("smb://") -> showSaveSmbDialog = true
+                    saveLocationUri.isNotBlank() -> saveLocationPickerLauncher.launch(Uri.parse(saveLocationUri))
+                    else -> showSavePickerDialog = true
                 }
-            } else null,
-            onClick = { showSavePickerDialog = true },
+            },
         )
 
         // ── Dossier de téléchargement ──────────────────────────────────
         val downloadDisplayPath = uriToReadablePath(context, downloadSourceId)
             .ifEmpty { stringResource(R.string.settings_download_location_default) }
-        LemuroidSettingsMenuLink(
-            title = { Text(stringResource(R.string.settings_title_download_location)) },
-            subtitle = { Text(text = downloadDisplayPath, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-            action = if (downloadSourceId.isNotBlank()) {
-                {
-                    IconButton(onClick = { viewModel.setDownloadSourceId("") }) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+        StorageLocationRow(
+            title = stringResource(R.string.settings_title_download_location),
+            subtitle = downloadDisplayPath,
+            onDelete = if (downloadSourceId.isNotBlank()) { { viewModel.setDownloadSourceId("") } } else null,
+            onClick = {
+                when {
+                    downloadSourceId.startsWith("smb://") -> showDownloadSmbDialog = true
+                    downloadSourceId.isNotBlank() -> downloadLocationPickerLauncher.launch(Uri.parse(downloadSourceId))
+                    else -> showDownloadPickerDialog = true
                 }
-            } else null,
-            onClick = { showDownloadPickerDialog = true },
+            },
         )
+    }
+}
+
+/** Custom row for storage location items — identical layout to LibraryPathRow so delete icons align. */
+@Composable
+private fun StorageLocationRow(
+    title: String,
+    subtitle: String,
+    onDelete: (() -> Unit)?,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (onDelete != null) {
+            Box(modifier = Modifier.clickable(onClick = onDelete)) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
     }
 }
 
@@ -709,7 +766,6 @@ private fun uriToReadablePath(context: android.content.Context, uri: String): St
 
 @Composable
 private fun LibraryPathRow(
-    priority: Int,
     source: RomSource,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -718,30 +774,17 @@ private fun LibraryPathRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            .clickable(enabled = enabled, onClick = onEdit)
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "$priority",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
         Icon(
             imageVector = if (source.type == SourceType.LOCAL) Icons.Default.Folder else Icons.Default.Dns,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(24.dp),
         )
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = source.name,
@@ -758,15 +801,11 @@ private fun LibraryPathRow(
             )
         }
         Row {
-            IconButton(onClick = onEdit, enabled = enabled, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-            IconButton(onClick = onDelete, enabled = enabled, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+            Box(modifier = Modifier.clickable(enabled = enabled, onClick = onDelete)) {
+                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(24.dp))
             }
         }
     }
-    HorizontalDivider(modifier = Modifier.padding(start = 24.dp))
 }
 
 /** Dialog to pick a platform hint for a ROM source (Auto or a specific system). */

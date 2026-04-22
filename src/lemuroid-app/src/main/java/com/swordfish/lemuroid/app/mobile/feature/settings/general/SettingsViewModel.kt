@@ -60,11 +60,17 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), sourceRepository.getSources())
 
     fun addSource(source: RomSource) {
-        viewModelScope.launch(Dispatchers.IO) { sourceRepository.addSource(source) }
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceRepository.addSource(source)
+            LibraryIndexScheduler.scheduleLibrarySync(context)
+        }
     }
 
     fun updateSource(source: RomSource) {
-        viewModelScope.launch(Dispatchers.IO) { sourceRepository.updateSource(source) }
+        viewModelScope.launch(Dispatchers.IO) {
+            sourceRepository.updateSource(source)
+            LibraryIndexScheduler.scheduleLibrarySync(context)
+        }
     }
 
     fun removeSource(id: String) {

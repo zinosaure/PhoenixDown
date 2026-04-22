@@ -141,15 +141,21 @@ class LemuroidLibrary(
             entries
                 .map { entry ->
                     val game = entry.game
-                    // V8.7: Regenerate coverFrontUrl if null
-                    val updatedCoverUrl = if (game.coverFrontUrl == null) {
-                        generateCoverUrl(game.systemId, game.title)
+                    val forcedSystemId = sourceRepository
+                        .findSourceForUri(entry.file.primaryFile.uri.toString())
+                        ?.platformHint
+
+                    val effectiveSystemId = forcedSystemId ?: game.systemId
+                    val needsCoverRefresh = game.coverFrontUrl == null || forcedSystemId != null
+                    val updatedCoverUrl = if (needsCoverRefresh) {
+                        generateCoverUrl(effectiveSystemId, game.title)
                     } else {
                         game.coverFrontUrl
                     }
                     game.copy(
+                        systemId = effectiveSystemId,
                         lastIndexedAt = startedAtMs,
-                        coverFrontUrl = updatedCoverUrl
+                        coverFrontUrl = updatedCoverUrl,
                     )
                 }
 
@@ -272,28 +278,35 @@ class LemuroidLibrary(
         metadataProvider: GameMetadataProvider,
         startedAtMs: Long,
     ): ScanEntry {
-        val game =
+        val forcedSystemId = sourceRepository
+            .findSourceForUri(groupedStorageFile.primaryFile.uri.toString())
+            ?.platformHint
+
+        val effectiveMetadataProvider = forcedSystemId
+            ?.let { ForcedSystemMetadataProvider(metadataProvider, it) }
+            ?: metadataProvider
+
+        var game =
             sortedFilesForScanning(groupedStorageFile).asFlow()
                 .mapNotNull { safeStorageFile(provider, it) }
                 .mapNotNull { storageFile ->
                     try {
-                        // Resolve platform hint for this file's source
-                        val hint = sourceRepository
-                            .findSourceForUri(storageFile.uri.toString())
-                            ?.platformHint
-                        val effectiveMetadata = if (hint != null) {
-                            ForcedSystemMetadataProvider(metadataProvider, hint)
-                        } else {
-                            metadataProvider
-                        }
-                        val metadata = effectiveMetadata.retrieveMetadata(storageFile)
-                        convertGameMetadataToGame(groupedStorageFile, storageFile, metadata, startedAtMs)
+                        val metadata = effectiveMetadataProvider.retrieveMetadata(storageFile)
+                        convertGameMetadataToGame(groupedStorageFile, storageFile, metadata, startedAtMs, forcedSystemId)
                     } catch (e: Exception) {
                         Timber.e(e, "Error indexing file: ${storageFile.name}")
                         null
                     }
                 }
                 .firstOrNull()
+
+        // Guaranteed fallback: if standard metadata lookup failed but we have a platformHint,
+        // create the game entry directly from the primary file name + forced system.
+        // This covers edge cases in ZIP processing (streaming ZIPs, SMB ZIPs, corrupted entries).
+        if (game == null && !forcedSystemId.isNullOrBlank()) {
+            game = createForcedGameEntry(groupedStorageFile, forcedSystemId, startedAtMs)
+            if (game != null) Timber.d("ForcedFallback: indexed '${game.title}' as $forcedSystemId")
+        }
 
         // Deduplication: compare by fileName (same ROM on two sources).
         // Priority: LOCAL (content:// or file://) > SMB (smb://) > other.
@@ -334,6 +347,38 @@ class LemuroidLibrary(
             .getOrNull()
     }
 
+    /**
+     * Creates a minimal [Game] entry directly from [groupedStorageFile] without metadata lookup.
+     * Used as a guaranteed fallback when platformHint is set but the metadata pipeline returned null.
+     */
+    private fun createForcedGameEntry(
+        groupedStorageFile: GroupedStorageFiles,
+        forcedSystemId: String,
+        lastIndexedAt: Long,
+    ): Game? {
+        return try {
+            val system = GameSystem.findById(forcedSystemId)
+            val primaryFile = groupedStorageFile.primaryFile
+            val title = primaryFile.name.substringBeforeLast('.').takeIf { it.isNotBlank() } ?: primaryFile.name
+            Game(
+                fileName = primaryFile.name,
+                fileUri = primaryFile.uri.toString(),
+                title = title,
+                systemId = system.id.dbname,
+                developer = null,
+                coverFrontUrl = generateCoverUrl(forcedSystemId, title),
+                lastIndexedAt = lastIndexedAt,
+                year = null,
+                genre = null,
+                description = null,
+                publisher = null,
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "createForcedGameEntry failed for $forcedSystemId: ${groupedStorageFile.primaryFile.name}")
+            null
+        }
+    }
+
     private fun cleanUp(startedAtMs: Long) {
         kotlin.runCatching {
             removeDeletedBios(startedAtMs)
@@ -359,12 +404,20 @@ class LemuroidLibrary(
         storageFile: StorageFile,
         gameMetadata: GameMetadata?,
         lastIndexedAt: Long,
+        forcedSystemId: String? = null,
     ): Game? {
         if (gameMetadata == null) {
             return null
         }
 
-        val gameSystem = GameSystem.findById(gameMetadata.system!!)
+        val effectiveSystemId = when {
+            forcedSystemId.isNullOrBlank() -> gameMetadata.system!!
+            gameMetadata.system.isNullOrBlank() -> forcedSystemId
+            gameMetadata.system == SystemID.UNKNOWN.dbname -> forcedSystemId
+            else -> forcedSystemId
+        }
+
+        val gameSystem = GameSystem.findById(effectiveSystemId)
 
         // If the databased matched a data file (as with bin/cue) we force link the primary filename
         val fileName =

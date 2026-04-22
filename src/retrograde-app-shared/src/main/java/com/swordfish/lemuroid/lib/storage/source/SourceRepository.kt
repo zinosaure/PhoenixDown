@@ -3,6 +3,7 @@ package com.swordfish.lemuroid.lib.storage.source
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.provider.DocumentsContract
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -121,21 +122,35 @@ class SourceRepository(private val context: Context) {
                     ?.first
             }
             "content" -> {
-                val decoded = Uri.decode(uri.encodedPath ?: "")
-                val gameDocId = decoded.substringAfter("/document/").substringAfter("/tree/")
-                getCustomSources().firstOrNull { src ->
-                    if (src.type != SourceType.LOCAL) return@firstOrNull false
-                    val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@firstOrNull false }
-                    if (srcUri.scheme != "content") return@firstOrNull false
-                    val srcDocId = Uri.decode(srcUri.encodedPath ?: "").substringAfter("/tree/").substringAfter("/document/")
-                    gameDocId.startsWith(srcDocId)
-                }
+                val gameDocId = runCatching { DocumentsContract.getDocumentId(uri) }
+                    .getOrElse {
+                        runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
+                    }
+                    ?: return null
+
+                getCustomSources()
+                    .filter { it.type == SourceType.LOCAL }
+                    .mapNotNull { src ->
+                        val srcUri = try { Uri.parse(src.path) } catch (_: Exception) { return@mapNotNull null }
+                        if (srcUri.scheme != "content") return@mapNotNull null
+                        val srcDocId = runCatching { DocumentsContract.getTreeDocumentId(srcUri) }
+                            .getOrElse { runCatching { DocumentsContract.getDocumentId(srcUri) }.getOrNull() }
+                            ?: return@mapNotNull null
+                        if (gameDocId.startsWith(srcDocId)) src to srcDocId.length else null
+                    }
+                    .maxByOrNull { (_, len) -> len }
+                    ?.first
             }
             "file" -> {
                 val filePath = uri.path ?: return null
-                getCustomSources().firstOrNull {
-                    it.type == SourceType.LOCAL && filePath.startsWith(it.path.removePrefix("file://"))
-                }
+                getCustomSources()
+                    .filter { it.type == SourceType.LOCAL }
+                    .mapNotNull { src ->
+                        val srcPath = src.path.removePrefix("file://")
+                        if (filePath.startsWith(srcPath)) src to srcPath.length else null
+                    }
+                    .maxByOrNull { (_, len) -> len }
+                    ?.first
             }
             else -> null
         }

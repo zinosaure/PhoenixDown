@@ -1,7 +1,4 @@
 package com.swordfish.lemuroid.app.mobile.feature.settings.advanced
-
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -41,48 +38,6 @@ fun AdvancedSettingsScreen(
     navController: NavHostController,
 ) {
     val context = LocalContext.current
-    val exportLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-
-            viewModel.exportSaveGames(uri) { result ->
-                result.onSuccess {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.settings_savegames_export_success, it.filesCount),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }.onFailure {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.settings_savegames_backup_failed, it.message ?: "error"),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            }
-        }
-
-    val importLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-
-            viewModel.importSaveGames(uri) { result ->
-                result.onSuccess {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.settings_savegames_import_success, it.filesCount),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }.onFailure {
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.settings_savegames_backup_failed, it.message ?: "error"),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            }
-        }
-
     val uiState =
         viewModel.uiState
             .collectAsState()
@@ -98,14 +53,6 @@ fun AdvancedSettingsScreen(
         GeneralSettings()
         SystemInteractionSettings()
         CacheManagementSettings(uiState.cache)
-        SaveGamesBackupSettings(
-            onExport = {
-                exportLauncher.launch("phoenix-down-savegames-backup.zip")
-            },
-            onImport = {
-                importLauncher.launch(arrayOf("application/zip", "application/octet-stream"))
-            },
-        )
         FactoryResetSection(viewModel, navController)
     }
 }
@@ -291,24 +238,3 @@ private fun FactoryResetDialog(
     )
 }
 
-@Composable
-private fun SaveGamesBackupSettings(
-    onExport: () -> Unit,
-    onImport: () -> Unit,
-) {
-    LemuroidCardSettingsGroup(
-        title = { Text(text = stringResource(id = R.string.settings_savegames_backup_section)) },
-    ) {
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_savegames_export_zip)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_savegames_export_zip_description)) },
-            onClick = onExport,
-        )
-
-        LemuroidSettingsMenuLink(
-            title = { Text(text = stringResource(id = R.string.settings_savegames_import_zip)) },
-            subtitle = { Text(text = stringResource(id = R.string.settings_savegames_import_zip_description)) },
-            onClick = onImport,
-        )
-    }
-}

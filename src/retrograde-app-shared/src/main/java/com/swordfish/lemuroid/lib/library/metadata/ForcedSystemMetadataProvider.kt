@@ -17,7 +17,13 @@ class ForcedSystemMetadataProvider(
 ) : GameMetadataProvider {
 
     override suspend fun retrieveMetadata(storageFile: StorageFile): GameMetadata? {
-        val metadata = delegate.retrieveMetadata(storageFile)
+        // Inject forcedSystemId as a virtual subfolder prefix in the path so that
+        // parentContainsSystem() reliably detects the correct platform even when
+        // the real path (e.g. SMB relative path or content:// URI) has no folder context.
+        val augmentedFile = storageFile.copy(
+            path = "$forcedSystemId/${storageFile.path ?: storageFile.name}",
+        )
+        val metadata = delegate.retrieveMetadata(augmentedFile)
         return when {
             metadata == null -> {
                 // File has no recognized extension/database match, but source has platformHint.
