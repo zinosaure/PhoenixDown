@@ -10,10 +10,6 @@ class DirectoriesManager(private val appContext: Context) {
             ?: appContext.getExternalFilesDir(null)
             ?: appContext.filesDir
 
-    private fun externalRoot(): File =
-        appContext.getExternalFilesDir(null)
-            ?: appContext.filesDir
-
     @Deprecated("Use the external states directory")
     fun getInternalStatesDirectory(): File =
         File(appContext.filesDir, "states").apply {
@@ -42,21 +38,6 @@ class DirectoriesManager(private val appContext: Context) {
 
     fun getSavesDirectory(): File =
         File(documentsRoot(), "saves").apply {
-            mkdirs()
-        }
-
-    fun getLegacyStatesDirectory(): File =
-        File(externalRoot(), "states").apply {
-            mkdirs()
-        }
-
-    fun getLegacyStatesPreviewDirectory(): File =
-        File(externalRoot(), "state-previews").apply {
-            mkdirs()
-        }
-
-    fun getLegacySavesDirectory(): File =
-        File(externalRoot(), "saves").apply {
             mkdirs()
         }
 

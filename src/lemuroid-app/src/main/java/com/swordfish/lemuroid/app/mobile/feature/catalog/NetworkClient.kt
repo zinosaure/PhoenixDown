@@ -487,8 +487,9 @@ class NetworkClient(
     private fun parseWebDavEntries(requestUrl: String, body: ByteArray): List<WebDavEntry> {
         if (body.isEmpty()) return emptyList()
 
-        val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-            .parse(ByteArrayInputStream(body))
+        val doc = DocumentBuilderFactory.newInstance().apply {
+            isNamespaceAware = true
+        }.newDocumentBuilder().parse(ByteArrayInputStream(body))
         val responseNodes = doc.getElementsByTagNameNS("*", "response")
         val basePath = URI(requestUrl).path.trimEnd('/').ifBlank { "/" }
 
@@ -526,7 +527,8 @@ class NetworkClient(
         val children = node.childNodes ?: return null
         for (i in 0 until children.length) {
             val child = children.item(i)
-            if (child.localName == localName) return child
+            val childName = child.localName ?: child.nodeName.substringAfter(':', child.nodeName)
+            if (childName == localName) return child
             val nested = findFirstDescendant(child, localName)
             if (nested != null) return nested
         }
