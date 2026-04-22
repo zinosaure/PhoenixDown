@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
@@ -815,6 +816,7 @@ private fun RomsSettings(
         StorageLocationRow(
             title = stringResource(R.string.settings_title_download_location),
             subtitle = downloadDisplayPath,
+            subtitleHorizontalPadding = if (downloadSourceId.isBlank()) 16.dp else 0.dp,
             onDelete = if (downloadSourceId.isNotBlank()) { { viewModel.setDownloadSourceId("") } } else null,
             onClick = {
                 when {
@@ -849,7 +851,7 @@ private fun SmbLoginProfileRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onEdit)
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -987,6 +989,7 @@ private fun SmbLoginProfileForm(
 private fun StorageLocationRow(
     title: String,
     subtitle: String,
+    subtitleHorizontalPadding: Dp = 0.dp,
     onDelete: (() -> Unit)?,
     onClick: () -> Unit,
 ) {
@@ -1006,6 +1009,7 @@ private fun StorageLocationRow(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = subtitleHorizontalPadding),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1049,7 +1053,7 @@ private fun LibraryPathRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onEdit)
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
