@@ -714,9 +714,6 @@ private fun RomsSettings(
                     onDelete = { pendingDeleteSource = source },
                     enabled = !indexingInProgress,
                 )
-                if (index < customSources.lastIndex) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
             }
         }
 
@@ -774,9 +771,6 @@ private fun RomsSettings(
                     onEdit = { editingSmbLoginProfile = profile },
                     onDelete = { pendingDeleteSmbLoginProfile = profile },
                 )
-                if (index < smbLoginProfiles.lastIndex) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
             }
         }
 
@@ -798,7 +792,6 @@ private fun RomsSettings(
     // ── Card 2 : Emplacement de stockage ──────────────────────────────────
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) },
-        modifier = Modifier.padding(bottom = 16.dp),
     ) {
         // ── Dossier des sauvegardes ────────────────────────────────────
         val saveDisplayPath = uriToReadablePath(context, saveLocationUri)

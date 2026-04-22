@@ -250,22 +250,53 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         // Add one row per configured source
         sources.forEachIndexed { index, source ->
+            val isSmbSource = source.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB
             val pref = androidx.preference.Preference(ctx).apply {
                 key = "dyn_source_$index"
                 title = source.name
-                summary = getString(R.string.settings_source_tap_to_remove)
+                summary = source.path
                 isIconSpaceReserved = false
                 setOnPreferenceClickListener {
-                    android.app.AlertDialog.Builder(ctx)
-                        .setTitle(R.string.settings_source_remove_confirm_title)
-                        .setMessage(getString(R.string.settings_source_remove_confirm_message, source.name))
-                        .setPositiveButton(R.string.delete_games_confirm) { _, _ ->
-                            com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).removeSource(source.id)
-                            com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(ctx.applicationContext)
-                            refreshSourcesSection()
-                        }
-                        .setNegativeButton(R.string.cancel, null)
-                        .show()
+                    if (isSmbSource) {
+                        android.app.AlertDialog.Builder(ctx)
+                            .setTitle(source.name)
+                            .setItems(arrayOf(getString(R.string.sources_edit), getString(R.string.sources_delete))) { _, which ->
+                                when (which) {
+                                    0 -> {
+                                        val intent = android.content.Intent(ctx, TVSmbConfigActivity::class.java).apply {
+                                            putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_EDIT_SOURCE)
+                                            putExtra(TVSmbConfigActivity.EXTRA_SOURCE_ID, source.id)
+                                        }
+                                        startActivity(intent)
+                                    }
+                                    1 -> {
+                                        android.app.AlertDialog.Builder(ctx)
+                                            .setTitle(R.string.settings_source_remove_confirm_title)
+                                            .setMessage(getString(R.string.settings_source_remove_confirm_message, source.name))
+                                            .setPositiveButton(R.string.delete_games_confirm) { _, _ ->
+                                                com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).removeSource(source.id)
+                                                com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(ctx.applicationContext)
+                                                refreshSourcesSection()
+                                            }
+                                            .setNegativeButton(R.string.cancel, null)
+                                            .show()
+                                    }
+                                }
+                            }
+                            .setNegativeButton(R.string.cancel, null)
+                            .show()
+                    } else {
+                        android.app.AlertDialog.Builder(ctx)
+                            .setTitle(R.string.settings_source_remove_confirm_title)
+                            .setMessage(getString(R.string.settings_source_remove_confirm_message, source.name))
+                            .setPositiveButton(R.string.delete_games_confirm) { _, _ ->
+                                com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).removeSource(source.id)
+                                com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(ctx.applicationContext)
+                                refreshSourcesSection()
+                            }
+                            .setNegativeButton(R.string.cancel, null)
+                            .show()
+                    }
                     true
                 }
             }

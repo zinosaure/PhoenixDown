@@ -47,6 +47,10 @@ class TVSmbConfigActivity : FragmentActivity() {
     private val profileId: String? by lazy {
         intent.getStringExtra(EXTRA_PROFILE_ID)
     }
+
+    private val sourceId: String? by lazy {
+        intent.getStringExtra(EXTRA_SOURCE_ID)
+    }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,6 +101,10 @@ class TVSmbConfigActivity : FragmentActivity() {
                 titleText.setText(R.string.tv_smb_profile_title)
                 descriptionText.setText(R.string.tv_smb_profile_description)
             }
+            MODE_EDIT_SOURCE -> {
+                titleText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_title)
+                descriptionText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_description)
+            }
             else -> {
                 titleText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_title)
                 descriptionText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_description)
@@ -143,6 +151,19 @@ class TVSmbConfigActivity : FragmentActivity() {
                 portInput.setText(port)
                 usernameInput.setText(profile?.username.orEmpty())
                 passwordInput.setText(profile?.password.orEmpty())
+            }
+            MODE_EDIT_SOURCE -> {
+                val source = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+                    .getCustomSources().firstOrNull { it.id == sourceId }
+                if (source != null) {
+                    val (server, fullPath) = parseSmbUri(source.path)
+                    val (host, port) = splitHostAndPort(server)
+                    serverInput.setText(host)
+                    portInput.setText(port)
+                    pathInput.setText(fullPath)
+                    usernameInput.setText(source.credentials?.username.orEmpty())
+                    passwordInput.setText(source.credentials?.password.orEmpty())
+                }
             }
             else -> {
                 val savedServer = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
@@ -299,6 +320,20 @@ class TVSmbConfigActivity : FragmentActivity() {
             return
         }
         
+        if (mode == MODE_EDIT_SOURCE) {
+            val repo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+            val existing = repo.getCustomSources().firstOrNull { it.id == sourceId }
+            if (existing != null) {
+                val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
+                repo.updateSource(existing.copy(path = "smb://$server$fullPath", credentials = credentials))
+                rememberLogin(server, username, password)
+                com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler.scheduleLibrarySync(this)
+                Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
+            }
+            finish()
+            return
+        }
+
         val prefs = SharedPreferencesHelper.getSharedPreferences(this)
         when (mode) {
             MODE_SAVE -> {
@@ -433,9 +468,11 @@ class TVSmbConfigActivity : FragmentActivity() {
     companion object {
         const val EXTRA_MODE = "mode"
         const val EXTRA_PROFILE_ID = "profile_id"
+        const val EXTRA_SOURCE_ID = "source_id"
         const val MODE_LIBRARY = "library"
         const val MODE_SAVE = "save"
         const val MODE_DOWNLOAD = "download"
         const val MODE_PROFILE = "profile"
+        const val MODE_EDIT_SOURCE = "edit_source"
     }
 }
