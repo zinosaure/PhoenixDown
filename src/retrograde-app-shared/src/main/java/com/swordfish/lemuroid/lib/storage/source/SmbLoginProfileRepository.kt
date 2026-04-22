@@ -14,6 +14,7 @@ enum class NetworkProtocol {
     SMB,
     SFTP,
     WEBDAV,
+    WEBDAV_HTTP,
 }
 
 data class SmbLoginProfile(

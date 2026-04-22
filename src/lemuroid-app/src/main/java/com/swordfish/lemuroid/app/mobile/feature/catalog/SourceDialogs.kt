@@ -178,10 +178,20 @@ fun NetworkConfigForm(
                 }
                 path = parsedUri.path?.ifBlank { "/" } ?: "/"
 
-                val matchedProfile = availableProfiles.firstOrNull {
-                    it.server.equals(serverPart, ignoreCase = true) &&
-                        it.username == (editSource.credentials?.username ?: "") &&
-                        it.password == (editSource.credentials?.password ?: "")
+                // Derive expected protocol from URI scheme
+                val expectedProtocol = when (parsedUri.scheme?.lowercase()) {
+                    "smb" -> NetworkProtocol.SMB
+                    "sftp" -> NetworkProtocol.SFTP
+                    "webdav" -> NetworkProtocol.WEBDAV
+                    "webdavh" -> NetworkProtocol.WEBDAV_HTTP
+                    else -> null
+                }
+                val expectedUsername = editSource.credentials?.username ?: ""
+                // Match by protocol + server + username (skip password to be resilient to changes)
+                val matchedProfile = availableProfiles.firstOrNull { profile ->
+                    (expectedProtocol == null || profile.protocol == expectedProtocol) &&
+                        profile.server.equals(serverPart, ignoreCase = true) &&
+                        profile.username == expectedUsername
                 }
                 selectedProfileId = matchedProfile?.id
             } else {
@@ -243,6 +253,7 @@ fun NetworkConfigForm(
                                 NetworkProtocol.SMB -> R.string.network_protocol_smb
                                 NetworkProtocol.SFTP -> R.string.network_protocol_sftp
                                 NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
                             },
                         )
                         Text(
@@ -389,6 +400,7 @@ fun NetworkConfigForm(
                                     NetworkProtocol.SMB -> R.string.network_protocol_smb
                                     NetworkProtocol.SFTP -> R.string.network_protocol_sftp
                                     NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                    NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
                                 },
                             )
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -454,6 +466,7 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
         NetworkProtocol.WEBDAV -> "webdav"
+        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
     }
     return "$scheme://$server$normalizedPath"
 }

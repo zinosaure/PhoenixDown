@@ -41,7 +41,8 @@ class NetworkClient(
             else smbClient.testConnection(server, shareName, credentials).map { Unit }
         }
         NetworkProtocol.SFTP -> testSftpConnection(server, credentials)
-        NetworkProtocol.WEBDAV -> testWebDavConnection(server, path, credentials)
+        NetworkProtocol.WEBDAV -> testWebDavConnection(server, path, credentials, useSsl = true)
+        NetworkProtocol.WEBDAV_HTTP -> testWebDavConnection(server, path, credentials, useSsl = false)
     }
 
     suspend fun listDirectories(
@@ -61,7 +62,8 @@ class NetworkClient(
             }
         }
         NetworkProtocol.SFTP -> listSftpDirectories(server, path, credentials)
-        NetworkProtocol.WEBDAV -> listWebDavDirectories(server, path, credentials)
+        NetworkProtocol.WEBDAV -> listWebDavDirectories(server, path, credentials, useSsl = true)
+        NetworkProtocol.WEBDAV_HTTP -> listWebDavDirectories(server, path, credentials, useSsl = false)
     }
 
     suspend fun listFiles(
@@ -90,7 +92,8 @@ class NetworkClient(
             }
         }
         NetworkProtocol.SFTP -> listSftpFiles(server, path, credentials)
-        NetworkProtocol.WEBDAV -> listWebDavFiles(server, path, credentials)
+        NetworkProtocol.WEBDAV -> listWebDavFiles(server, path, credentials, useSsl = true)
+        NetworkProtocol.WEBDAV_HTTP -> listWebDavFiles(server, path, credentials, useSsl = false)
     }
 
     suspend fun readFileBytes(
@@ -101,7 +104,8 @@ class NetworkClient(
     ): Result<ByteArray> = when (protocol) {
         NetworkProtocol.SMB -> readSmbFileBytes(server, path, credentials)
         NetworkProtocol.SFTP -> readSftpFileBytes(server, path, credentials)
-        NetworkProtocol.WEBDAV -> readWebDavFileBytes(server, path, credentials)
+        NetworkProtocol.WEBDAV -> readWebDavFileBytes(server, path, credentials, useSsl = true)
+        NetworkProtocol.WEBDAV_HTTP -> readWebDavFileBytes(server, path, credentials, useSsl = false)
     }
 
     suspend fun deleteFile(
@@ -112,7 +116,8 @@ class NetworkClient(
     ): Result<Unit> = when (protocol) {
         NetworkProtocol.SMB -> Result.failure(UnsupportedOperationException("SMB delete not supported by NetworkClient"))
         NetworkProtocol.SFTP -> deleteSftpFile(server, path, credentials)
-        NetworkProtocol.WEBDAV -> deleteWebDavFile(server, path, credentials)
+        NetworkProtocol.WEBDAV -> deleteWebDavFile(server, path, credentials, useSsl = true)
+        NetworkProtocol.WEBDAV_HTTP -> deleteWebDavFile(server, path, credentials, useSsl = false)
     }
 
     private suspend fun testSftpConnection(server: String, credentials: NetworkCredentials?): Result<Unit> = withContext(Dispatchers.IO) {
@@ -238,9 +243,10 @@ class NetworkClient(
         server: String,
         path: String,
         credentials: NetworkCredentials?,
+        useSsl: Boolean = true,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = normalizeWebDavBaseUrl(server)
+            val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
             val fullUrl = joinUrl(baseUrl, path)
             val response = buildWebDavClient()
                 .newCall(
@@ -270,9 +276,10 @@ class NetworkClient(
         server: String,
         path: String,
         credentials: NetworkCredentials?,
+        useSsl: Boolean = true,
     ): Result<List<NetworkDirectoryEntry>> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = normalizeWebDavBaseUrl(server)
+            val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
             val fullUrl = joinUrl(baseUrl, path)
             val request = Request.Builder()
                 .url(fullUrl)
@@ -304,9 +311,10 @@ class NetworkClient(
         server: String,
         path: String,
         credentials: NetworkCredentials?,
+        useSsl: Boolean = true,
     ): Result<List<NetworkScannedFile>> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = normalizeWebDavBaseUrl(server)
+            val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
             val rootPath = normalizeAbsolutePath(path)
             val files = mutableListOf<NetworkScannedFile>()
 
@@ -376,9 +384,10 @@ class NetworkClient(
         server: String,
         path: String,
         credentials: NetworkCredentials?,
+        useSsl: Boolean = true,
     ): Result<ByteArray> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = normalizeWebDavBaseUrl(server)
+            val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
             val fullUrl = joinUrl(baseUrl, path)
             val request = Request.Builder()
                 .url(fullUrl)
@@ -404,9 +413,10 @@ class NetworkClient(
         server: String,
         path: String,
         credentials: NetworkCredentials?,
+        useSsl: Boolean = true,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = normalizeWebDavBaseUrl(server)
+            val baseUrl = normalizeWebDavBaseUrl(server, useSsl)
             val fullUrl = joinUrl(baseUrl, path)
             val request = Request.Builder()
                 .url(fullUrl)
@@ -523,11 +533,11 @@ class NetworkClient(
         return null
     }
 
-    private fun normalizeWebDavBaseUrl(server: String): String {
+    private fun normalizeWebDavBaseUrl(server: String, useSsl: Boolean = true): String {
         val raw = server.trim().removeSuffix("/")
         return when {
             raw.startsWith("http://") || raw.startsWith("https://") -> raw
-            else -> "https://$raw"
+            else -> if (useSsl) "https://$raw" else "http://$raw"
         }
     }
 

@@ -876,6 +876,7 @@ private fun SmbLoginProfileRow(
             NetworkProtocol.SMB -> R.string.network_protocol_smb
             NetworkProtocol.SFTP -> R.string.network_protocol_sftp
             NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+            NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
         },
     )
     val details = if (profile.username.isNotBlank()) {
@@ -994,6 +995,7 @@ private fun SmbLoginProfileForm(
                                         NetworkProtocol.SMB -> R.string.network_protocol_smb
                                         NetworkProtocol.SFTP -> R.string.network_protocol_sftp
                                         NetworkProtocol.WEBDAV -> R.string.network_protocol_webdav
+                                        NetworkProtocol.WEBDAV_HTTP -> R.string.network_protocol_webdav_http
                                     },
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -1256,7 +1258,8 @@ private fun uriToReadablePath(context: android.content.Context, uri: String): St
 
 private fun isNetworkLocationUri(uri: String): Boolean {
     val lower = uri.lowercase()
-    return lower.startsWith("smb://") || lower.startsWith("sftp://") || lower.startsWith("webdav://")
+    return lower.startsWith("smb://") || lower.startsWith("sftp://") ||
+    lower.startsWith("webdav://") || lower.startsWith("webdavh://")
 }
 
 private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, path: String): String {
@@ -1265,6 +1268,7 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
         NetworkProtocol.WEBDAV -> "webdav"
+        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
     }
     return "$scheme://$server$normalizedPath"
 }

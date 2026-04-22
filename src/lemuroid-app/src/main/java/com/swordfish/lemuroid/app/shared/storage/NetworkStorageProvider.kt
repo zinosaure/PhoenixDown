@@ -29,7 +29,7 @@ class NetworkStorageProvider(
 
     override val name: String = context.getString(R.string.smb_storage)
 
-    override val uriSchemes: List<String> = listOf("sftp", "webdav")
+    override val uriSchemes: List<String> = listOf("sftp", "webdav", "webdavh")
 
     override val prefsFragmentClass: Class<LeanbackPreferenceFragment>? = null
 
@@ -133,6 +133,7 @@ class NetworkStorageProvider(
                     when (uri.scheme?.lowercase()) {
                         "sftp" -> NetworkProtocol.SFTP
                         "webdav" -> NetworkProtocol.WEBDAV
+                        "webdavh" -> NetworkProtocol.WEBDAV_HTTP
                         else -> null
                     } ?: return@mapNotNull null
 
@@ -148,6 +149,7 @@ class NetworkStorageProvider(
             when (uri.scheme?.lowercase()) {
                 "sftp" -> NetworkProtocol.SFTP
                 "webdav" -> NetworkProtocol.WEBDAV
+                "webdavh" -> NetworkProtocol.WEBDAV_HTTP
                 else -> return null
             }
         val authority = uri.authority ?: return null
@@ -171,6 +173,7 @@ class NetworkStorageProvider(
                 NetworkProtocol.SMB -> "smb"
                 NetworkProtocol.SFTP -> "sftp"
                 NetworkProtocol.WEBDAV -> "webdav"
+                NetworkProtocol.WEBDAV_HTTP -> "webdavh"
             }
 
         return Uri.Builder()

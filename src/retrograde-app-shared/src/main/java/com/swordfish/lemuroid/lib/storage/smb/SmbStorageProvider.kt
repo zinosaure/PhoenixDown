@@ -52,7 +52,7 @@ class SmbStorageProvider(
     override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> = flow {
         val configs = sourceRepository.getSmbSourceConfigs()
         if (configs.isEmpty()) {
-            Timber.w("SMB: no sources configured")
+            Timber.d("SMB: no sources configured")
             return@flow
         }
         configs.forEach { config ->

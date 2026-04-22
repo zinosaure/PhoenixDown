@@ -107,7 +107,7 @@ class SourceRepository(private val context: Context) {
     fun findSourceForUri(fileUri: String): RomSource? {
         val uri = try { Uri.parse(fileUri) } catch (_: Exception) { return null }
         return when (uri.scheme?.lowercase()) {
-            "smb", "sftp", "webdav" -> {
+            "smb", "sftp", "webdav", "webdavh" -> {
                 val host = uri.host ?: return null
                 val gamePath = (uri.path ?: "").replace('\\', '/')
                 val expectedScheme = uri.scheme?.lowercase()

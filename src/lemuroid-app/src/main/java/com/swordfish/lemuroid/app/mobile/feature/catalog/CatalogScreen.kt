@@ -137,11 +137,13 @@ fun CatalogScreen(
                     val protocol = when (uri.scheme?.lowercase()) {
                         "sftp" -> NetworkProtocol.SFTP
                         "webdav" -> NetworkProtocol.WEBDAV
+                        "webdavh" -> NetworkProtocol.WEBDAV_HTTP
                         else -> NetworkProtocol.SMB
                     }
 
                     val server = when (protocol) {
-                        NetworkProtocol.SMB, NetworkProtocol.SFTP -> {
+                        NetworkProtocol.SMB, NetworkProtocol.SFTP,
+                        NetworkProtocol.WEBDAV, NetworkProtocol.WEBDAV_HTTP -> {
                             val host = uri.host.orEmpty()
                             if (host.isBlank()) {
                                 Log.w("CatalogScreen", "Invalid network host: ${source.path}")
@@ -149,14 +151,6 @@ fun CatalogScreen(
                             }
                             val port = uri.port
                             if (port > 0) "$host:$port" else host
-                        }
-                        NetworkProtocol.WEBDAV -> {
-                            val authority = uri.authority.orEmpty()
-                            if (authority.isBlank()) {
-                                Log.w("CatalogScreen", "Invalid WebDAV authority: ${source.path}")
-                                return@forEach
-                            }
-                            authority
                         }
                     }
 
@@ -692,6 +686,7 @@ private fun buildNetworkLocationUri(protocol: NetworkProtocol, server: String, p
         NetworkProtocol.SMB -> "smb"
         NetworkProtocol.SFTP -> "sftp"
         NetworkProtocol.WEBDAV -> "webdav"
+        NetworkProtocol.WEBDAV_HTTP -> "webdavh"
     }
     return "$scheme://$server$normalizedPath"
 }
