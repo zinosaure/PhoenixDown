@@ -27,6 +27,8 @@ import com.swordfish.lemuroid.common.displayToast
 import com.swordfish.lemuroid.common.kotlin.NTuple2
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
 import dagger.android.support.AndroidSupportInjection
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -187,12 +189,14 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
 
         refreshSourcesSection()
         refreshStorageLocationSummaries()
+        refreshSmbLoginProfilesSection()
     }
 
     override fun onResume() {
         super.onResume()
         refreshSaveSyncScreen()
         refreshSourcesSection()
+        refreshSmbLoginProfilesSection()
         lifecycleScope.launch {
             refreshCleanupPreferenceSummaries()
             refreshMetadataSummary()
@@ -280,6 +284,107 @@ class TVSettingsFragment : LeanbackPreferenceFragmentCompat() {
             }
         }
         category.addPreference(addPref)
+    }
+
+    private fun refreshSmbLoginProfilesSection() {
+        val category = findPreference<androidx.preference.PreferenceCategory>("pref_category_tv_smb_logins") ?: return
+        val ctx = requireContext()
+        val repo = SmbLoginProfileRepository(ctx)
+        seedExistingSmbLoginProfiles(repo)
+        val profiles = repo.getProfiles()
+
+        val keysToRemove = (0 until category.preferenceCount)
+            .mapNotNull { category.getPreference(it).key }
+            .filter { it.startsWith("dyn_smb_login_") || it == "dyn_add_smb_login" }
+        keysToRemove.forEach { key -> category.findPreference<androidx.preference.Preference>(key)?.let { category.removePreference(it) } }
+
+        profiles.forEachIndexed { index, profile ->
+            val pref = androidx.preference.Preference(ctx).apply {
+                key = "dyn_smb_login_$index"
+                title = profile.name
+                summary = if (profile.username.isNotBlank()) {
+                    "${profile.server} • ${profile.username}"
+                } else {
+                    profile.server
+                }
+                isIconSpaceReserved = false
+                setOnPreferenceClickListener {
+                    showSmbLoginProfileDialog(profile)
+                    true
+                }
+            }
+            category.addPreference(pref)
+        }
+
+        val addPref = androidx.preference.Preference(ctx).apply {
+            key = "dyn_add_smb_login"
+            title = getString(R.string.settings_smb_login_add_action)
+            summary = getString(R.string.settings_smb_logins_empty)
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                launchSmbProfileConfigActivity(null)
+                true
+            }
+        }
+        category.addPreference(addPref)
+    }
+
+    private fun showSmbLoginProfileDialog(profile: SmbLoginProfile) {
+        val ctx = requireContext()
+        android.app.AlertDialog.Builder(ctx)
+            .setTitle(profile.name)
+            .setItems(arrayOf(getString(R.string.sources_edit), getString(R.string.sources_delete))) { _, which ->
+                when (which) {
+                    0 -> launchSmbProfileConfigActivity(profile.id)
+                    1 -> {
+                        SmbLoginProfileRepository(ctx).removeProfile(profile.id)
+                        refreshSmbLoginProfilesSection()
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun launchSmbProfileConfigActivity(profileId: String?) {
+        startActivity(
+            Intent(requireContext(), TVSmbConfigActivity::class.java)
+                .putExtra(TVSmbConfigActivity.EXTRA_MODE, TVSmbConfigActivity.MODE_PROFILE)
+                .putExtra(TVSmbConfigActivity.EXTRA_PROFILE_ID, profileId),
+        )
+    }
+
+    private fun seedExistingSmbLoginProfiles(repo: SmbLoginProfileRepository) {
+        val ctx = requireContext()
+        val prefs = SharedPreferencesHelper.getSharedPreferences(ctx)
+        com.swordfish.lemuroid.lib.storage.source.SourceRepository(ctx).getCustomSources()
+            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
+            .forEach { source ->
+                val authority = runCatching { Uri.parse(source.path).authority }.getOrNull().orEmpty()
+                repo.rememberConnection(authority, source.credentials)
+            }
+
+        rememberProfileFromUri(
+            repo,
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "",
+        )
+        rememberProfileFromUri(
+            repo,
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "",
+        )
+    }
+
+    private fun rememberProfileFromUri(repo: SmbLoginProfileRepository, uri: String, username: String, password: String) {
+        if (!uri.startsWith("smb://")) return
+        val authority = runCatching { Uri.parse(uri).authority }.getOrNull().orEmpty()
+        repo.rememberConnection(
+            authority,
+            if (username.isNotBlank()) com.swordfish.lemuroid.lib.storage.source.SourceCredentials(username, password) else null,
+        )
     }
 
     private fun getSaveSyncScreen(): PreferenceScreen? {

@@ -25,9 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +51,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -58,6 +63,7 @@ import com.swordfish.lemuroid.app.mobile.feature.catalog.SmbConfigForm
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
@@ -310,6 +316,7 @@ private fun RomsSettings(
 ) {
     val context = LocalContext.current
     val allSources by viewModel.sources.collectAsState()
+    val smbLoginProfiles by viewModel.smbLoginProfiles.collectAsState()
     val customSources = remember(allSources) { allSources.filter { it.type != SourceType.ARCHIVE_ORG } }
 
     val saveLocationUri by viewModel.saveLocationUri.collectAsState()
@@ -320,6 +327,9 @@ private fun RomsSettings(
     var showAddSmbDialog by remember { mutableStateOf(false) }
     var editingLocalSourceId by remember { mutableStateOf<String?>(null) }
     var showAddTypeDialog by remember { mutableStateOf(false) }
+    var editingSmbLoginProfile by remember { mutableStateOf<SmbLoginProfile?>(null) }
+    var showAddSmbLoginDialog by remember { mutableStateOf(false) }
+    var pendingDeleteSmbLoginProfile by remember { mutableStateOf<SmbLoginProfile?>(null) }
 
     // Dialogs to choose save/download location type (local vs SMB)
     var showSavePickerDialog by remember { mutableStateOf(false) }
@@ -407,6 +417,7 @@ private fun RomsSettings(
                     onDismiss = { showAddSmbDialog = false },
                     onBack = { showAddSmbDialog = false },
                     editSource = null,
+                    savedProfiles = smbLoginProfiles,
                     onSave = { name, server, path, credentials ->
                         pendingSourceForPlatform = RomSource.smb(name, server, path, credentials)
                         pendingSourceIsEdit = false
@@ -425,6 +436,7 @@ private fun RomsSettings(
                     onDismiss = { editingSmbSource = null },
                     onBack = { editingSmbSource = null },
                     editSource = editingSmbSource,
+                    savedProfiles = smbLoginProfiles,
                     onSave = { name, server, path, credentials ->
                         editingSmbSource?.let { src ->
                             pendingSourceForPlatform = src.copy(name = name, path = "smb://$server$path", credentials = credentials)
@@ -555,6 +567,7 @@ private fun RomsSettings(
                     } else null,
                     showDisplayNameField = false,
                     fixedDisplayName = "Sauvegardes",
+                    savedProfiles = smbLoginProfiles,
                     onSave = { _, server, path, credentials ->
                         val normalizedPath = if (path.startsWith("/")) path else "/$path"
                         viewModel.setSaveLocation(
@@ -581,6 +594,7 @@ private fun RomsSettings(
                     } else null,
                     showDisplayNameField = false,
                     fixedDisplayName = "Téléchargements",
+                    savedProfiles = smbLoginProfiles,
                     onSave = { _, server, path, credentials ->
                         val normalizedPath = if (path.startsWith("/")) path else "/$path"
                         viewModel.setDownloadSourceId(
@@ -608,6 +622,65 @@ private fun RomsSettings(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteSource = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+
+    if (showAddSmbLoginDialog || editingSmbLoginProfile != null) {
+        val initialProfile = editingSmbLoginProfile
+        AlertDialog(
+            onDismissRequest = {
+                showAddSmbLoginDialog = false
+                editingSmbLoginProfile = null
+            },
+            title = {
+                Text(
+                    stringResource(
+                        if (initialProfile == null) R.string.settings_smb_login_add_title else R.string.settings_smb_login_edit_title,
+                    ),
+                )
+            },
+            text = {
+                SmbLoginProfileForm(
+                    initialProfile = initialProfile,
+                    onSave = { profile ->
+                        viewModel.addOrUpdateSmbLoginProfile(profile)
+                        showAddSmbLoginDialog = false
+                        editingSmbLoginProfile = null
+                    },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddSmbLoginDialog = false
+                        editingSmbLoginProfile = null
+                    },
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    if (pendingDeleteSmbLoginProfile != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteSmbLoginProfile = null },
+            title = { Text(stringResource(R.string.settings_smb_login_remove_title)) },
+            text = { Text(stringResource(R.string.settings_smb_login_remove_message, pendingDeleteSmbLoginProfile?.name ?: "")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingDeleteSmbLoginProfile?.let { viewModel.removeSmbLoginProfile(it.id) }
+                    pendingDeleteSmbLoginProfile = null
+                }) {
+                    Text(stringResource(R.string.game_context_menu_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteSmbLoginProfile = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }
@@ -686,6 +759,42 @@ private fun RomsSettings(
         }
     }
 
+    LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.settings_category_smb_logins)) }) {
+        if (smbLoginProfiles.isEmpty()) {
+            Text(
+                text = stringResource(R.string.settings_smb_logins_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
+            )
+        } else {
+            smbLoginProfiles.forEachIndexed { index, profile ->
+                SmbLoginProfileRow(
+                    profile = profile,
+                    onEdit = { editingSmbLoginProfile = profile },
+                    onDelete = { pendingDeleteSmbLoginProfile = profile },
+                )
+                if (index < smbLoginProfiles.lastIndex) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        ) {
+            Button(
+                onClick = { showAddSmbLoginDialog = true },
+                enabled = !indexingInProgress,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.settings_smb_login_add_action))
+            }
+        }
+    }
+
     // ── Card 2 : Emplacement de stockage ──────────────────────────────────
     LemuroidCardSettingsGroup(
         title = { Text(text = stringResource(id = R.string.settings_category_storage_locations)) },
@@ -728,6 +837,155 @@ private fun RomsSettings(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
+    }
+}
+
+@Composable
+private fun SmbLoginProfileRow(
+    profile: SmbLoginProfile,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val details = if (profile.username.isNotBlank()) {
+        "${profile.server} • ${profile.username}"
+    } else {
+        profile.server
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onEdit)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Dns,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = details,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(modifier = Modifier.clickable(onClick = onDelete)) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmbLoginProfileForm(
+    initialProfile: SmbLoginProfile?,
+    onSave: (SmbLoginProfile) -> Unit,
+) {
+    var name by remember(initialProfile) { mutableStateOf(initialProfile?.name ?: "") }
+    var server by remember(initialProfile) { mutableStateOf(initialProfile?.server?.substringBeforeLast(':', initialProfile.server) ?: "") }
+    var port by remember(initialProfile) {
+        mutableStateOf(
+            initialProfile?.server?.substringAfterLast(':', "")
+                ?.takeIf { it.toIntOrNull() in 1..65535 }
+                ?: "",
+        )
+    }
+    var useAuth by remember(initialProfile) { mutableStateOf(initialProfile?.username?.isNotBlank() == true) }
+    var username by remember(initialProfile) { mutableStateOf(initialProfile?.username ?: "") }
+    var password by remember(initialProfile) { mutableStateOf(initialProfile?.password ?: "") }
+    var showPassword by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text(stringResource(R.string.sources_smb_display_name)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = server,
+                onValueChange = { server = it },
+                label = { Text(stringResource(R.string.sources_smb_server)) },
+                modifier = Modifier.weight(3f),
+                singleLine = true,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedTextField(
+                value = port,
+                onValueChange = { port = it.filter(Char::isDigit).take(5) },
+                label = { Text(stringResource(R.string.sources_smb_port)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = useAuth, onCheckedChange = { useAuth = it })
+            Text(stringResource(R.string.sources_smb_use_auth))
+        }
+        if (useAuth) {
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text(stringResource(R.string.sources_smb_username_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text(stringResource(R.string.sources_smb_password_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { showPassword = !showPassword }) {
+                        Icon(
+                            imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                        )
+                    }
+                },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Button(
+                onClick = {
+                    val trimmedServer = server.trim()
+                    val serverAddress = if (port.isNotBlank()) "$trimmedServer:${port.trim()}" else trimmedServer
+                    onSave(
+                        (initialProfile ?: SmbLoginProfile(name = "", server = "")).copy(
+                            name = name.trim().ifBlank { trimmedServer.substringBefore(':').ifBlank { trimmedServer } },
+                            server = serverAddress,
+                            username = if (useAuth) username.trim() else "",
+                            password = if (useAuth) password else "",
+                        ),
+                    )
+                },
+                enabled = name.isNotBlank() && server.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.sources_save))
+            }
+        }
     }
 }
 

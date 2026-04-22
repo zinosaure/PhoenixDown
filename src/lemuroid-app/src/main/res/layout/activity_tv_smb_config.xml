@@ -32,6 +32,17 @@
             android:textColor="#999999"
             android:layout_marginBottom="24dp" />
 
+            <Button
+                android:id="@+id/smb_saved_login_button"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:text="@string/sources_smb_saved_profile_pick"
+                android:textColor="@android:color/white"
+                android:background="#555555"
+                android:paddingHorizontal="20dp"
+                android:focusable="true"
+                android:layout_marginBottom="16dp" />
+
         <!-- Form Card -->
         <LinearLayout
             android:layout_width="550dp"
@@ -108,6 +119,7 @@
 
             <!-- Path -->
             <TextView
+                android:id="@+id/smb_path_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/smb_library_path"

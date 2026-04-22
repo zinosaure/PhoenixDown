@@ -253,6 +253,7 @@
 
     <!-- Storage locations section -->
     <string name="settings_category_storage_locations">Storage locations</string>
+    <string name="settings_category_smb_logins">SMB logins</string>
     <string name="settings_category_library">Game library</string>
     <string name="settings_library_empty">No folder configured. Press + to add one.</string>
     <string name="settings_title_save_location">Save location</string>
@@ -265,6 +266,12 @@
     <string name="settings_picker_local_folder">Local folder</string>
     <string name="settings_picker_smb_server">SMB server (network)</string>
     <string name="settings_picker_reset">Reset (default)</string>
+    <string name="settings_smb_logins_empty">No SMB login saved yet. Saved servers and credentials will appear here and can be reused in network folders.</string>
+    <string name="settings_smb_login_add_action">Add SMB login</string>
+    <string name="settings_smb_login_add_title">Add SMB login</string>
+    <string name="settings_smb_login_edit_title">Edit SMB login</string>
+    <string name="settings_smb_login_remove_title">Remove SMB login</string>
+    <string name="settings_smb_login_remove_message">Remove the SMB login "%1$s"?</string>
     <!-- Platform hint dialog -->
     <string name="settings_platform_dialog_title">Plateforme du dossier</string>
     <string name="settings_platform_dialog_desc">Choisissez la console associée à ce dossier. Recommandé si les jeux sont en .zip ou dans un dossier mixte.</string>
@@ -398,6 +405,8 @@
     <string name="sources_smb_path_placeholder">/share/roms/snes</string>
     <string name="sources_smb_path_hint">Full path including share name</string>
     <string name="sources_smb_use_auth">Use authentication</string>
+    <string name="sources_smb_saved_profile_pick">Use a saved SMB login</string>
+    <string name="sources_smb_saved_profile_title">Saved SMB logins</string>
     <string name="sources_smb_username_label">Username</string>
     <string name="sources_smb_password_label">Password</string>
     <string name="sources_smb_edit_title">Edit SMB Source</string>
@@ -418,6 +427,10 @@
     <string name="tv_smb_download_description">Configure the network folder used to store downloaded ROMs.</string>
     <string name="tv_smb_save_configured_successfully">SMB save location configured successfully</string>
     <string name="tv_smb_download_configured_successfully">SMB download location configured successfully</string>
+    <string name="tv_smb_profile_title">SMB login</string>
+    <string name="tv_smb_profile_description">Save a reusable SMB server login for TV settings.</string>
+    <string name="tv_smb_profile_configured_successfully">SMB login saved successfully</string>
+    <string name="tv_smb_saved_login_empty">No saved SMB login available yet</string>
 
     <!-- Catalog screen -->
     <string name="catalog_filter_cloud">Archive.org</string>

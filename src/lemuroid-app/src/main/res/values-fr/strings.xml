@@ -1,5 +1,6 @@
 <resources>
     <string name="settings_category_storage_locations">Emplacements de stockage</string>
+    <string name="settings_category_smb_logins">Connexions SMB</string>
     <string name="settings_category_library">Bibliothèque de jeux</string>
     <string name="settings_library_empty">Aucun dossier configuré. Appuyez sur + pour en ajouter un.</string>
     <string name="settings_title_save_location">Emplacement des sauvegardes</string>
@@ -12,6 +13,14 @@
     <string name="settings_picker_local_folder">Dossier local</string>
     <string name="settings_picker_smb_server">Serveur SMB (réseau)</string>
     <string name="settings_picker_reset">Réinitialiser (défaut)</string>
+    <string name="settings_smb_logins_empty">Aucune connexion SMB enregistrée pour le moment. Les serveurs et identifiants sauvegardés apparaîtront ici et pourront être réutilisés pour les dossiers réseau.</string>
+    <string name="settings_smb_login_add_action">Ajouter une connexion SMB</string>
+    <string name="settings_smb_login_add_title">Ajouter une connexion SMB</string>
+    <string name="settings_smb_login_edit_title">Modifier la connexion SMB</string>
+    <string name="settings_smb_login_remove_title">Supprimer la connexion SMB</string>
+    <string name="settings_smb_login_remove_message">Supprimer la connexion SMB "%1$s" ?</string>
+    <string name="sources_smb_saved_profile_pick">Utiliser une connexion SMB enregistrée</string>
+    <string name="sources_smb_saved_profile_title">Connexions SMB enregistrées</string>
 
     <string name="tv_smb_save_title">Emplacement des sauvegardes (SMB)</string>
     <string name="tv_smb_save_description">Configurez le dossier réseau utilisé pour stocker les sauvegardes et états.</string>
@@ -19,4 +28,8 @@
     <string name="tv_smb_download_description">Configurez le dossier réseau utilisé pour stocker les ROMs téléchargées.</string>
     <string name="tv_smb_save_configured_successfully">Emplacement SMB des sauvegardes configuré avec succès</string>
     <string name="tv_smb_download_configured_successfully">Emplacement SMB des téléchargements configuré avec succès</string>
+    <string name="tv_smb_profile_title">Connexion SMB</string>
+    <string name="tv_smb_profile_description">Enregistrez un login SMB réutilisable pour les réglages TV.</string>
+    <string name="tv_smb_profile_configured_successfully">Connexion SMB enregistrée avec succès</string>
+    <string name="tv_smb_saved_login_empty">Aucune connexion SMB enregistrée pour le moment</string>
 </resources>

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
 import com.swordfish.lemuroid.lib.storage.source.SourceCredentials as SmbCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceType
 import androidx.compose.ui.window.Dialog
@@ -143,6 +144,7 @@ fun SmbConfigForm(
     editSource: RomSource?,
     showDisplayNameField: Boolean = true,
     fixedDisplayName: String? = null,
+    savedProfiles: List<SmbLoginProfile> = emptyList(),
 ) {
     var name by remember { mutableStateOf(fixedDisplayName ?: editSource?.name ?: "") }
     var server by remember { mutableStateOf("") }
@@ -152,6 +154,8 @@ fun SmbConfigForm(
     var username by remember { mutableStateOf(editSource?.credentials?.username ?: "") }
     var password by remember { mutableStateOf(editSource?.credentials?.password ?: "") }
     var showPassword by remember { mutableStateOf(false) }
+    var selectedProfileId by remember { mutableStateOf<String?>(null) }
+    var showSavedProfilesDialog by remember { mutableStateOf(false) }
     
     // Test connection state
     var connectionTestState by remember { mutableStateOf<ConnectionTestState>(ConnectionTestState.Idle) }
@@ -171,6 +175,28 @@ fun SmbConfigForm(
         } else {
             host
         }
+    }
+
+    fun applyProfile(profile: SmbLoginProfile) {
+        val separator = profile.server.lastIndexOf(':')
+        if (separator > 0 && separator < profile.server.lastIndex) {
+            val maybePort = profile.server.substring(separator + 1)
+            if (maybePort.toIntOrNull() in 1..65535) {
+                server = profile.server.substring(0, separator)
+                port = maybePort
+            } else {
+                server = profile.server
+                port = ""
+            }
+        } else {
+            server = profile.server
+            port = ""
+        }
+        useAuth = profile.username.isNotBlank()
+        username = profile.username
+        password = profile.password
+        selectedProfileId = profile.id
+        connectionTestState = ConnectionTestState.Idle
     }
     
     // Parse existing SMB path if editing
@@ -202,6 +228,11 @@ fun SmbConfigForm(
                 path = ""
             }
             useAuth = editSource.credentials != null
+            val matchedProfile = savedProfiles.firstOrNull {
+                it.server.equals(buildServerAddress(), ignoreCase = true) &&
+                    it.username == (editSource.credentials?.username ?: "")
+            }
+            selectedProfileId = matchedProfile?.id
         }
     }
     
@@ -224,6 +255,20 @@ fun SmbConfigForm(
         }
         
         Spacer(modifier = Modifier.height(16.dp))
+
+        if (savedProfiles.isNotEmpty()) {
+            val selectedProfile = savedProfiles.firstOrNull { it.id == selectedProfileId }
+            OutlinedButton(
+                onClick = { showSavedProfilesDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = selectedProfile?.name ?: stringResource(R.string.sources_smb_saved_profile_pick),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
         
         if (showDisplayNameField) {
             OutlinedTextField(
@@ -418,6 +463,45 @@ fun SmbConfigForm(
                 }
             }
         }
+    }
+
+    if (showSavedProfilesDialog) {
+        AlertDialog(
+            onDismissRequest = { showSavedProfilesDialog = false },
+            title = { Text(stringResource(R.string.sources_smb_saved_profile_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    savedProfiles.forEach { profile ->
+                        TextButton(
+                            onClick = {
+                                applyProfile(profile)
+                                showSavedProfilesDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(text = profile.name)
+                                Text(
+                                    text = if (profile.username.isNotBlank()) {
+                                        "${profile.server} • ${profile.username}"
+                                    } else {
+                                        profile.server
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showSavedProfilesDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 

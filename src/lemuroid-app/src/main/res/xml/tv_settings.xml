@@ -29,6 +29,11 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pref_category_tv_smb_logins"
+        android:title="@string/settings_category_smb_logins"
+        app:iconSpaceReserved="false" />
+
+    <PreferenceCategory
         android:title="@string/settings_category_general"
         app:iconSpaceReserved="false">
 

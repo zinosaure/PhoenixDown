@@ -12,6 +12,9 @@ import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.storage.smb.SmbClient
 import com.swordfish.lemuroid.lib.storage.smb.SmbCredentials
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,16 +27,25 @@ import kotlinx.coroutines.withContext
 class TVSmbConfigActivity : FragmentActivity() {
     private lateinit var titleText: TextView
     private lateinit var descriptionText: TextView
+    private lateinit var pathLabel: TextView
     
+    private lateinit var savedLoginButton: Button
     private lateinit var serverInput: EditText
     private lateinit var portInput: EditText
     private lateinit var pathInput: EditText
     private lateinit var usernameInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var statusText: TextView
+    private lateinit var testButton: Button
+
+    private val smbLoginProfileRepository by lazy { SmbLoginProfileRepository(this) }
 
     private val mode: String by lazy {
         intent.getStringExtra(EXTRA_MODE) ?: MODE_LIBRARY
+    }
+
+    private val profileId: String? by lazy {
+        intent.getStringExtra(EXTRA_PROFILE_ID)
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,20 +55,25 @@ class TVSmbConfigActivity : FragmentActivity() {
         // Find views
         titleText = findViewById(R.id.smb_title_text)
         descriptionText = findViewById(R.id.smb_description_text)
+        pathLabel = findViewById(R.id.smb_path_label)
+        savedLoginButton = findViewById(R.id.smb_saved_login_button)
         serverInput = findViewById(R.id.smb_server_input)
         portInput = findViewById(R.id.smb_port_input)
         pathInput = findViewById(R.id.smb_path_input)
         usernameInput = findViewById(R.id.smb_username_input)
         passwordInput = findViewById(R.id.smb_password_input)
         statusText = findViewById(R.id.smb_status_text)
+        testButton = findViewById(R.id.smb_test_button)
 
         configureTextsForMode()
+        configureVisibilityForMode()
         
         // Load existing values
         loadExistingConfig()
         
         // Set up buttons
-        findViewById<Button>(R.id.smb_test_button).setOnClickListener { testConnection() }
+        savedLoginButton.setOnClickListener { showSavedLoginPicker() }
+        testButton.setOnClickListener { testConnection() }
         findViewById<Button>(R.id.smb_save_button).setOnClickListener { saveAndFinish() }
         findViewById<Button>(R.id.smb_cancel_button).setOnClickListener { finish() }
         
@@ -76,11 +93,23 @@ class TVSmbConfigActivity : FragmentActivity() {
                 titleText.setText(R.string.tv_smb_download_title)
                 descriptionText.setText(R.string.tv_smb_download_description)
             }
+            MODE_PROFILE -> {
+                titleText.setText(R.string.tv_smb_profile_title)
+                descriptionText.setText(R.string.tv_smb_profile_description)
+            }
             else -> {
                 titleText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_title)
                 descriptionText.setText(com.swordfish.lemuroid.lib.R.string.smb_library_description)
             }
         }
+    }
+
+    private fun configureVisibilityForMode() {
+        val isProfileMode = mode == MODE_PROFILE
+        savedLoginButton.visibility = if (isProfileMode) View.GONE else View.VISIBLE
+        pathLabel.visibility = if (isProfileMode) View.GONE else View.VISIBLE
+        pathInput.visibility = if (isProfileMode) View.GONE else View.VISIBLE
+        testButton.visibility = if (isProfileMode) View.GONE else View.VISIBLE
     }
 
     private fun loadExistingConfig() {
@@ -107,6 +136,14 @@ class TVSmbConfigActivity : FragmentActivity() {
                 usernameInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, ""))
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, ""))
             }
+            MODE_PROFILE -> {
+                val profile = smbLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
+                val (host, port) = splitHostAndPort(profile?.server.orEmpty())
+                serverInput.setText(host)
+                portInput.setText(port)
+                usernameInput.setText(profile?.username.orEmpty())
+                passwordInput.setText(profile?.password.orEmpty())
+            }
             else -> {
                 val savedServer = prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_SERVER, "") ?: ""
                 val (host, port) = splitHostAndPort(savedServer)
@@ -127,6 +164,40 @@ class TVSmbConfigActivity : FragmentActivity() {
                 passwordInput.setText(prefs.getString(SharedPreferencesHelper.KEY_SMB_LIBRARY_PASSWORD, ""))
             }
         }
+    }
+
+    private fun showSavedLoginPicker() {
+        seedExistingProfiles()
+        val profiles = smbLoginProfileRepository.getProfiles()
+        if (profiles.isEmpty()) {
+            Toast.makeText(this, getString(R.string.tv_smb_saved_login_empty), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val labels = profiles.map { profile ->
+            if (profile.username.isNotBlank()) {
+                "${profile.name} (${profile.username}@${profile.server})"
+            } else {
+                "${profile.name} (${profile.server})"
+            }
+        }.toTypedArray()
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.sources_smb_saved_profile_title)
+            .setItems(labels) { _, which ->
+                applyProfile(profiles[which])
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun applyProfile(profile: SmbLoginProfile) {
+        val (host, port) = splitHostAndPort(profile.server)
+        serverInput.setText(host)
+        portInput.setText(port)
+        usernameInput.setText(profile.username)
+        passwordInput.setText(profile.password)
+        statusText.visibility = View.GONE
     }
 
     private fun testConnection() {
@@ -175,6 +246,30 @@ class TVSmbConfigActivity : FragmentActivity() {
         val fullPath = normalizePath(pathInput.text.toString().trim())
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
+
+        if (mode == MODE_PROFILE) {
+            if (server.isBlank()) {
+                statusText.text = getString(R.string.tv_smb_enter_server_and_path)
+                statusText.setTextColor(getColor(android.R.color.holo_red_light))
+                statusText.visibility = View.VISIBLE
+                return
+            }
+
+            val existing = smbLoginProfileRepository.getProfiles().firstOrNull { it.id == profileId }
+            val profileName = existing?.name ?: server.substringBefore(':').ifBlank { server }
+            smbLoginProfileRepository.addOrUpdateProfile(
+                SmbLoginProfile(
+                    id = existing?.id ?: SmbLoginProfile(name = profileName, server = server).id,
+                    name = profileName,
+                    server = server,
+                    username = username,
+                    password = password,
+                ),
+            )
+            Toast.makeText(this, getString(R.string.tv_smb_profile_configured_successfully), Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
         
         android.util.Log.e("ANTIGRAVITY", "UI Save: User Input Path: '$fullPath'")
         
@@ -213,6 +308,7 @@ class TVSmbConfigActivity : FragmentActivity() {
                     putString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, password)
                     apply()
                 }
+                rememberLogin(server, username, password)
                 Toast.makeText(this, getString(R.string.tv_smb_save_configured_successfully), Toast.LENGTH_SHORT).show()
             }
             MODE_DOWNLOAD -> {
@@ -222,6 +318,7 @@ class TVSmbConfigActivity : FragmentActivity() {
                     putString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, password)
                     apply()
                 }
+                rememberLogin(server, username, password)
                 Toast.makeText(this, getString(R.string.tv_smb_download_configured_successfully), Toast.LENGTH_SHORT).show()
             }
             else -> {
@@ -236,11 +333,47 @@ class TVSmbConfigActivity : FragmentActivity() {
                     apply()
                 }
 
+                rememberLogin(server, username, password)
                 LibraryIndexScheduler.scheduleLibrarySync(this)
                 Toast.makeText(this, getString(R.string.tv_smb_configured_successfully), Toast.LENGTH_SHORT).show()
             }
         }
         finish()
+    }
+
+    private fun rememberLogin(server: String, username: String, password: String) {
+        smbLoginProfileRepository.rememberConnection(
+            server,
+            if (username.isNotBlank()) SourceCredentials(username, password) else null,
+        )
+    }
+
+    private fun seedExistingProfiles() {
+        val prefs = SharedPreferencesHelper.getSharedPreferences(this)
+        val sourceRepo = com.swordfish.lemuroid.lib.storage.source.SourceRepository(this)
+        sourceRepo.getCustomSources()
+            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
+            .forEach { source ->
+                val authority = runCatching { android.net.Uri.parse(source.path).authority }.getOrNull().orEmpty()
+                smbLoginProfileRepository.rememberConnection(authority, source.credentials)
+            }
+
+        rememberLoginFromUri(
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "",
+        )
+        rememberLoginFromUri(
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "",
+        )
+    }
+
+    private fun rememberLoginFromUri(uri: String, username: String, password: String) {
+        if (!uri.startsWith("smb://")) return
+        val authority = runCatching { android.net.Uri.parse(uri).authority }.getOrNull().orEmpty()
+        rememberLogin(authority, username, password)
     }
 
     private fun normalizePath(path: String): String {
@@ -299,8 +432,10 @@ class TVSmbConfigActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_MODE = "mode"
+        const val EXTRA_PROFILE_ID = "profile_id"
         const val MODE_LIBRARY = "library"
         const val MODE_SAVE = "save"
         const val MODE_DOWNLOAD = "download"
+        const val MODE_PROFILE = "profile"
     }
 }

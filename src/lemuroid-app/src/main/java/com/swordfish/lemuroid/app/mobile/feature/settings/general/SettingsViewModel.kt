@@ -12,6 +12,9 @@ import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
 import com.swordfish.lemuroid.lib.savesync.SaveSyncManager
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.lib.storage.source.RomSource
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfile
+import com.swordfish.lemuroid.lib.storage.source.SmbLoginProfileRepository
+import com.swordfish.lemuroid.lib.storage.source.SourceCredentials
 import com.swordfish.lemuroid.lib.storage.source.SourceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import android.net.Uri
 
 class SettingsViewModel(
     private val context: Context,
@@ -53,15 +57,27 @@ class SettingsViewModel(
     val directoryScanInProgress = PendingOperationsMonitor(context).isDirectoryScanInProgress()
 
     private val sourceRepository = SourceRepository(context)
+    private val smbLoginProfileRepository = SmbLoginProfileRepository(context)
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            seedSmbLoginProfiles()
+        }
+    }
 
     /** Live list of user-configured ROM sources, auto-updated via in-process SharedFlow. */
     val sources: StateFlow<List<RomSource>> = sourceRepository.sourcesFlow()
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), sourceRepository.getSources())
 
+    val smbLoginProfiles: StateFlow<List<SmbLoginProfile>> = smbLoginProfileRepository.profilesFlow()
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), smbLoginProfileRepository.getProfiles())
+
     fun addSource(source: RomSource) {
         viewModelScope.launch(Dispatchers.IO) {
             sourceRepository.addSource(source)
+            rememberSmbLogin(source.path, source.credentials)
             LibraryIndexScheduler.scheduleLibrarySync(context)
         }
     }
@@ -69,6 +85,7 @@ class SettingsViewModel(
     fun updateSource(source: RomSource) {
         viewModelScope.launch(Dispatchers.IO) {
             sourceRepository.updateSource(source)
+            rememberSmbLogin(source.path, source.credentials)
             LibraryIndexScheduler.scheduleLibrarySync(context)
         }
     }
@@ -112,6 +129,7 @@ class SettingsViewModel(
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "").set(uri)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "").set(username)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "").set(password)
+        rememberSmbLogin(uri, username, password)
     }
 
     /** Download location: RomSource ID. Empty = Android /Downloads. */
@@ -125,5 +143,51 @@ class SettingsViewModel(
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "").set(id)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "").set(username)
         sharedPreferences.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "").set(password)
+        rememberSmbLogin(id, username, password)
+    }
+
+    fun addOrUpdateSmbLoginProfile(profile: SmbLoginProfile) {
+        viewModelScope.launch(Dispatchers.IO) {
+            smbLoginProfileRepository.addOrUpdateProfile(profile)
+        }
+    }
+
+    fun removeSmbLoginProfile(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            smbLoginProfileRepository.removeProfile(id)
+        }
+    }
+
+    private fun rememberSmbLogin(uri: String, username: String, password: String) {
+        val credentials = if (username.isNotBlank()) SourceCredentials(username, password) else null
+        rememberSmbLogin(uri, credentials)
+    }
+
+    private fun rememberSmbLogin(uri: String, credentials: SourceCredentials?) {
+        if (!uri.startsWith("smb://")) return
+        val authority = runCatching { Uri.parse(uri).authority }.getOrNull().orEmpty()
+        smbLoginProfileRepository.rememberConnection(authority, credentials)
+    }
+
+    private fun seedSmbLoginProfiles() {
+        sourceRepository.getCustomSources()
+            .filter { it.type == com.swordfish.lemuroid.lib.storage.source.SourceType.SMB }
+            .forEach { source ->
+                rememberSmbLogin(source.path, source.credentials)
+            }
+
+        val prefs = SharedPreferencesHelper.getSharedPreferences(context)
+        rememberSmbLogin(
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_LOCATION_URI, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_USERNAME, "")?.takeIf { it.isNotBlank() }?.let {
+                SourceCredentials(it, prefs.getString(SharedPreferencesHelper.KEY_SAVE_SMB_PASSWORD, "") ?: "")
+            },
+        )
+        rememberSmbLogin(
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SOURCE_ID, "") ?: "",
+            prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_USERNAME, "")?.takeIf { it.isNotBlank() }?.let {
+                SourceCredentials(it, prefs.getString(SharedPreferencesHelper.KEY_DOWNLOAD_SMB_PASSWORD, "") ?: "")
+            },
+        )
     }
 }
